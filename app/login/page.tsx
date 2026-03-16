@@ -17,25 +17,32 @@ export default function LoginPage() {
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
         setIsLoading(true)
+        try {
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9001'
+            const res = await fetch(`${API_URL}/api/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            })
+            const data = await res.json()
 
-        // Simulando verificação de backend
-        setTimeout(() => {
+            if (!res.ok) throw new Error(data.error || 'Credenciais inválidas')
+
+            document.cookie = `vulncontrol_token=${data.token}; path=/; max-age=86400; SameSite=Lax`
+            localStorage.setItem('vulncontrol_user', JSON.stringify(data.user))
+
+            toast.success("Login aprovado", {
+                description: `Bem-vindo, ${data.user.name}`
+            })
+            router.push("/")
+            router.refresh()
+        } catch (err: any) {
+            toast.error("Acesso Negado", {
+                description: err.message || "E-mail ou senha incorretos."
+            })
+        } finally {
             setIsLoading(false)
-
-            if (email.includes("@credsystem.com") && password.length >= 6) {
-                // Instala o cookie de autenticação
-                document.cookie = "vulncontrol_auth=authenticated; path=/; max-age=86400"
-                toast.success("Login aprovado", {
-                    description: "Bem-vindo ao Credsystem VulnControl."
-                })
-                router.push("/")
-                router.refresh()
-            } else {
-                toast.error("Acesso Negado", {
-                    description: "E-mail ou senha incorretos. Apenas membros CSec autorizados."
-                })
-            }
-        }, 1500)
+        }
     }
 
     return (
