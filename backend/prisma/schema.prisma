@@ -1,0 +1,401 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// AUTH & USERS
+// ============================================================
+
+enum Role {
+  ADMIN
+  SEGURANCA
+  GESTOR
+  SQUAD
+  LEITURA
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      Role     @default(LEITURA)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  refreshTokens  RefreshToken[]
+  vulnerabilities Vulnerability[]  @relation("CreatedBy")
+  updatedVulns   Vulnerability[]  @relation("UpdatedBy")
+  comments       VulnerabilityComment[]
+  historyEntries VulnerabilityHistory[]
+  importJobs     ImportJob[]
+  notifications  NotificationLog[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+// ============================================================
+// VULNERABILITIES
+// ============================================================
+
+enum Criticidade {
+  EXTREMA
+  CRITICA
+  ALTA
+  MEDIA
+  BAIXA
+  INFORMATIVA
+}
+
+enum VulnStatus {
+  NOVO
+  ABERTO
+  EM_BACKLOG
+  EM_CORRECAO
+  EM_RETESTE
+  MITIGADO
+  CONCLUIDO
+  RISCO_ACEITO
+  FECHADO
+}
+
+enum Origem {
+  PENTEST
+  DAST
+  SAST
+  SCA
+  BUG_BOUNTY
+  MANUAL
+  MONITORAMENTO
+  CODE_REVIEW
+}
+
+enum Ambiente {
+  PRODUCAO
+  HOMOLOGACAO
+  DESENVOLVIMENTO
+  STAGING
+}
+
+model Vulnerability {
+  id               String       @id @default(uuid())
+  codigoInterno    String       @unique @map("codigo_interno")
+  jiraKey          String?      @map("jira_key")
+  titulo           String
+  descricaoExecutiva String     @map("descricao_executiva") @db.Text
+  descricaoTecnica String       @map("descricao_tecnica") @db.Text
+  criticidade      Criticidade
+  status           VulnStatus   @default(NOVO)
+  scoreCvss        Float?       @map("score_cvss")
+  vetorCvss        String?      @map("vetor_cvss")
+  cwe              String?
+  owaspCategory    String?      @map("owasp_category")
+  origem           Origem
+  squad            String
+  responsavel      String?
+  gestor           String?
+  sistema          String
+  ativo            String
+  componente       String?
+  ambiente         Ambiente     @default(PRODUCAO)
+  endpoint         String?
+  metodoHttp       String?      @map("metodo_http")
+  parametroAfetado String?      @map("parametro_afetado")
+  evidenciaTextual String?      @map("evidencia_textual") @db.Text
+  recomendacao     String?      @db.Text
+  impacto          String?      @db.Text
+  observacao       String?      @db.Text
+  tipo             String?      @default("Aplicação")
+  dataDeteccao     DateTime?    @map("data_deteccao")
+  tags             String[]     @default([])
+  reincidencia     Int          @default(0)
+  sla              DateTime?
+  diasEmAberto     Int          @default(0) @map("dias_em_aberto")
+  dataCriacao      DateTime     @default(now()) @map("data_criacao")
+  ultimaAtualizacao DateTime    @updatedAt @map("ultima_atualizacao")
+
+  createdById      String       @map("created_by_id")
+  updatedById      String?      @map("updated_by_id")
+
+  createdBy   User @relation("CreatedBy", fields: [createdById], references: [id])
+  updatedBy   User? @relation("UpdatedBy", fields: [updatedById], references: [id])
+
+  history      VulnerabilityHistory[]
+  comments     VulnerabilityComment[]
+  attachments  VulnerabilityAttachment[]
+  jiraSyncLogs JiraSyncLog[]
+
+  @@index([criticidade])
+  @@index([status])
+  @@index([squad])
+  @@index([origem])
+  @@index([owaspCategory])
+  @@map("vulnerabilities")
+}
+
+
+// ============================================================
+// COMMENTS
+// ============================================================
+
+model VulnerabilityComment {
+  id              String   @id @default(uuid())
+  vulnerabilityId String   @map("vulnerability_id")
+  authorId        String   @map("author_id")
+  text            String   @db.Text
+  type            String?  // observacao, decisao, tecnico, update
+  editedAt        DateTime? @map("edited_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  vulnerability Vulnerability @relation(fields: [vulnerabilityId], references: [id], onDelete: Cascade)
+  author        User          @relation(fields: [authorId], references: [id])
+  attachments   CommentAttachment[]
+
+  @@map("vulnerability_comments")
+}
+
+model CommentAttachment {
+  id        String @id @default(uuid())
+  commentId String @map("comment_id")
+  filename  String
+  path      String
+  mimeType  String @map("mime_type")
+  size      Int
+  createdAt DateTime @default(now()) @map("created_at")
+
+  comment VulnerabilityComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@map("comment_attachments")
+}
+
+// ============================================================
+// HISTORY
+// ============================================================
+
+enum HistoryEventType {
+  CRIACAO
+  STATUS_ALTERADO
+  CRITICIDADE_ALTERADA
+  RESPONSAVEL_ALTERADO
+  SLA_ALTERADO
+  SYNC_JIRA
+  EVIDENCIA_ADICIONADA
+  NOTIFICACAO_ENVIADA
+  REABERTURA
+  CONCLUSAO
+  CAMPO_ALTERADO
+}
+
+model VulnerabilityHistory {
+  id              String           @id @default(uuid())
+  vulnerabilityId String           @map("vulnerability_id")
+  eventType       HistoryEventType @map("event_type")
+  description     String
+  previousValue   String?          @map("previous_value")
+  newValue        String?          @map("new_value")
+  userId          String?          @map("user_id")
+  createdAt       DateTime         @default(now()) @map("created_at")
+
+  vulnerability Vulnerability @relation(fields: [vulnerabilityId], references: [id], onDelete: Cascade)
+  user          User?         @relation(fields: [userId], references: [id])
+
+  @@index([vulnerabilityId])
+  @@map("vulnerability_history")
+}
+
+// ============================================================
+// ATTACHMENTS
+// ============================================================
+
+enum AttachmentType {
+  EVIDENCIA
+  SCREENSHOT
+  DOCUMENTO
+  OUTRO
+}
+
+model VulnerabilityAttachment {
+  id              String         @id @default(uuid())
+  vulnerabilityId String         @map("vulnerability_id")
+  filename        String
+  originalName    String         @map("original_name")
+  path            String
+  mimeType        String         @map("mime_type")
+  size            Int
+  type            AttachmentType @default(EVIDENCIA)
+  createdAt       DateTime       @default(now()) @map("created_at")
+
+  vulnerability Vulnerability @relation(fields: [vulnerabilityId], references: [id], onDelete: Cascade)
+
+  @@map("vulnerability_attachments")
+}
+
+// ============================================================
+// JIRA INTEGRATION
+// ============================================================
+
+model JiraIntegration {
+  id             String   @id @default(uuid())
+  instanceUrl    String   @map("instance_url")
+  email          String
+  apiToken       String   @map("api_token")
+  projectKeys    String[] @map("project_keys")
+  fieldMappings  Json?    @map("field_mappings")
+  active         Boolean  @default(true)
+  lastSyncAt     DateTime? @map("last_sync_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  syncLogs JiraSyncLog[]
+
+  @@map("jira_integrations")
+}
+
+model JiraSyncLog {
+  id              String   @id @default(uuid())
+  integrationId   String   @map("integration_id")
+  vulnerabilityId String?  @map("vulnerability_id")
+  issueKey        String?  @map("issue_key")
+  action          String   // import, sync, update
+  status          String   // success, error, skipped
+  details         String?  @db.Text
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  integration   JiraIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  vulnerability Vulnerability?  @relation(fields: [vulnerabilityId], references: [id])
+
+  @@map("jira_sync_logs")
+}
+
+// ============================================================
+// IMPORT
+// ============================================================
+
+enum ImportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model ImportJob {
+  id           String       @id @default(uuid())
+  filename     String
+  originalName String       @map("original_name")
+  format       String       // csv, xlsx
+  status       ImportStatus @default(PENDING)
+  totalRows    Int?         @map("total_rows")
+  imported     Int          @default(0)
+  errors       Int          @default(0)
+  skipped      Int          @default(0)
+  errorLog     Json?        @map("error_log")
+  userId       String       @map("user_id")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  completedAt  DateTime?    @map("completed_at")
+
+  user  User            @relation(fields: [userId], references: [id])
+  items ImportJobItem[]
+
+  @@map("import_jobs")
+}
+
+model ImportJobItem {
+  id        String  @id @default(uuid())
+  jobId     String  @map("job_id")
+  rowNumber Int     @map("row_number")
+  data      Json
+  status    String  // imported, error, duplicate, skipped
+  error     String?
+
+  job ImportJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@map("import_job_items")
+}
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+
+enum NotificationChannel {
+  EMAIL
+  SLACK
+  TEAMS
+}
+
+model NotificationRule {
+  id        String              @id @default(uuid())
+  name      String
+  condition String              @db.Text
+  channel   NotificationChannel @default(EMAIL)
+  recipients String[]
+  active    Boolean             @default(true)
+  template  String?             @db.Text
+  createdAt DateTime            @default(now()) @map("created_at")
+  updatedAt DateTime            @updatedAt @map("updated_at")
+
+  logs NotificationLog[]
+
+  @@map("notification_rules")
+}
+
+model NotificationLog {
+  id          String   @id @default(uuid())
+  ruleId      String?  @map("rule_id")
+  channel     NotificationChannel
+  recipient   String
+  subject     String
+  body        String   @db.Text
+  status      String   // sent, failed, queued
+  error       String?
+  sentById    String?  @map("sent_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  rule   NotificationRule? @relation(fields: [ruleId], references: [id])
+  sentBy User?             @relation(fields: [sentById], references: [id])
+
+  @@map("notification_logs")
+}
+
+// ============================================================
+// REPORTS
+// ============================================================
+
+model Report {
+  id        String   @id @default(uuid())
+  name      String
+  type      String   // executive, technical, compliance, squad
+  format    String   // pdf, xlsx, csv
+  filters   Json?
+  data      Json?
+  filePath  String?  @map("file_path")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("reports")
+}
+
+model SystemSettings {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+}

@@ -1,0 +1,27 @@
+app/(dashboard)/page.tsx(91,44): error TS2367: This comparison appears to be unintentional because the types '"Aberta" | "Em Backlog" | "Em Correção" | "Em Reteste" | "Concluída" | "Mitigada" | "Risco Aceito" | "Nova"' and '"Corrigida"' have no overlap.
+backend/src/modules/analytics/analytics.service.ts(7,32): error TS2820: Type '"Aberta"' is not assignable to type 'VulnStatus'. Did you mean '"ABERTO"'?
+backend/src/modules/analytics/analytics.service.ts(7,42): error TS2820: Type '"Em Backlog"' is not assignable to type 'VulnStatus'. Did you mean '"EM_BACKLOG"'?
+backend/src/modules/analytics/analytics.service.ts(7,56): error TS2322: Type '"Em Correção"' is not assignable to type 'VulnStatus'.
+backend/src/modules/analytics/analytics.service.ts(7,71): error TS2820: Type '"Em Reteste"' is not assignable to type 'VulnStatus'. Did you mean '"EM_RETESTE"'?
+backend/src/modules/analytics/analytics.service.ts(17,42): error TS2820: Type '"Extrema"' is not assignable to type 'Criticidade'. Did you mean '"EXTREMA"'?
+backend/src/modules/analytics/analytics.service.ts(17,53): error TS2820: Type '"Alta"' is not assignable to type 'Criticidade'. Did you mean '"ALTA"'?
+backend/src/modules/analytics/analytics.service.ts(18,24): error TS2353: Object literal may only specify known properties, and 'createdAt' does not exist in type 'VulnerabilityOrderByWithRelationInput | VulnerabilityOrderByWithRelationInput[]'.
+backend/src/modules/analytics/analytics.service.ts(25,40): error TS2322: Type '"Concluída"' is not assignable to type 'VulnStatus'.
+backend/src/modules/analytics/analytics.service.ts(25,53): error TS2820: Type '"Mitigada"' is not assignable to type 'VulnStatus'. Did you mean '"MITIGADO"'?
+backend/src/modules/analytics/analytics.service.ts(25,65): error TS2820: Type '"Fechada"' is not assignable to type 'VulnStatus'. Did you mean '"FECHADO"'?
+backend/src/modules/analytics/analytics.service.ts(25,76): error TS2820: Type '"Risco Aceito"' is not assignable to type 'VulnStatus'. Did you mean '"RISCO_ACEITO"'?
+backend/src/modules/jira/jira.routes.ts(108,25): error TS2820: Type '"Pentest"' is not assignable to type 'Origem'. Did you mean '"PENTEST"'?
+backend/src/modules/notifications/notifications.service.ts(14,13): error TS2322: Type '{ channel: "EMAIL"; recipient: string; subject: string; status: string; }' is not assignable to type '(Without<NotificationLogCreateInput, NotificationLogUncheckedCreateInput> & NotificationLogUncheckedCreateInput) | (Without<...> & NotificationLogCreateInput)'.
+  Type '{ channel: "EMAIL"; recipient: string; subject: string; status: string; }' is not assignable to type 'Without<NotificationLogUncheckedCreateInput, NotificationLogCreateInput> & NotificationLogCreateInput'.
+    Property 'body' is missing in type '{ channel: "EMAIL"; recipient: string; subject: string; status: string; }' but required in type 'NotificationLogCreateInput'.
+backend/src/modules/notifications/notifications.service.ts(26,17): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Without<VulnerabilityHistoryCreateInput, VulnerabilityHistoryUncheckedCreateInput> & VulnerabilityHistoryUncheckedCreateInput'.
+backend/src/modules/users/users.controller.ts(22,54): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+backend/src/modules/users/users.controller.ts(42,53): error TS2345: Argument of type 'string | string[]' is not assignable to parameter of type 'string'.
+  Type 'string[]' is not assignable to type 'string'.
+backend/src/modules/vulnerabilities/vulnerabilities.service.ts(14,18): error TS2353: Object literal may only specify known properties, and 'createdAt' does not exist in type 'VulnerabilityOrderByWithRelationInput | VulnerabilityOrderByWithRelationInput[]'.
+backend/src/modules/vulnerabilities/vulnerabilities.service.ts(26,22): error TS2353: Object literal may only specify known properties, and 'date' does not exist in type 'VulnerabilityHistoryOrderByWithRelationInput | VulnerabilityHistoryOrderByWithRelationInput[]'.
+backend/src/modules/vulnerabilities/vulnerabilities.service.ts(31,22): error TS2353: Object literal may only specify known properties, and 'user' does not exist in type 'VulnerabilityCommentInclude<DefaultArgs>'.
+backend/src/modules/vulnerabilities/vulnerabilities.service.ts(76,13): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type 'Without<VulnerabilityHistoryCreateInput, VulnerabilityHistoryUncheckedCreateInput> & VulnerabilityHistoryUncheckedCreateInput'.
+backend/src/modules/vulnerabilities/vulnerabilities.service.ts(95,9): error TS2353: Object literal may only specify known properties, and 'userId' does not exist in type 'Without<VulnerabilityCommentCreateInput, VulnerabilityCommentUncheckedCreateInput> & VulnerabilityCommentUncheckedCreateInput'.
+backend/src/modules/vulnerabilities/vulnerabilities.service.ts(98,9): error TS2353: Object literal may only specify known properties, and 'user' does not exist in type 'VulnerabilityCommentInclude<DefaultArgs>'.

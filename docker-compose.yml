@@ -1,0 +1,17 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: vulncontrol_db
+    environment:
+      POSTGRES_USER: vulncontrol
+      POSTGRES_PASSWORD: vulncontrol
+      POSTGRES_DB: vulncontrol
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  pgdata:
