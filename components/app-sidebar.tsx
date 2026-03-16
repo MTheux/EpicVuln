@@ -1,19 +1,23 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { 
-  LayoutDashboard, 
-  Shield, 
-  Brain, 
-  Link2, 
-  Bell, 
+import {
+  LayoutDashboard,
+  Shield,
+  Brain,
+  Link2,
+  Bell,
   FileText,
   Search,
-  ShieldAlert
+  ShieldAlert,
+  LogOut
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { getUser, logout } from "@/lib/auth"
 
 const menuItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -24,8 +28,29 @@ const menuItems = [
   { href: "/relatorios", label: "Relatórios", icon: FileText },
 ]
 
+const roleLabels: Record<string, string> = {
+  ADMIN: 'Admin',
+  SEGURANCA: 'AppSec',
+  GESTOR: 'Gestor',
+  SQUAD: 'Squad',
+  LEITURA: 'Leitura',
+}
+
+const roleColors: Record<string, string> = {
+  ADMIN: 'bg-red-500/20 text-red-400',
+  SEGURANCA: 'bg-purple-500/20 text-purple-400',
+  GESTOR: 'bg-blue-500/20 text-blue-400',
+  SQUAD: 'bg-green-500/20 text-green-400',
+  LEITURA: 'bg-zinc-500/20 text-zinc-400',
+}
+
 export function AppSidebar() {
   const pathname = usePathname()
+  const [user, setUser] = useState<{ name: string; email: string; role: string } | null>(null)
+
+  useEffect(() => {
+    setUser(getUser())
+  }, [])
 
   return (
     <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-sidebar-border bg-sidebar">
@@ -75,16 +100,29 @@ export function AppSidebar() {
         })}
       </nav>
 
-      {/* Footer */}
+      {/* User Footer */}
       <div className="border-t border-sidebar-border p-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-xs font-medium text-primary">
-            CS
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">
+            {user?.name?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'CS'}
           </div>
-          <div className="flex flex-col">
-            <span className="text-sm font-medium text-sidebar-foreground">Credsystem</span>
-            <span className="text-xs text-muted-foreground">Security Team</span>
+          <div className="flex flex-1 flex-col">
+            <span className="text-sm font-medium text-sidebar-foreground">{user?.name || 'Credsystem'}</span>
+            <div className="flex items-center gap-1.5">
+              {user?.role && (
+                <Badge className={cn("text-[10px] px-1.5 py-0", roleColors[user.role] || 'bg-zinc-500/20 text-zinc-400')}>
+                  {roleLabels[user.role] || user.role}
+                </Badge>
+              )}
+            </div>
           </div>
+          <button
+            onClick={logout}
+            className="rounded-lg p-1.5 text-muted-foreground hover:bg-sidebar-accent hover:text-red-400 transition-colors"
+            title="Sair"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </aside>
