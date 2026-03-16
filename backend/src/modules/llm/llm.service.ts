@@ -5,12 +5,19 @@ const prisma = new PrismaClient();
 
 export class LlmService {
   private genAI: GoogleGenerativeAI;
-  
+  private cache: { data: any; timestamp: number } | null = null;
+  private readonly CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+
   constructor() {
     this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'fake-key-waiting-for-user');
   }
 
   async generateAnalysis() {
+    // Check cache before calling Gemini
+    if (this.cache && (Date.now() - this.cache.timestamp) < this.CACHE_TTL) {
+      console.log('Mytchi AI: Retornando resultado do cache.');
+      return { ...this.cache.data, _cached: true, _cachedAt: new Date(this.cache.timestamp).toISOString() };
+    }
     // 1. Puxando as vulnerabilidades ativas da CredSystem para embasar a IA
     const vulnerabilidades = await prisma.vulnerability.findMany({
       where: {
@@ -99,9 +106,15 @@ Massa de dados das ${activeCount} vulnerabilidades: ${contextData}`;
       // Trata markdown
       text = text.replace(/```json/g, '').replace(/```/g, '').trim();
       
-      return JSON.parse(text);
+      const parsed = JSON.parse(text);
+      this.cache = { data: parsed, timestamp: Date.now() };
+      return { ...parsed, _cached: false };
     } catch (e: any) {
       console.error("Gemini Error:", e.message);
+      if (this.cache) {
+        console.log('Mytchi AI: Retornando cache antigo como fallback.');
+        return { ...this.cache.data, _cached: true, _stale: true, _error: e.message };
+      }
       return {
         resumoExecutivo: "Erro ao gerar Relatório Executivo.",
         fortaleza: "Servidor detectou falha ao comunicar com Google Gemini.",
