@@ -12,7 +12,8 @@ import {
   FileText,
   Search,
   ShieldAlert,
-  LogOut
+  LogOut,
+  Users
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
@@ -22,6 +23,7 @@ import { getUser, logout } from "@/lib/auth"
 const menuItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/vulnerabilidades", label: "Vulnerabilidades", icon: Shield },
+  { href: "/squads", label: "Squad Scorecard", icon: Users },
   { href: "/inteligencia", label: "Inteligência", icon: Brain },
   { href: "/integracoes", label: "Integrações", icon: Link2 },
   { href: "/notificacoes", label: "Notificações", icon: Bell },
