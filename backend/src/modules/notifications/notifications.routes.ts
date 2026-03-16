@@ -1,9 +1,12 @@
 import { Request, Response, Router } from 'express';
 import { NotificationsService } from './notifications.service';
-import { AuthRequest } from '../../middleware/auth.middleware';
+import { authenticate, requireRoles, AuthRequest } from '../../middleware/auth.middleware';
 
 const router = Router();
 const service = new NotificationsService();
+
+// All routes require authentication
+router.use(authenticate);
 
 // GET /stats
 router.get('/stats', async (_req: Request, res: Response) => {
@@ -27,7 +30,7 @@ router.get('/logs', async (req: Request, res: Response) => {
 });
 
 // POST /send
-router.post('/send', async (req: AuthRequest, res: Response) => {
+router.post('/send', requireRoles(['ADMIN', 'SEGURANCA', 'GESTOR']), async (req: AuthRequest, res: Response) => {
   try {
     const { squad, motivo, body } = req.body;
     const userId = req.user?.id || 'system';
@@ -39,7 +42,7 @@ router.post('/send', async (req: AuthRequest, res: Response) => {
 });
 
 // POST /trigger/:jobName
-router.post('/trigger/:jobName', async (req: Request, res: Response) => {
+router.post('/trigger/:jobName', requireRoles(['ADMIN', 'SEGURANCA', 'GESTOR']), async (req: Request, res: Response) => {
   try {
     const jobName = req.params.jobName as string;
     await service.triggerJob(jobName);
@@ -60,7 +63,7 @@ router.get('/rules', async (_req: Request, res: Response) => {
 });
 
 // POST /rules
-router.post('/rules', async (req: Request, res: Response) => {
+router.post('/rules', requireRoles(['ADMIN', 'SEGURANCA', 'GESTOR']), async (req: Request, res: Response) => {
   try {
     const data = await service.createRule(req.body);
     res.json({ success: true, data });
@@ -84,7 +87,7 @@ router.patch('/rules/:id/toggle', async (req: Request, res: Response) => {
 });
 
 // DELETE /rules/:id
-router.delete('/rules/:id', async (req: Request, res: Response) => {
+router.delete('/rules/:id', requireRoles(['ADMIN', 'SEGURANCA', 'GESTOR']), async (req: Request, res: Response) => {
   try {
     await service.deleteRule(req.params.id as string);
     res.json({ success: true, data: { deleted: true } });

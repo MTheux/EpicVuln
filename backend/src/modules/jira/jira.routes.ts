@@ -168,19 +168,8 @@ class JiraService {
 const service = new JiraService();
 const router = Router();
 
-// Mock de autenticação para testes do frontend sem JWT
-const mockAuth = async (req: AuthRequest, res: Response, next: any) => {
-    const defaultUser = await prisma.user.findFirst();
-    if (defaultUser) {
-        req.user = { id: defaultUser.id };
-    } else {
-        req.user = { id: 'dev-mock-id' };
-    }
-    next();
-};
-
 // Endpoint para ler as configurações
-router.get('/settings', mockAuth, async (req: AuthRequest, res: Response) => {
+router.get('/settings', authenticate, async (req: AuthRequest, res: Response) => {
     try {
         const settings = await service.getSettings();
         res.json(settings);
@@ -190,7 +179,7 @@ router.get('/settings', mockAuth, async (req: AuthRequest, res: Response) => {
 });
 
 // Endpoint para salvar as configurações
-router.post('/settings', mockAuth, async (req: AuthRequest, res: Response) => {
+router.post('/settings', authenticate, async (req: AuthRequest, res: Response) => {
     try {
         const result = await service.saveSettings(req.body);
         res.json(result);
@@ -200,7 +189,7 @@ router.post('/settings', mockAuth, async (req: AuthRequest, res: Response) => {
 });
 
 // Endpoint principal para disparar a sincronização
-router.post('/sync', mockAuth, async (req: AuthRequest, res: Response) => {
+router.post('/sync', authenticate, async (req: AuthRequest, res: Response) => {
     try {
         const result = await service.sync(req.user.id);
         res.json(result);

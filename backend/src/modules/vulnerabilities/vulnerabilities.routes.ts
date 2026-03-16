@@ -1,33 +1,20 @@
 import { Router } from 'express';
 import { VulnerabilitiesController } from './vulnerabilities.controller';
-import { authenticate, AuthRequest } from '../../middleware/auth.middleware';
-import { prisma } from '../../app';
-import { Response } from 'express';
+import { authenticate, requireRoles } from '../../middleware/auth.middleware';
 
 const router = Router();
 const controller = new VulnerabilitiesController();
 
-// Mock de autenticação para testes do frontend sem JWT
-const mockAuth = async (req: AuthRequest, res: Response, next: any) => {
-    const defaultUser = await prisma.user.findFirst();
-    if (defaultUser) {
-        req.user = { id: defaultUser.id };
-    } else {
-        req.user = { id: 'dev-mock-id' };
-    }
-    next();
-};
-
-// Exige autenticação (mockada temporariamente) para todas as rotas
-router.use(mockAuth);
+// All routes require authentication
+router.use(authenticate);
 
 router.get('/', controller.findAll.bind(controller));
 router.post('/', controller.create.bind(controller));
 router.post('/import', controller.importJira.bind(controller));
-router.delete('/all', controller.deleteAll.bind(controller));
+router.delete('/all', requireRoles(['ADMIN', 'SEGURANCA']), controller.deleteAll.bind(controller));
 router.get('/:id', controller.findOne.bind(controller));
 router.patch('/:id', controller.update.bind(controller));
-router.delete('/:id', controller.delete.bind(controller));
+router.delete('/:id', requireRoles(['ADMIN', 'SEGURANCA', 'GESTOR']), controller.delete.bind(controller));
 router.post('/:id/comments', controller.addComment.bind(controller));
 
 import multer from 'multer';
