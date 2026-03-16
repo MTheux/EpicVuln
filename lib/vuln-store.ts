@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { Vulnerabilidade, Status } from './types'
+import { authHeaders, getAuthToken } from './auth'
 
 interface VulnState {
   vulnerabilidades: Vulnerabilidade[]
@@ -29,7 +30,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
   fetchVulnerabilidades: async () => {
     set({ isLoading: true, error: null })
     try {
-      const response = await fetch(API_URL)
+      const response = await fetch(API_URL, { headers: authHeaders() })
       if (!response.ok) throw new Error('Falha ao buscar vulnerabilidades do servidor')
       const data = await response.json()
 
@@ -64,7 +65,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
     try {
       const response = await fetch(API_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...authHeaders() },
         body: JSON.stringify(vuln)
       })
       if (!response.ok) throw new Error('Erro ao criar vulnerabilidade')
@@ -85,7 +86,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
 
       const response = await fetch(`${API_URL}/${dbId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...authHeaders() },
         body: JSON.stringify({ status })
       })
       if (!response.ok) throw new Error('Erro ao atualizar status')
@@ -106,7 +107,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
 
       const response = await fetch(`${API_URL}/${dbId}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...authHeaders() },
         body: JSON.stringify({ responsavel })
       })
       if (!response.ok) throw new Error('Erro ao atualizar responsável')
@@ -134,7 +135,8 @@ export const useVulnStore = create<VulnState>((set, get) => ({
       const dbId = (vuln as any).dbId
 
       const response = await fetch(`${API_URL}/${dbId}`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: authHeaders()
       })
       if (!response.ok) throw new Error('Erro ao deletar vulnerabilidade')
 
@@ -149,7 +151,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
     try {
       const response = await fetch(`${BASE_URL}/api/jira/sync`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { ...authHeaders() }
       })
       if (!response.ok) throw new Error('Falha ao sincronizar com Jira')
       await get().fetchVulnerabilidades()
@@ -163,7 +165,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
     try {
       const response = await fetch(`${API_URL}/import`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...authHeaders() },
         body: JSON.stringify(jsonData)
       })
       if (!response.ok) throw new Error('Falha na importação de dados do Jira')
@@ -179,7 +181,8 @@ export const useVulnStore = create<VulnState>((set, get) => ({
   clearAll: async () => {
     try {
       const response = await fetch(`${API_URL}/all`, {
-        method: 'DELETE'
+        method: 'DELETE',
+        headers: authHeaders()
       })
       if (!response.ok) throw new Error('Erro ao limpar base de dados')
       
@@ -199,8 +202,10 @@ export const useVulnStore = create<VulnState>((set, get) => ({
       const formData = new FormData()
       formData.append('file', file)
 
+      const token = getAuthToken()
       const response = await fetch(`${API_URL}/${dbId}/evidence`, {
         method: 'POST',
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         body: formData // o navegador seta o content-type para multipart form automatico
       })
       if (!response.ok) {

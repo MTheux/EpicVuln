@@ -41,6 +41,7 @@ import { StatCard } from "@/components/stat-card"
 import { toast } from "sonner"
 import { useVulnStore } from "@/lib/vuln-store"
 import { squads } from "@/lib/mock-data"
+import { authHeaders } from "@/lib/auth"
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9001'
 
@@ -99,7 +100,7 @@ export default function NotificacoesPage() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/api/notifications/stats`)
+      const res = await fetch(`${API_URL}/api/notifications/stats`, { headers: authHeaders() })
       if (res.ok) {
         const data = await res.json()
         setStats(data)
@@ -111,7 +112,7 @@ export default function NotificacoesPage() {
 
   const fetchRules = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/api/notifications/rules`)
+      const res = await fetch(`${API_URL}/api/notifications/rules`, { headers: authHeaders() })
       if (res.ok) {
         const data = await res.json()
         setRegras(data)
@@ -123,7 +124,7 @@ export default function NotificacoesPage() {
 
   const fetchLogs = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/api/notifications/logs`)
+      const res = await fetch(`${API_URL}/api/notifications/logs`, { headers: authHeaders() })
       if (res.ok) {
         const data = await res.json()
         setLogs(data)
@@ -209,7 +210,7 @@ export default function NotificacoesPage() {
     try {
       const res = await fetch(`${API_URL}/api/notifications/send`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...authHeaders() },
         body: JSON.stringify({ squad: selectedSquad, motivo: selectedMotivo, body: mensagemBody }),
       })
       if (res.ok) {
@@ -231,6 +232,7 @@ export default function NotificacoesPage() {
     try {
       const res = await fetch(`${API_URL}/api/notifications/rules/${id}/toggle`, {
         method: 'PATCH',
+        headers: authHeaders(),
       })
       if (res.ok) {
         toast.success("Regra atualizada", { description: "O status da regra foi alterado." })
@@ -247,6 +249,7 @@ export default function NotificacoesPage() {
     try {
       const res = await fetch(`${API_URL}/api/notifications/rules/${id}`, {
         method: 'DELETE',
+        headers: authHeaders(),
       })
       if (res.ok) {
         toast.success("Regra removida", { description: "A regra de notificação foi excluída." })
@@ -270,7 +273,7 @@ export default function NotificacoesPage() {
     try {
       const res = await fetch(`${API_URL}/api/notifications/rules`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...authHeaders() },
         body: JSON.stringify({ name: novaRegra.nome, condition: novaRegra.condicao, channel: novaRegra.canal }),
       })
       if (res.ok) {
@@ -290,6 +293,7 @@ export default function NotificacoesPage() {
     try {
       const res = await fetch(`${API_URL}/api/notifications/trigger/${endpoint}`, {
         method: 'POST',
+        headers: authHeaders(),
       })
       if (res.ok) {
         toast.success(`${label} executado`, { description: "Job disparado com sucesso." })

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { StatCard } from "@/components/stat-card"
 import { useVulnStore } from "@/lib/vuln-store"
+import { authHeaders } from "@/lib/auth"
 import { Brain, Shield, AlertTriangle, Users, Server, RefreshCw, Loader2, Sparkles, Target, ChevronDown } from "lucide-react"
 import {
   LineChart,
@@ -50,7 +51,7 @@ export default function InteligenciaPage() {
       setIsGenerating(true)
       try {
         const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9001'
-        const res = await fetch(`${API_URL}/api/llm/analyze`)
+        const res = await fetch(`${API_URL}/api/llm/analyze`, { headers: authHeaders() })
         const json = await res.json()
         if (json.success && json.data) {
           setAiAnalysis(json.data)

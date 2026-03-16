@@ -39,6 +39,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { toast } from "sonner"
 import { integracaoJira } from "@/lib/mock-data"
+import { authHeaders } from "@/lib/auth"
 
 const mapeamentoCampos = [
   { jira: 'Summary', vulnControl: 'Título' },
@@ -76,7 +77,7 @@ export default function IntegracoesPage() {
 
   useEffect(() => {
     // Fetch initial settings
-    fetch(`${API_URL}/api/jira/settings`)
+    fetch(`${API_URL}/api/jira/settings`, { headers: authHeaders() })
       .then(r => r.json())
       .then(data => {
         if (data.url) setJiraUrl(data.url)
@@ -104,7 +105,7 @@ export default function IntegracoesPage() {
     try {
       const resp = await fetch(`${API_URL}/api/jira/sync`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" }
+        headers: { ...authHeaders() }
       })
       const data = await resp.json()
 
@@ -128,7 +129,7 @@ export default function IntegracoesPage() {
     try {
       const resp = await fetch(`${API_URL}/api/jira/settings`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { ...authHeaders() },
         body: JSON.stringify({
           url: jiraUrl,
           email: jiraEmail,
