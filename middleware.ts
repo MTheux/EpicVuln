@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
-    const isAuth = request.cookies.has('vulncontrol_auth')
+    const token = request.cookies.get('vulncontrol_token')?.value
+    const isAuth = !!token
 
     // Redireciona usuários não autenticados para o /login
     if (!isAuth && !request.nextUrl.pathname.startsWith('/login')) {
