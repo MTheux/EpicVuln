@@ -18,7 +18,8 @@ interface VulnState {
   importData: (jsonData: any[]) => Promise<{ imported: number, errors: any[] }>
 }
 
-const API_URL = 'http://localhost:9001/api/vulnerabilities'
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9001'
+const API_URL = `${BASE_URL}/api/vulnerabilities`
 
 export const useVulnStore = create<VulnState>((set, get) => ({
   vulnerabilidades: [],
@@ -146,7 +147,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
 
   syncJira: async () => {
     try {
-      const response = await fetch('http://localhost:9001/api/jira/sync', {
+      const response = await fetch(`${BASE_URL}/api/jira/sync`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       })

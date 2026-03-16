@@ -49,7 +49,8 @@ export default function InteligenciaPage() {
     const fetchLlmInsights = async () => {
       setIsGenerating(true)
       try {
-        const res = await fetch('http://localhost:9001/api/llm/analyze')
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9001'
+        const res = await fetch(`${API_URL}/api/llm/analyze`)
         const json = await res.json()
         if (json.success && json.data) {
           setAiAnalysis(json.data)

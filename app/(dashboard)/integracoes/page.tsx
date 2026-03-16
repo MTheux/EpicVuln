@@ -53,6 +53,8 @@ const mapeamentoCampos = [
   { jira: 'Attachment', vulnControl: 'Evidência' },
 ]
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9001'
+
 const historicoImportacao = [
   { data: '2025-03-12 14:30', tipo: 'Jira Sync', registros: 12, status: 'Sucesso' },
   { data: '2025-03-11 09:00', tipo: 'Jira Sync', registros: 8, status: 'Sucesso' },
@@ -74,7 +76,7 @@ export default function IntegracoesPage() {
 
   useEffect(() => {
     // Fetch initial settings
-    fetch("http://localhost:3001/api/jira/settings")
+    fetch(`${API_URL}/api/jira/settings`)
       .then(r => r.json())
       .then(data => {
         if (data.url) setJiraUrl(data.url)
@@ -100,7 +102,7 @@ export default function IntegracoesPage() {
   const handleSync = async () => {
     setSyncing(true)
     try {
-      const resp = await fetch("http://localhost:3001/api/jira/sync", {
+      const resp = await fetch(`${API_URL}/api/jira/sync`, {
         method: "POST",
         headers: { "Content-Type": "application/json" }
       })
@@ -124,7 +126,7 @@ export default function IntegracoesPage() {
 
   const handleConnect = async () => {
     try {
-      const resp = await fetch("http://localhost:3001/api/jira/settings", {
+      const resp = await fetch(`${API_URL}/api/jira/settings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
