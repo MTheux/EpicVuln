@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import {
   Bell,
@@ -11,7 +11,8 @@ import {
   Plus,
   Settings2,
   Trash2,
-  MessageSquare
+  MessageSquare,
+  Play
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -39,11 +40,50 @@ import { Textarea } from "@/components/ui/textarea"
 import { StatCard } from "@/components/stat-card"
 import { toast } from "sonner"
 import { useVulnStore } from "@/lib/vuln-store"
-import { notificacoes, regrasNotificacao as initialRegras, squads } from "@/lib/mock-data"
-import { useEffect } from "react"
+import { squads } from "@/lib/mock-data"
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9001'
+
+interface NotificationStats {
+  notificacoesHoje: number
+  regrasAtivas: number
+  squadsNotificadas: number
+  criticasSemRetorno: number
+  proximosSLAs: number
+}
+
+interface NotificationRule {
+  id: string
+  name: string
+  condition: string
+  channel: string
+  active: boolean
+}
+
+interface NotificationLog {
+  id: string
+  channel: string
+  recipient: string
+  subject: string
+  body: string
+  status: string
+  error: string | null
+  createdAt: string
+  sentBy?: { name: string }
+}
 
 export default function NotificacoesPage() {
-  const [regras, setRegras] = useState(initialRegras)
+  const [stats, setStats] = useState<NotificationStats>({
+    notificacoesHoje: 0,
+    regrasAtivas: 0,
+    squadsNotificadas: 0,
+    criticasSemRetorno: 0,
+    proximosSLAs: 0,
+  })
+  const [regras, setRegras] = useState<NotificationRule[]>([])
+  const [logs, setLogs] = useState<NotificationLog[]>([])
+  const [loading, setLoading] = useState(true)
+
   const [novaRegraDialogOpen, setNovaRegraDialogOpen] = useState(false)
   const [novaRegra, setNovaRegra] = useState({
     nome: '',
@@ -56,6 +96,51 @@ export default function NotificacoesPage() {
   const [selectedSquad, setSelectedSquad] = useState<string>("")
   const [selectedMotivo, setSelectedMotivo] = useState<string>("todas_abertas")
   const [mensagemBody, setMensagemBody] = useState<string>("")
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/notifications/stats`)
+      if (res.ok) {
+        const data = await res.json()
+        setStats(data)
+      }
+    } catch (err) {
+      console.error('Failed to fetch stats:', err)
+    }
+  }, [])
+
+  const fetchRules = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/notifications/rules`)
+      if (res.ok) {
+        const data = await res.json()
+        setRegras(data)
+      }
+    } catch (err) {
+      console.error('Failed to fetch rules:', err)
+    }
+  }, [])
+
+  const fetchLogs = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/notifications/logs`)
+      if (res.ok) {
+        const data = await res.json()
+        setLogs(data)
+      }
+    } catch (err) {
+      console.error('Failed to fetch logs:', err)
+    }
+  }, [])
+
+  useEffect(() => {
+    async function loadAll() {
+      setLoading(true)
+      await Promise.all([fetchStats(), fetchRules(), fetchLogs()])
+      setLoading(false)
+    }
+    loadAll()
+  }, [fetchStats, fetchRules, fetchLogs])
 
   // Auto-gerar email baseado na Squad e no Motivo (Regras)
   useEffect(() => {
@@ -116,45 +201,65 @@ export default function NotificacoesPage() {
 
   }, [selectedSquad, selectedMotivo, vulnerabilidades])
 
-  const handleEnviarEmailPO = () => {
+  const handleEnviarEmailPO = async () => {
     if (!selectedSquad || !mensagemBody) {
       toast.error('Preencha os dados', { description: 'Selecione uma squad primeiro.' })
       return
     }
-    toast.success('E-mail enviado', { description: `A notificação foi despachada para o PO de ${selectedSquad}.` })
-    setSelectedSquad("")
-    setMensagemBody("")
+    try {
+      const res = await fetch(`${API_URL}/api/notifications/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ squad: selectedSquad, motivo: selectedMotivo, body: mensagemBody }),
+      })
+      if (res.ok) {
+        toast.success('E-mail enviado', { description: `A notificação foi despachada para o PO de ${selectedSquad}.` })
+        setSelectedSquad("")
+        setMensagemBody("")
+        fetchLogs()
+        fetchStats()
+      } else {
+        const err = await res.json().catch(() => ({}))
+        toast.error('Erro ao enviar', { description: err.message || 'Falha no envio da notificação.' })
+      }
+    } catch (err) {
+      toast.error('Erro ao enviar', { description: 'Não foi possível conectar ao servidor.' })
+    }
   }
 
-  const notificacoesHoje = notificacoes.filter(n =>
-    n.dataEnvio.startsWith('2025-03-12')
-  ).length
-
-  const regrasAtivas = regras.filter(r => r.ativa).length
-
-  const squadsNotificadas = [...new Set(notificacoes.map(n => n.squad))].length
-
-  const criticasSemRetorno = 3
-
-  const proximosSLAs = 5
-
-  const toggleRegra = (id: string) => {
-    setRegras(prev => prev.map(r =>
-      r.id === id ? { ...r, ativa: !r.ativa } : r
-    ))
-    toast.success("Regra atualizada", {
-      description: "O status da regra foi alterado."
-    })
+  const toggleRegra = async (id: string) => {
+    try {
+      const res = await fetch(`${API_URL}/api/notifications/rules/${id}/toggle`, {
+        method: 'PATCH',
+      })
+      if (res.ok) {
+        toast.success("Regra atualizada", { description: "O status da regra foi alterado." })
+        fetchRules()
+      } else {
+        toast.error("Erro", { description: "Não foi possível alterar a regra." })
+      }
+    } catch {
+      toast.error("Erro", { description: "Não foi possível conectar ao servidor." })
+    }
   }
 
-  const deleteRegra = (id: string) => {
-    setRegras(prev => prev.filter(r => r.id !== id))
-    toast.success("Regra removida", {
-      description: "A regra de notificação foi excluída."
-    })
+  const deleteRegra = async (id: string) => {
+    try {
+      const res = await fetch(`${API_URL}/api/notifications/rules/${id}`, {
+        method: 'DELETE',
+      })
+      if (res.ok) {
+        toast.success("Regra removida", { description: "A regra de notificação foi excluída." })
+        fetchRules()
+      } else {
+        toast.error("Erro", { description: "Não foi possível remover a regra." })
+      }
+    } catch {
+      toast.error("Erro", { description: "Não foi possível conectar ao servidor." })
+    }
   }
 
-  const handleAddRegra = () => {
+  const handleAddRegra = async () => {
     if (!novaRegra.nome || !novaRegra.condicao) {
       toast.error("Campos obrigatórios", {
         description: "Preencha todos os campos da regra."
@@ -162,43 +267,70 @@ export default function NotificacoesPage() {
       return
     }
 
-    const newId = `REGRA-${String(regras.length + 1).padStart(3, '0')}`
-    setRegras(prev => [...prev, { ...novaRegra, id: newId, ativa: true }])
-    toast.success("Regra criada", {
-      description: "Nova regra de notificação adicionada."
-    })
-    setNovaRegraDialogOpen(false)
-    setNovaRegra({ nome: '', condicao: '', canal: 'email' })
+    try {
+      const res = await fetch(`${API_URL}/api/notifications/rules`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: novaRegra.nome, condition: novaRegra.condicao, channel: novaRegra.canal }),
+      })
+      if (res.ok) {
+        toast.success("Regra criada", { description: "Nova regra de notificação adicionada." })
+        setNovaRegraDialogOpen(false)
+        setNovaRegra({ nome: '', condicao: '', canal: 'email' })
+        fetchRules()
+      } else {
+        toast.error("Erro", { description: "Não foi possível criar a regra." })
+      }
+    } catch {
+      toast.error("Erro", { description: "Não foi possível conectar ao servidor." })
+    }
   }
 
-  const getNotificationTypeIcon = (tipo: string) => {
-    switch (tipo) {
-      case 'critica':
-        return <AlertTriangle className="h-4 w-4 text-red-400" />
-      case 'vencida':
-        return <Clock className="h-4 w-4 text-orange-400" />
-      case 'sla':
-        return <Clock className="h-4 w-4 text-amber-400" />
-      case 'resumo':
+  const handleTriggerJob = async (endpoint: string, label: string) => {
+    try {
+      const res = await fetch(`${API_URL}/api/notifications/trigger/${endpoint}`, {
+        method: 'POST',
+      })
+      if (res.ok) {
+        toast.success(`${label} executado`, { description: "Job disparado com sucesso." })
+        fetchStats()
+      } else {
+        const err = await res.json().catch(() => ({}))
+        toast.error(`Erro ao executar ${label}`, { description: err.message || "Falha ao disparar o job." })
+      }
+    } catch {
+      toast.error(`Erro ao executar ${label}`, { description: "Não foi possível conectar ao servidor." })
+    }
+  }
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'sent':
+        return <Badge className="bg-green-500/20 text-green-400">Enviado</Badge>
+      case 'failed':
+        return <Badge className="bg-red-500/20 text-red-400">Falha</Badge>
+      case 'pending':
+        return <Badge className="bg-amber-500/20 text-amber-400">Pendente</Badge>
+      default:
+        return <Badge variant="secondary">{status}</Badge>
+    }
+  }
+
+  const getChannelIcon = (channel: string) => {
+    switch (channel) {
+      case 'email':
         return <Mail className="h-4 w-4 text-blue-400" />
+      case 'slack':
+        return <MessageSquare className="h-4 w-4 text-purple-400" />
       default:
         return <Bell className="h-4 w-4 text-muted-foreground" />
     }
   }
 
-  const getNotificationTypeBadge = (tipo: string) => {
-    switch (tipo) {
-      case 'critica':
-        return <Badge className="bg-red-500/20 text-red-400">Crítica</Badge>
-      case 'vencida':
-        return <Badge className="bg-orange-500/20 text-orange-400">Vencida</Badge>
-      case 'sla':
-        return <Badge className="bg-amber-500/20 text-amber-400">SLA</Badge>
-      case 'resumo':
-        return <Badge className="bg-blue-500/20 text-blue-400">Resumo</Badge>
-      default:
-        return <Badge variant="secondary">{tipo}</Badge>
-    }
+  const extractSquadFromRecipient = (recipient: string) => {
+    // Try to extract squad name from email like po-squadname@...
+    const match = recipient.match(/po-([^@]+)@/)
+    return match ? match[1] : recipient
   }
 
   return (
@@ -228,29 +360,29 @@ export default function NotificacoesPage() {
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <StatCard
           title="Notificações Hoje"
-          value={notificacoesHoje}
+          value={stats.notificacoesHoje}
           icon={Mail}
         />
         <StatCard
           title="Regras Ativas"
-          value={regrasAtivas}
+          value={stats.regrasAtivas}
           icon={CheckCircle}
           variant="success"
         />
         <StatCard
           title="Squads Notificadas"
-          value={squadsNotificadas}
+          value={stats.squadsNotificadas}
           icon={MessageSquare}
         />
         <StatCard
           title="Críticas sem Retorno"
-          value={criticasSemRetorno}
+          value={stats.criticasSemRetorno}
           icon={AlertTriangle}
           variant="critical"
         />
         <StatCard
           title="SLAs Próximos"
-          value={proximosSLAs}
+          value={stats.proximosSLAs}
           icon={Clock}
           variant="warning"
         />
@@ -268,6 +400,9 @@ export default function NotificacoesPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
+            {regras.length === 0 && !loading && (
+              <p className="text-sm text-muted-foreground text-center py-4">Nenhuma regra cadastrada.</p>
+            )}
             {regras.map((regra) => (
               <div
                 key={regra.id}
@@ -275,17 +410,17 @@ export default function NotificacoesPage() {
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <h4 className="text-sm font-medium text-foreground">{regra.nome}</h4>
-                    <Badge variant="outline" className="text-xs">{regra.canal}</Badge>
-                    {!regra.ativa && (
+                    <h4 className="text-sm font-medium text-foreground">{regra.name}</h4>
+                    <Badge variant="outline" className="text-xs">{regra.channel}</Badge>
+                    {!regra.active && (
                       <Badge variant="secondary" className="text-xs">Inativa</Badge>
                     )}
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">{regra.condicao}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{regra.condition}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <Switch
-                    checked={regra.ativa}
+                    checked={regra.active}
                     onCheckedChange={() => toggleRegra(regra.id)}
                   />
                   <Button
@@ -429,35 +564,92 @@ export default function NotificacoesPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {notificacoes.map((notif) => (
+              {logs.length === 0 && !loading && (
+                <p className="text-sm text-muted-foreground text-center py-4">Nenhuma notificação registrada.</p>
+              )}
+              {logs.map((log) => (
                 <div
-                  key={notif.id}
+                  key={log.id}
                   className="flex items-start gap-4 rounded-lg border border-border p-4"
                 >
                   <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
-                    {getNotificationTypeIcon(notif.tipo)}
+                    {getChannelIcon(log.channel)}
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <h4 className="text-sm font-medium text-foreground">{notif.titulo}</h4>
-                      {getNotificationTypeBadge(notif.tipo)}
+                      <h4 className="text-sm font-medium text-foreground">{log.subject}</h4>
+                      {getStatusBadge(log.status)}
                     </div>
-                    <p className="mt-1 text-sm text-muted-foreground">{notif.descricao}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {log.body && log.body.length > 120 ? log.body.substring(0, 120) + '...' : log.body}
+                    </p>
                     <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground">
-                      <span>{notif.dataEnvio}</span>
-                      <span>Squad: {notif.squad}</span>
-                      {notif.vulnerabilidadeId && (
-                        <Link
-                          href={`/vulnerabilidades/${notif.vulnerabilidadeId}`}
-                          className="text-primary hover:underline"
-                        >
-                          Ver vulnerabilidade
-                        </Link>
+                      <span>{new Date(log.createdAt).toLocaleString('pt-BR')}</span>
+                      <span>Para: {extractSquadFromRecipient(log.recipient)}</span>
+                      {log.sentBy?.name && (
+                        <span>Por: {log.sentBy.name}</span>
                       )}
                     </div>
                   </div>
                 </div>
               ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Ações Manuais */}
+      <div className="mt-6">
+        <Card className="bg-card">
+          <CardHeader>
+            <CardTitle className="text-base flex items-center gap-2">
+              <Play className="h-5 w-5 text-primary" />
+              Ações Manuais
+            </CardTitle>
+            <CardDescription>Dispare manualmente os jobs de verificação de SLA e escalonamento</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => handleTriggerJob('sla-warning', 'Verificar SLA (3 dias)')}
+              >
+                <Clock className="mr-2 h-4 w-4" />
+                Verificar SLA (3 dias)
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => handleTriggerJob('sla-expired', 'Alertar SLA Vencidos')}
+              >
+                <AlertTriangle className="mr-2 h-4 w-4" />
+                Alertar SLA Vencidos
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => handleTriggerJob('escalation-manager', 'Escalar para Gestores')}
+              >
+                <Bell className="mr-2 h-4 w-4" />
+                Escalar para Gestores
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => handleTriggerJob('escalation-clevel', 'Escalar para C-Level')}
+              >
+                <AlertTriangle className="mr-2 h-4 w-4" />
+                Escalar para C-Level
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => handleTriggerJob('weekly-digest', 'Enviar Digest Semanal')}
+              >
+                <Mail className="mr-2 h-4 w-4" />
+                Enviar Digest Semanal
+              </Button>
             </div>
           </CardContent>
         </Card>
