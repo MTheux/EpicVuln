@@ -246,17 +246,26 @@ export class VulnerabilitiesService {
     for (const item of payload) {
       try {
         const jiraKey = item.key;
-        if (!jiraKey) continue; // Pula se não for uma issue do Jira válida
+        if (!jiraKey) continue;
 
-        // Evitar duplicidade cega baseada no jiraKey.
+        // Evitar duplicidade baseada no jiraKey
         const existing = await prisma.vulnerability.findFirst({
           where: { jiraKey }
         });
 
+        // Extrair CWE do título se presente (ex: [CWE-798])
+        const cweMatch = (item.resumo || '').match(/\[CWE-(\d+)\]/);
+        const cwe = cweMatch ? `CWE-${cweMatch[1]}` : undefined;
+
+        // Calcular dias em aberto baseado na data de criação do Jira
+        const dataCriacaoJira = item.dataCriacao ? new Date(item.dataCriacao) : new Date();
+        const now = new Date();
+        const diasEmAberto = Math.floor((now.getTime() - dataCriacaoJira.getTime()) / (1000 * 60 * 60 * 24));
+
         const data: any = {
           jiraKey: item.key,
           titulo: item.resumo || 'Sem Título',
-          descricaoExecutiva: item.descricao || '',
+          descricaoExecutiva: item.impacto || item.descricao || '',
           descricaoTecnica: item.descricao || '',
           criticidade: mapCriticidade(item.prioridade),
           status: mapStatus(item.status),
@@ -266,12 +275,21 @@ export class VulnerabilitiesService {
           ambiente: mapAmbiente(item.ambiente),
           origem: mapOrigem(item.origem),
           responsavel: item.responsavel,
+          gestor: item.criador || item.relator,
           impacto: item.impacto,
           recomendacao: item.recomendacao,
-          tipo: item.tipo || 'Aplicação'
+          tipo: item.tipo || 'Aplicação',
+          diasEmAberto,
         };
 
-        // Tratamento de Datas
+        // Campos opcionais
+        if (cwe) data.cwe = cwe;
+        if (item.categorias) data.tags = [item.categorias];
+
+        // Tratamento de Datas — usar datas do Jira, não a data de import
+        if (item.dataCriacao) {
+          data.dataCriacao = new Date(item.dataCriacao);
+        }
         if (item.dataDeteccao) {
           data.dataDeteccao = new Date(item.dataDeteccao);
         }
@@ -280,7 +298,6 @@ export class VulnerabilitiesService {
         }
 
         if (existing) {
-          // Atualiza registro existente
           await prisma.vulnerability.update({
             where: { id: existing.id },
             data: {
@@ -289,8 +306,8 @@ export class VulnerabilitiesService {
             }
           });
         } else {
-          // Cria novo registro
-          data.codigoInterno = `VULN-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+          // Usar jiraKey como codigoInterno (mais útil que VULN-timestamp)
+          data.codigoInterno = item.key;
           data.createdById = userId;
 
           await prisma.vulnerability.create({
