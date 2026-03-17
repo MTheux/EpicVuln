@@ -1,36 +1,14 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
 import { PrismaClient } from '@prisma/client';
+import { globalLimiter } from './rate-limiters';
 
 const app = express();
 export const prisma = new PrismaClient();
 
-// Rate limiters
-export const globalLimiter = rateLimit({
-    windowMs: 60 * 1000,
-    max: 100,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: { error: 'Too many requests, please try again later.' },
-});
-
-export const authLimiter = rateLimit({
-    windowMs: 60 * 1000,
-    max: 5,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: { error: 'Too many authentication attempts, please try again later.' },
-});
-
-export const llmLimiter = rateLimit({
-    windowMs: 60 * 1000,
-    max: 10,
-    standardHeaders: true,
-    legacyHeaders: false,
-    message: { error: 'Too many LLM requests, please try again later.' },
-});
+// Re-export for backward compat
+export { globalLimiter, authLimiter, llmLimiter } from './rate-limiters';
 
 // CORS configuration
 const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:9000').split(',');

@@ -114,8 +114,8 @@ export default function NotificacoesPage() {
     try {
       const res = await fetch(`${API_URL}/api/notifications/rules`, { headers: authHeaders() })
       if (res.ok) {
-        const data = await res.json()
-        setRegras(data)
+        const json = await res.json()
+        setRegras(Array.isArray(json) ? json : json.data || [])
       }
     } catch (err) {
       console.error('Failed to fetch rules:', err)
