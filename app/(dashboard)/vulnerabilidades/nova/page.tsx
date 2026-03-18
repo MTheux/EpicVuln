@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select"
 import { useVulnStore } from "@/lib/vuln-store"
 import { toast } from "sonner"
-import type { Criticidade, Status, OwaspCategory } from "@/lib/types"
+import type { Criticidade, Status, OwaspCategory, Complexidade } from "@/lib/types"
 
 const criticidades: Criticidade[] = ['Extrema', 'Crítica', 'Alta', 'Média', 'Baixa', 'Informativa']
 const squads = ['AppMais', 'Acessos', 'Atendimento Digital', 'Autorizadores', 'Canais Clientes', 'Canais Lojistas', 'Cloud', 'Conta do Mais', 'Crédito', 'Desacoplamento', 'Field', 'Invillia', 'Jurídico', 'OpenFinance e Pix', 'Onplug', 'Prevenção a Fraude', 'Portal Credsystem', 'Time de Arquitetura (Aceleradora)', 'Sem dono', 'SFCWeb', 'SOC', 'Sustentação']
@@ -43,6 +43,7 @@ const owaspCategories: OwaspCategory[] = [
   'A10:2025-SSRF'
 ]
 const responsaveis = ['João Silva', 'Ana Costa', 'Carlos Mendes', 'Lucas Ferreira', 'Maria Santos', 'Pedro Lima']
+const complexidades: Complexidade[] = ['Baixa', 'Média', 'Alta']
 
 export default function NovaVulnerabilidadePage() {
   const router = useRouter()
@@ -79,6 +80,8 @@ export default function NovaVulnerabilidadePage() {
     tipo: 'Aplicação',
     dataDeteccao: '',
     observacao: '',
+    complexidade: 'Média' as Complexidade,
+    complexidadeCorrecao: 'Média' as Complexidade,
   })
 
   const handleChange = (field: string, value: string) => {
@@ -159,6 +162,8 @@ export default function NovaVulnerabilidadePage() {
         observacao: formData.observacao || undefined,
         reincidencia: 0,
         status: formData.status as Status,
+        complexidade: formData.complexidade,
+        complexidadeCorrecao: formData.complexidadeCorrecao,
       })
 
       setSaving(false)
@@ -316,6 +321,36 @@ export default function NovaVulnerabilidadePage() {
                   </SelectContent>
                 </Select>
                 {errors.origem && <p className="mt-1 text-xs text-red-500">{errors.origem}</p>}
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <Label>Complexidade da Falha</Label>
+                <Select value={formData.complexidade} onValueChange={(v) => handleChange('complexidade', v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {complexidades.map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Complexidade de Correção</Label>
+                <Select value={formData.complexidadeCorrecao} onValueChange={(v) => handleChange('complexidadeCorrecao', v)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {complexidades.map((c) => (
+                      <SelectItem key={c} value={c}>{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </CardContent>

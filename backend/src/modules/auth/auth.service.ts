@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../../app';
 import { z } from 'zod';
+import { env } from '../../config/env';
 
 export class AuthService {
   async login(email: string, passwordUnencrypted: string) {
@@ -21,8 +22,8 @@ export class AuthService {
       throw new Error('User is disable');
     }
 
-    const jwtSecret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
-    const jwtExpiresIn = process.env.JWT_EXPIRES_IN || '15m';
+    const jwtSecret = env.JWT_SECRET;
+    const jwtExpiresIn = env.JWT_EXPIRES_IN;
 
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role },

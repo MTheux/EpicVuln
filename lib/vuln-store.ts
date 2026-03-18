@@ -31,13 +31,17 @@ export const useVulnStore = create<VulnState>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const response = await fetch(API_URL, { headers: authHeaders() })
-      if (!response.ok) throw new Error('Falha ao buscar vulnerabilidades do servidor')
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Falha ao buscar vulnerabilidades do servidor' }))
+        throw new Error(errorData.error || 'Falha ao buscar vulnerabilidades do servidor')
+      }
       const data = await response.json()
 
       const reverseCriticidade: any = { 'EXTREMA': 'Extrema', 'CRITICA': 'Crítica', 'ALTA': 'Alta', 'MEDIA': 'Média', 'BAIXA': 'Baixa', 'INFORMATIVA': 'Informativa' };
       const reverseStatus: any = { 'NOVO': 'Nova', 'ABERTO': 'Aberta', 'EM_BACKLOG': 'Em Backlog', 'EM_CORRECAO': 'Em Correção', 'EM_RETESTE': 'Em Reteste', 'MITIGADO': 'Mitigada', 'CONCLUIDO': 'Concluída', 'RISCO_ACEITO': 'Risco Aceito', 'FECHADO': 'Fechada' };
       const reverseOrigem: any = { 'PENTEST': 'Pentest', 'DAST': 'DAST', 'SAST': 'SAST', 'SCA': 'SCA', 'BUG_BOUNTY': 'Bug Bounty', 'MANUAL': 'Manual', 'MONITORAMENTO': 'Monitoramento', 'CODE_REVIEW': 'Code Review' };
       const reverseAmbiente: any = { 'PRODUCAO': 'Produção', 'HOMOLOGACAO': 'Homologação', 'DESENVOLVIMENTO': 'Desenvolvimento', 'STAGING': 'STG' };
+      const reverseComplexidade: any = { 'BAIXA': 'Baixa', 'MEDIA': 'Média', 'ALTA': 'Alta' };
 
       const mappedData: Vulnerabilidade[] = data.map((item: any) => ({
         ...item,
@@ -45,6 +49,8 @@ export const useVulnStore = create<VulnState>((set, get) => ({
         status: reverseStatus[item.status] || item.status,
         origem: reverseOrigem[item.origem] || item.origem,
         ambiente: reverseAmbiente[item.ambiente] || item.ambiente,
+        complexidade: reverseComplexidade[item.complexidade] || item.complexidade || 'Média',
+        complexidadeCorrecao: reverseComplexidade[item.complexidadeCorrecao] || item.complexidadeCorrecao || 'Média',
         id: item.codigoInterno,
         dbId: item.id,
         dataCriacao: new Date(item.dataCriacao).toISOString().split('T')[0],
@@ -68,7 +74,10 @@ export const useVulnStore = create<VulnState>((set, get) => ({
         headers: { ...authHeaders() },
         body: JSON.stringify(vuln)
       })
-      if (!response.ok) throw new Error('Erro ao criar vulnerabilidade')
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Erro ao criar vulnerabilidade' }))
+        throw new Error(errorData.error || 'Erro ao criar vulnerabilidade')
+      }
 
       await get().fetchVulnerabilidades()
     } catch (err: any) {
@@ -89,7 +98,10 @@ export const useVulnStore = create<VulnState>((set, get) => ({
         headers: { ...authHeaders() },
         body: JSON.stringify({ status })
       })
-      if (!response.ok) throw new Error('Erro ao atualizar status')
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Erro ao atualizar status' }))
+        throw new Error(errorData.error || 'Erro ao atualizar status')
+      }
 
       await get().fetchVulnerabilidades()
     } catch (err: any) {
@@ -110,7 +122,10 @@ export const useVulnStore = create<VulnState>((set, get) => ({
         headers: { ...authHeaders() },
         body: JSON.stringify({ responsavel })
       })
-      if (!response.ok) throw new Error('Erro ao atualizar responsável')
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Erro ao atualizar responsável' }))
+        throw new Error(errorData.error || 'Erro ao atualizar responsável')
+      }
 
       await get().fetchVulnerabilidades()
     } catch (err: any) {
@@ -138,7 +153,10 @@ export const useVulnStore = create<VulnState>((set, get) => ({
         method: 'DELETE',
         headers: authHeaders()
       })
-      if (!response.ok) throw new Error('Erro ao deletar vulnerabilidade')
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Erro ao deletar vulnerabilidade' }))
+        throw new Error(errorData.error || 'Erro ao deletar vulnerabilidade')
+      }
 
       await get().fetchVulnerabilidades()
     } catch (err: any) {
@@ -153,7 +171,10 @@ export const useVulnStore = create<VulnState>((set, get) => ({
         method: 'POST',
         headers: { ...authHeaders() }
       })
-      if (!response.ok) throw new Error('Falha ao sincronizar com Jira')
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Falha ao sincronizar com Jira' }))
+        throw new Error(errorData.error || 'Falha ao sincronizar com Jira')
+      }
       await get().fetchVulnerabilidades()
     } catch (err: any) {
       console.error(err)
@@ -168,7 +189,12 @@ export const useVulnStore = create<VulnState>((set, get) => ({
         headers: { ...authHeaders() },
         body: JSON.stringify(jsonData)
       })
-      if (!response.ok) throw new Error('Falha na importação de dados do Jira')
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Falha na importação de dados do Jira' }))
+        throw new Error(errorData.error || 'Falha na importação de dados do Jira')
+      }
+      
       const result = await response.json()
       await get().fetchVulnerabilidades()
       return result

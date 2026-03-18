@@ -53,12 +53,12 @@ export function StatCard({
   const styles = variantStyles[variant]
   
   return (
-    <Card className={cn("bg-card border-border", className)}>
+    <Card className={cn("bg-card border-border shadow-sm transition-all hover:shadow-md group", className)}>
       <CardContent className="p-5">
         <div className="flex items-start justify-between">
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">{title}</p>
-            <p className={cn("text-2xl font-bold", styles.valueColor)}>
+            <p className={cn("text-3xl font-black tracking-tight", styles.valueColor)}>
               {value}
             </p>
             {trend && (
@@ -70,8 +70,8 @@ export function StatCard({
               </p>
             )}
           </div>
-          <div className={cn("rounded-lg p-2.5", styles.iconBg)}>
-            <Icon className={cn("h-5 w-5", styles.iconColor)} />
+          <div className={cn("rounded-xl p-3 transition-transform group-hover:scale-110 duration-300 shadow-inner", styles.iconBg)}>
+            <Icon className={cn("h-6 w-6", styles.iconColor)} />
           </div>
         </div>
       </CardContent>

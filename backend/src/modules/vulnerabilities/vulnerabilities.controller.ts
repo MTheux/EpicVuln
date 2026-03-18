@@ -49,7 +49,7 @@ export class VulnerabilitiesController {
         res.status(401).json({ error: 'Unauthorized' });
         return;
       }
-      
+
       const payload = req.body;
       if (!Array.isArray(payload)) {
         res.status(400).json({ error: 'Expected an array of vulnerabilities' });
@@ -61,6 +61,88 @@ export class VulnerabilitiesController {
     } catch (error: any) {
       console.error("Erro na importação de JSON do Jira:", error);
       res.status(500).json({ error: error.message || 'Internal server error' });
+    }
+  }
+
+  async importXml(req: AuthRequest, res: Response) {
+    try {
+      if (!req.user) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+      }
+
+      const xmlBody = req.body?.xml;
+      if (!xmlBody || typeof xmlBody !== 'string') {
+        res.status(400).json({ error: 'Expected { xml: "<xml string>" } in body' });
+        return;
+      }
+
+      const xml2js = require('xml2js');
+      const parser = new xml2js.Parser({ explicitArray: false, trim: true });
+      const parsed = await parser.parseStringPromise(xmlBody);
+
+      let rawItems: any[] = [];
+
+      if (parsed.rss?.channel?.item) {
+        rawItems = Array.isArray(parsed.rss.channel.item)
+          ? parsed.rss.channel.item
+          : [parsed.rss.channel.item];
+      } else {
+        res.status(400).json({ error: 'Formato XML não reconhecido. Exporte como XML/RSS do Jira.' });
+        return;
+      }
+
+      // Helper: extract custom field value by name from Jira XML
+      const getCustomField = (item: any, fieldName: string): string => {
+        const fields = item.customfields?.customfield;
+        if (!fields) return '';
+        const arr = Array.isArray(fields) ? fields : [fields];
+        const field = arr.find((f: any) => {
+          const name = f.customfieldname || '';
+          return name.toLowerCase().includes(fieldName.toLowerCase());
+        });
+        if (!field) return '';
+        const vals = field.customfieldvalues?.customfieldvalue;
+        if (!vals) return '';
+        if (typeof vals === 'string') return vals;
+        if (vals._ ) return vals._;
+        if (Array.isArray(vals)) return vals.map((v: any) => typeof v === 'string' ? v : v._ || v).join(', ');
+        return String(vals);
+      };
+
+      const items = rawItems.map((item: any) => ({
+        key: item.key?._ || item.key || '',
+        url: item.link || '',
+        resumo: item.summary || item.title?.replace(/^\[.*?\]\s*/, '') || '',
+        descricao: item.description || '',
+        prioridade: item.priority?._ || item.priority || 'Medium',
+        status: getCustomField(item, 'Status') || item.status?._ || item.status || 'Não Corrigida',
+        squadResponsavel: getCustomField(item, 'Squad Respons'),
+        alvo: getCustomField(item, 'Alvo'),
+        ambiente: getCustomField(item, 'Ambiente') || 'Produção',
+        origem: getCustomField(item, 'Origem') || 'Pentest',
+        tipo: getCustomField(item, 'Tipo') || 'Aplicação',
+        impacto: getCustomField(item, 'Impacto'),
+        recomendacao: getCustomField(item, 'Recomenda'),
+        dataCriacao: getCustomField(item, 'Data da Cria') || item.created || '',
+        dataDeteccao: getCustomField(item, 'Data da Detec') || item.created || '',
+        dataLimite: item.due || '',
+        atualizadoEm: item.updated || '',
+        responsavel: item.assignee?._ || item.assignee || '',
+        criador: item.reporter?._ || item.reporter || '',
+      }));
+
+      if (items.length === 0) {
+        res.status(400).json({ error: 'Nenhuma vulnerabilidade encontrada no XML.' });
+        return;
+      }
+
+      console.log(`XML Import: Parsed ${items.length} items from Jira RSS XML`);
+      const result = await this.service.importJiraJson(items, req.user.id);
+      res.status(200).json(result);
+    } catch (error: any) {
+      console.error("Erro na importação de XML:", error);
+      res.status(500).json({ error: error.message || 'Erro ao processar XML' });
     }
   }
 

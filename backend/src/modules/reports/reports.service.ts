@@ -227,7 +227,7 @@ export class ReportsService {
 
             // Header
             doc.fontSize(20).font('Helvetica-Bold')
-                .text('Raio-X CredSystem — Relatório Semanal', { align: 'center' });
+                .text('VulnControl — Relatório Semanal', { align: 'center' });
             doc.fontSize(10).font('Helvetica')
                 .text(`Gerado em: ${now.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR')}`, { align: 'center' });
             doc.moveDown(1.5);

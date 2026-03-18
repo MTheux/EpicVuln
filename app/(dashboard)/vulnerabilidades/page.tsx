@@ -92,15 +92,15 @@ const responsaveis = [
 ]
 
 export default function VulnerabilidadesPage() {
-  const { vulnerabilidades, fetchVulnerabilidades, syncJira, updateStatus, updateResponsavel, sendNotification, deleteVulnerabilidade, importData } = useVulnStore()
+  const { vulnerabilidades, fetchVulnerabilidades, syncJira, updateStatus, updateResponsavel, sendNotification, deleteVulnerabilidade, importData, error } = useVulnStore()
   const [syncing, setSyncing] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [showVencidas, setShowVencidas] = useState(false)
-  const [showSemResponsavel, setShowSemResponsavel] = useState(false)
-  const [showComJira, setShowComJira] = useState(false)
-  const [showSemJira, setShowSemJira] = useState(false)
-  const [diasEmAbertoMin, setDiasEmAbertoMin] = useState("")
   const [selectedCriticidade, setSelectedCriticidade] = useState<string>("Todas")
+  const [selectedStatus, setSelectedStatus] = useState<string>("Todos")
+  const [selectedResponsavel, setSelectedResponsavel] = useState<string>("Todos")
+  const [selectedSquad, setSelectedSquad] = useState<string>("Todas")
+  const [diasEmAbertoMin, setDiasEmAbertoMin] = useState("")
 
   const [statusDialogOpen, setStatusDialogOpen] = useState(false)
   const [responsavelDialogOpen, setResponsavelDialogOpen] = useState(false)
@@ -110,6 +110,12 @@ export default function VulnerabilidadesPage() {
   const [selectedVulnId, setSelectedVulnId] = useState<string | null>(null)
   const [newStatus, setNewStatus] = useState<Status>("Aberta")
   const [newResponsavel, setNewResponsavel] = useState("")
+
+  useEffect(() => {
+    if (error) {
+      toast.error('Erro no Servidor', { description: error })
+    }
+  }, [error])
 
   useEffect(() => {
     fetchVulnerabilidades()
@@ -130,31 +136,47 @@ export default function VulnerabilidadesPage() {
         if (!matches) return false
       }
 
-      // Vencidas filter (SLA < data atual e não resolvida)
+      // Vencidas filter
       if (showVencidas) {
         if (!vuln.sla) return false
         const isResolved = ['Mitigada', 'Concluída', 'Risco Aceito', 'Fechada'].includes(vuln.status)
         if (isResolved || new Date() <= new Date(vuln.sla)) return false
       }
 
-      // Sem responsável filter
-      if (showSemResponsavel && vuln.responsavel) return false
-
-      // Com Jira filter
-      if (showComJira && !vuln.jiraKey) return false
-
-      // Sem Jira filter
-      if (showSemJira && vuln.jiraKey) return false
-
-      // Dias em aberto filter
-      if (diasEmAbertoMin && vuln.diasEmAberto < parseInt(diasEmAbertoMin)) return false
+      // Responsável filter
+      if (selectedResponsavel !== 'Todos') {
+        if (selectedResponsavel === 'Sem Responsável') {
+          if (vuln.responsavel) return false
+        } else if (vuln.responsavel !== selectedResponsavel) {
+          return false
+        }
+      }
 
       // Criticidade filter
       if (selectedCriticidade !== 'Todas' && vuln.criticidade !== selectedCriticidade) return false
 
+      // Status filter
+      if (selectedStatus !== 'Todos' && vuln.status !== selectedStatus) return false
+
+      // Squad filter
+      if (selectedSquad !== 'Todas' && vuln.squad !== selectedSquad) return false
+
+      // Dias em aberto filter
+      if (diasEmAbertoMin && vuln.diasEmAberto < parseInt(diasEmAbertoMin)) return false
+
       return true
     })
-  }, [vulnerabilidades, searchTerm, showVencidas, showSemResponsavel, showComJira, showSemJira, diasEmAbertoMin, selectedCriticidade])
+  }, [vulnerabilidades, searchTerm, showVencidas, selectedResponsavel, selectedCriticidade, selectedStatus, selectedSquad, diasEmAbertoMin])
+
+  const uniqueSquads = useMemo(() => {
+    const squads = Array.from(new Set(vulnerabilidades.map(v => v.squad))).filter(Boolean)
+    return ['Todas', ...squads.sort()]
+  }, [vulnerabilidades])
+
+  const uniqueResponsaveis = useMemo(() => {
+    const resps = Array.from(new Set(vulnerabilidades.map(v => v.responsavel).filter((r): r is string => !!r)))
+    return ['Todos', 'Sem Responsável', ...resps.sort()]
+  }, [vulnerabilidades])
 
   const handleSync = () => {
     setSyncing(true)
@@ -277,14 +299,14 @@ export default function VulnerabilidadesPage() {
   const clearFilters = () => {
     setSearchTerm("")
     setShowVencidas(false)
-    setShowSemResponsavel(false)
-    setShowComJira(false)
-    setShowSemJira(false)
+    setSelectedResponsavel("Todos")
+    setSelectedStatus("Todos")
+    setSelectedSquad("Todas")
     setDiasEmAbertoMin("")
     setSelectedCriticidade("Todas")
   }
 
-  const hasActiveFilters = searchTerm || showVencidas || showSemResponsavel || showComJira || showSemJira || diasEmAbertoMin || selectedCriticidade !== "Todas"
+  const hasActiveFilters = searchTerm || showVencidas || selectedResponsavel !== "Todos" || selectedStatus !== "Todos" || selectedSquad !== "Todas" || diasEmAbertoMin || selectedCriticidade !== "Todas"
 
   return (
     <div className="min-h-screen bg-background p-6">
@@ -320,7 +342,7 @@ export default function VulnerabilidadesPage() {
       </div>
 
       {/* Filters */}
-      <Card className="mb-6 bg-card">
+      <Card className="mb-6 bg-card border-border shadow-sm transition-all hover:shadow-md">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -336,91 +358,105 @@ export default function VulnerabilidadesPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap items-end gap-4">
-            {/* Search */}
-            <div className="w-full md:w-80">
-              <Label className="mb-2 block text-sm">Buscar</Label>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {/* Row 1: Search and Operational */}
+            <div className="lg:col-span-2">
+              <Label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Buscar</Label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="ID, título, squad, sistema..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 h-11 bg-muted border-border focus:bg-card transition-all"
                 />
               </div>
             </div>
 
-            {/* Dias em aberto */}
-            <div className="w-40">
-              <Label className="mb-2 block text-sm">Dias em aberto (min)</Label>
-              <Input
-                type="number"
-                placeholder="Ex: 30"
-                value={diasEmAbertoMin}
-                onChange={(e) => setDiasEmAbertoMin(e.target.value)}
-              />
-            </div>
-
-            {/* Filtro Criticidade */}
-            <div className="w-40">
-              <Label className="mb-2 block text-sm">Criticidade</Label>
-              <Select value={selectedCriticidade} onValueChange={setSelectedCriticidade}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Criticidade" />
+            <div className="space-y-2">
+              <Label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</Label>
+              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                <SelectTrigger className="h-11 bg-muted border-border focus:bg-card transition-all">
+                  <SelectValue placeholder="Todos os Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  {criticidadeOptions.map((crit) => (
-                    <SelectItem key={crit} value={crit}>
-                      {crit}
-                    </SelectItem>
+                  <SelectItem value="Todos">Todos os Status</SelectItem>
+                  {statusOptions.map((s) => (
+                    <SelectItem key={s} value={s}>{s}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Checkbox filters */}
-            <div className="hidden md:block w-px" />
-            <div className="w-full flex-1 md:w-auto">
-              <Label className="mb-2 hidden text-sm md:block opacity-0">Espaçador invisível</Label>
-              <div className="flex h-10 flex-wrap items-center gap-6">
+            <div className="space-y-2">
+              <Label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Criticidade</Label>
+              <Select value={selectedCriticidade} onValueChange={setSelectedCriticidade}>
+                <SelectTrigger className="h-11 bg-muted border-border focus:bg-card transition-all">
+                  <SelectValue placeholder="Todas" />
+                </SelectTrigger>
+                <SelectContent>
+                  {criticidadeOptions.map((crit) => (
+                    <SelectItem key={crit} value={crit}>{crit}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Row 2: Responsibility, Squad and Metrics */}
+            <div className="space-y-2">
+              <Label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Responsável</Label>
+              <Select value={selectedResponsavel} onValueChange={setSelectedResponsavel}>
+                <SelectTrigger className="h-11 bg-muted border-border focus:bg-card transition-all">
+                  <div className="flex items-center gap-2">
+                    <UserPlus className="h-4 w-4 text-muted-foreground" />
+                    <SelectValue placeholder="Filtrar por nome" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  {uniqueResponsaveis.map((resp) => (
+                    <SelectItem key={resp} value={resp}>{resp}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Squad</Label>
+              <Select value={selectedSquad} onValueChange={setSelectedSquad}>
+                <SelectTrigger className="h-11 bg-muted border-border focus:bg-card transition-all">
+                  <SelectValue placeholder="Todas as Squads" />
+                </SelectTrigger>
+                <SelectContent>
+                  {uniqueSquads.map((squad) => (
+                    <SelectItem key={squad} value={squad}>{squad}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tempo em Aberto</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  placeholder="Min dias"
+                  value={diasEmAbertoMin}
+                  onChange={(e) => setDiasEmAbertoMin(e.target.value)}
+                  className="h-11 bg-muted border-border focus:bg-card transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center h-full pt-6">
+              <div className="flex items-center gap-6 px-2">
                 <div className="flex items-center gap-2">
                   <Checkbox
                     id="vencidas"
                     checked={showVencidas}
                     onCheckedChange={(checked) => setShowVencidas(checked as boolean)}
+                    className="h-5 w-5"
                   />
-                  <Label htmlFor="vencidas" className="text-sm font-normal">Vencidas</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="semResponsavel"
-                    checked={showSemResponsavel}
-                    onCheckedChange={(checked) => setShowSemResponsavel(checked as boolean)}
-                  />
-                  <Label htmlFor="semResponsavel" className="text-sm font-normal">Sem responsável</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="comJira"
-                    checked={showComJira}
-                    onCheckedChange={(checked) => {
-                      setShowComJira(checked as boolean)
-                      if (checked) setShowSemJira(false)
-                    }}
-                  />
-                  <Label htmlFor="comJira" className="text-sm font-normal">Com ticket Jira</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="semJira"
-                    checked={showSemJira}
-                    onCheckedChange={(checked) => {
-                      setShowSemJira(checked as boolean)
-                      if (checked) setShowComJira(false)
-                    }}
-                  />
-                  <Label htmlFor="semJira" className="text-sm font-normal">Sem ticket Jira</Label>
+                  <Label htmlFor="vencidas" className="text-sm font-medium cursor-pointer">Vencidas (SLA)</Label>
                 </div>
               </div>
             </div>
@@ -437,7 +473,7 @@ export default function VulnerabilidadesPage() {
       </div>
 
       {/* Table */}
-      <Card className="bg-card">
+      <Card className="bg-card border-border shadow-sm overflow-hidden">
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <Table>
@@ -491,7 +527,7 @@ export default function VulnerabilidadesPage() {
                     <TableCell className="text-center text-sm font-medium">{vuln.scoreCvss}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{vuln.dataCriacao}</TableCell>
                     <TableCell className="text-center">
-                      <span className={`text-sm font-medium ${vuln.diasEmAberto > 30 ? 'text-red-400' : 'text-foreground'}`}>
+                      <span className={`text-sm font-semibold ${vuln.diasEmAberto > 30 ? 'text-red-500' : 'text-foreground'}`}>
                         {vuln.diasEmAberto}
                       </span>
                     </TableCell>

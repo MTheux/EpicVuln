@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../app';
+import { env } from '../config/env';
 
 export interface AuthRequest extends Request {
     user?: any;
@@ -16,7 +17,7 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
         }
 
         const token = authHeader.split(' ')[1];
-        const secret = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+        const secret = env.JWT_SECRET;
 
         const decoded = jwt.verify(token, secret) as { id: string; email: string; role: string };
 
@@ -35,8 +36,9 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
         };
 
         next();
-    } catch (error) {
-        res.status(401).json({ error: 'Invalid token' });
+    } catch (error: any) {
+        console.error('Authentication error:', error.message);
+        res.status(401).json({ error: `Invalid token: ${error.message}` });
         return;
     }
 };

@@ -13,5 +13,34 @@ services:
       - pgdata:/var/lib/postgresql/data
     restart: unless-stopped
 
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: vulncontrol_backend
+    ports:
+      - "9001:9001"
+    env_file:
+      - ./backend/.env
+    environment:
+      - DATABASE_URL=postgresql://vulncontrol:vulncontrol@db:5432/vulncontrol
+      - PORT=9001
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:9001
+    container_name: vulncontrol_frontend
+    ports:
+      - "9000:9000"
+    environment:
+      - JWT_SECRET=your-secret-key-change-in-production
+    depends_on:
+      - backend
+
 volumes:
   pgdata:

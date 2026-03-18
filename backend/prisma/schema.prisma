@@ -88,6 +88,12 @@ enum Origem {
   CODE_REVIEW
 }
 
+enum Complexidade {
+  BAIXA
+  MEDIA
+  ALTA
+}
+
 enum Ambiente {
   PRODUCAO
   HOMOLOGACAO
@@ -127,6 +133,8 @@ model Vulnerability {
   dataDeteccao     DateTime?    @map("data_deteccao")
   tags             String[]     @default([])
   reincidencia     Int          @default(0)
+  complexidade      Complexidade @default(MEDIA)
+  complexidadeCorrecao Complexidade @default(MEDIA) @map("complexidade_correcao")
   sla              DateTime?
   diasEmAberto     Int          @default(0) @map("dias_em_aberto")
   dataCriacao      DateTime     @default(now()) @map("data_criacao")

@@ -13,6 +13,8 @@ export type Status =
   | 'Risco Aceito'
   | 'Fechada'
 
+export type Complexidade = 'Baixa' | 'Média' | 'Alta'
+
 export type OwaspCategory =
   | 'A01:2025-Broken Access Control'
   | 'A02:2025-Cryptographic Failures'
@@ -58,6 +60,8 @@ export interface Vulnerabilidade {
   recomendacao?: string
   tags?: string[]
   reincidencia: number
+  complexidade: Complexidade
+  complexidadeCorrecao: Complexidade
   historico?: HistoricoItem[]
   impacto?: string
   observacao?: string
@@ -86,9 +90,12 @@ export interface ComentarioItem {
 
 export interface HistoricoItem {
   data: string
-  tipo: 'criacao' | 'status' | 'criticidade' | 'responsavel' | 'sincronizacao' | 'notificacao' | 'comentario'
+  tipo: 'criacao' | 'status' | 'criticidade' | 'responsavel' | 'sincronizacao' | 'notificacao' | 'comentario' | 'sync_jira'
   descricao: string
+  description?: string
+  createdAt?: string
   usuario?: string
+  user?: { name: string }
 }
 
 export interface Squad {

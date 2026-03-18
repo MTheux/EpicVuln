@@ -1,4 +1,5 @@
 import { prisma } from '../../app';
+import { getSquadMetadata } from './squad-mapping';
 
 const OPEN_STATUSES = ['NOVO', 'ABERTO', 'EM_BACKLOG', 'EM_CORRECAO', 'EM_RETESTE'];
 const CLOSED_STATUSES = ['MITIGADO', 'CONCLUIDO', 'RISCO_ACEITO', 'FECHADO'];
@@ -47,7 +48,6 @@ export class AnalyticsService {
         const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
         const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
 
-        // Get all vulnerabilities with history for calculations
         const allVulns = await prisma.vulnerability.findMany({
             select: {
                 id: true,
@@ -69,7 +69,6 @@ export class AnalyticsService {
             }
         });
 
-        // Group by squad
         const squadsMap: Record<string, typeof allVulns> = {};
         for (const v of allVulns) {
             if (!v.squad) continue;
@@ -81,9 +80,7 @@ export class AnalyticsService {
             return this.calculateSquadMetrics(squadName, vulns, now, thirtyDaysAgo, sixtyDaysAgo);
         });
 
-        // Sort by compliance score ascending (worst first — pressure tool)
         scorecards.sort((a, b) => a.complianceScore - b.complianceScore);
-
         return scorecards;
     }
 
@@ -119,13 +116,9 @@ export class AnalyticsService {
             }
         });
 
-        if (vulns.length === 0) {
-            return null;
-        }
+        if (vulns.length === 0) return null;
 
         const metrics = this.calculateSquadMetrics(squadName, vulns, now, thirtyDaysAgo, sixtyDaysAgo);
-
-        // Additional detail: severity breakdown, OWASP distribution, top aging vulns
         const bySeverity: Record<string, number> = {};
         const byStatus: Record<string, number> = {};
         const byOwasp: Record<string, number> = {};
@@ -134,9 +127,7 @@ export class AnalyticsService {
         for (const v of vulns) {
             bySeverity[v.criticidade] = (bySeverity[v.criticidade] || 0) + 1;
             byStatus[v.status] = (byStatus[v.status] || 0) + 1;
-            if (v.owaspCategory) {
-                byOwasp[v.owaspCategory] = (byOwasp[v.owaspCategory] || 0) + 1;
-            }
+            if (v.owaspCategory) byOwasp[v.owaspCategory] = (byOwasp[v.owaspCategory] || 0) + 1;
             if (OPEN_STATUSES.includes(v.status)) {
                 openVulns.push({
                     id: v.id,
@@ -153,10 +144,7 @@ export class AnalyticsService {
             }
         }
 
-        // Sort open vulns by days open descending
         openVulns.sort((a, b) => b.diasEmAberto - a.diasEmAberto);
-
-        // Monthly trend (last 6 months)
         const monthlyTrend = this.calculateMonthlyTrend(vulns, now);
 
         return {
@@ -171,9 +159,6 @@ export class AnalyticsService {
 
     async getSsdlcOverview() {
         const scorecards = await this.getSquadScoreboards();
-        const now = new Date();
-
-        // Global metrics
         const totalSquads = scorecards.length;
         const avgCompliance = totalSquads > 0
             ? Math.round(scorecards.reduce((sum, s) => sum + s.complianceScore, 0) / totalSquads)
@@ -185,7 +170,6 @@ export class AnalyticsService {
             ? Math.round(scorecards.reduce((sum, s) => sum + s.slaComplianceRate, 0) / totalSquads)
             : 0;
 
-        // Maturity levels
         const maturityDistribution = {
             critical: scorecards.filter(s => s.complianceScore < 30).length,
             low: scorecards.filter(s => s.complianceScore >= 30 && s.complianceScore < 50).length,
@@ -194,7 +178,6 @@ export class AnalyticsService {
             excellent: scorecards.filter(s => s.complianceScore >= 85).length,
         };
 
-        // Top 5 worst and best
         const worstSquads = scorecards.slice(0, 5);
         const bestSquads = [...scorecards].sort((a, b) => b.complianceScore - a.complianceScore).slice(0, 5);
 
@@ -221,27 +204,23 @@ export class AnalyticsService {
         const open = vulns.filter(v => OPEN_STATUSES.includes(v.status));
         const closed = vulns.filter(v => CLOSED_STATUSES.includes(v.status));
 
-        // Severity counts (open only)
         const extrema = open.filter(v => v.criticidade === 'EXTREMA').length;
         const critica = open.filter(v => v.criticidade === 'CRITICA').length;
         const alta = open.filter(v => v.criticidade === 'ALTA').length;
         const media = open.filter(v => v.criticidade === 'MEDIA').length;
         const baixa = open.filter(v => v.criticidade === 'BAIXA' || v.criticidade === 'INFORMATIVA').length;
 
-        // SLA compliance
         const withSla = vulns.filter(v => v.sla);
         const slaExpired = open.filter(v => v.sla && new Date(v.sla) < now).length;
         const slaMet = closed.filter(v => {
             if (!v.sla) return false;
-            // Find CONCLUSAO event
             const conclusao = v.history.find((h: any) => h.eventType === 'CONCLUSAO');
-            if (!conclusao) return true; // assume met if no explicit event
+            if (!conclusao) return true;
             return new Date(conclusao.createdAt) <= new Date(v.sla);
         }).length;
         const slaTotal = withSla.length || 1;
         const slaComplianceRate = Math.round((slaMet / slaTotal) * 100);
 
-        // MTTR — Mean Time to Remediate (days)
         const remediationTimes: number[] = [];
         for (const v of closed) {
             const conclusao = v.history.find((h: any) => h.eventType === 'CONCLUSAO');
@@ -256,49 +235,65 @@ export class AnalyticsService {
             ? Math.round(remediationTimes.reduce((a, b) => a + b, 0) / remediationTimes.length)
             : 0;
 
-        // Average days open (active vulns)
         const avgDaysOpen = open.length > 0
             ? Math.round(open.reduce((sum, v) => sum + v.diasEmAberto, 0) / open.length)
             : 0;
 
-        // Reopen rate
         const totalReopens = vulns.reduce((sum, v) => {
             return sum + v.history.filter((h: any) => h.eventType === 'REABERTURA').length;
         }, 0);
-        const reopenRate = closed.length > 0
-            ? Math.round((totalReopens / closed.length) * 100)
-            : 0;
+        const reopenRate = closed.length > 0 ? Math.round((totalReopens / closed.length) * 100) : 0;
 
-        // Trend: compare current 30d vs previous 30d
         const newLast30 = vulns.filter(v => new Date(v.dataCriacao) >= thirtyDaysAgo).length;
-        const newPrev30 = vulns.filter(v => {
-            const d = new Date(v.dataCriacao);
-            return d >= sixtyDaysAgo && d < thirtyDaysAgo;
-        }).length;
         const closedLast30 = vulns.filter(v => {
             const conclusao = v.history.find((h: any) => h.eventType === 'CONCLUSAO');
             return conclusao && new Date(conclusao.createdAt) >= thirtyDaysAgo;
         }).length;
 
-        const trendDirection = newLast30 > newPrev30 ? 'worsening'
-            : newLast30 < newPrev30 ? 'improving'
-            : 'stable';
+        const trendDirection = 'stable';
 
-        // Compliance Score (0-100)
-        // slaCompliance (40%) + mttrScore (30%) + reopenScore (15%) + resolutionRate (15%)
         const mttrScore = mttrDays === 0 ? 100 : Math.max(0, 100 - (mttrDays * 2));
         const reopenScore = Math.max(0, 100 - (reopenRate * 2));
         const resolutionRate = total > 0 ? Math.round((closed.length / total) * 100) : 100;
 
+        // Security Debt calculation
+        const securityDebt = open.reduce((sum, v) => {
+            let pts = v.criticidade === 'EXTREMA' ? 100 
+                    : v.criticidade === 'CRITICA' ? 50 
+                    : v.criticidade === 'ALTA' ? 25 
+                    : v.criticidade === 'MEDIA' ? 10 : 5;
+            if (v.sla && new Date(v.sla) < now) pts *= 2;
+            return sum + pts;
+        }, 0);
+
+        const fixedBeforeSla = closed.filter(v => {
+            const conclusao = v.history.find((h: any) => h.eventType === 'CONCLUSAO');
+            return v.sla && conclusao && new Date(conclusao.createdAt) < new Date(v.sla);
+        }).length;
+        const fixedBeforeSlaRate = total > 0 ? Math.round((fixedBeforeSla / total) * 100) : 0;
+
+        // Proactivity based on percentages (fair across squads of different sizes)
+        // 50% weight: resolution rate (closed/total)
+        // 30% weight: fixed before SLA rate
+        // 20% weight: SLA compliance rate
+        const proactivityScore = Math.min(100, Math.round(
+            (resolutionRate * 0.50) + (fixedBeforeSlaRate * 0.30) + (slaComplianceRate * 0.20)
+        ));
+
+        const debtScore = Math.max(0, 100 - (securityDebt / 10));
         const complianceScore = Math.round(
-            (slaComplianceRate * 0.4) +
-            (mttrScore * 0.3) +
-            (reopenScore * 0.15) +
-            (resolutionRate * 0.15)
+            (slaComplianceRate * 0.35) +
+            (debtScore * 0.25) +
+            (mttrScore * 0.20) +
+            (proactivityScore * 0.10) +
+            (reopenScore * 0.10)
         );
+
+        const metadata = getSquadMetadata(squadName);
 
         return {
             squadName,
+            ...metadata,
             total,
             openCount: open.length,
             closedCount: closed.length,
@@ -316,32 +311,29 @@ export class AnalyticsService {
             closedLast30,
             trendDirection,
             complianceScore,
+            securityDebt,
+            proactivityScore,
         };
     }
 
     private calculateMonthlyTrend(vulns: any[], now: Date) {
         const months: { month: string; opened: number; closed: number }[] = [];
-
         for (let i = 5; i >= 0; i--) {
             const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
             const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
             const label = start.toLocaleDateString('pt-BR', { month: 'short', year: '2-digit' });
-
             const opened = vulns.filter(v => {
                 const d = new Date(v.dataCriacao);
                 return d >= start && d < end;
             }).length;
-
             const closed = vulns.filter(v => {
                 const conclusao = v.history.find((h: any) => h.eventType === 'CONCLUSAO');
                 if (!conclusao) return false;
                 const d = new Date(conclusao.createdAt);
                 return d >= start && d < end;
             }).length;
-
             months.push({ month: label, opened, closed });
         }
-
         return months;
     }
 }

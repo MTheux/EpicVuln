@@ -2,7 +2,8 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Lock, Mail, ShieldAlert, ArrowRight, Loader2 } from "lucide-react"
+import Image from "next/image"
+import { Lock, Mail, ArrowRight, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -46,30 +47,26 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-black">
-            {/* Background gradients */}
+        <div className="flex min-h-screen items-center justify-center bg-slate-50 overflow-hidden relative">
+            {/* Soft Ambient Glows - Light version */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute -left-1/4 -top-1/4 h-1/2 w-1/2 rounded-full bg-red-900/20 blur-[120px]" />
-                <div className="absolute -right-1/4 -bottom-1/4 h-1/2 w-1/2 rounded-full bg-red-900/10 blur-[120px]" />
+                <div className="absolute -left-[10%] -top-[10%] h-[50%] w-[50%] rounded-full bg-blue-500/5 blur-[120px] animate-pulse duration-[10s]" />
+                <div className="absolute -right-[15%] -bottom-[15%] h-[60%] w-[60%] rounded-full bg-slate-200/50 blur-[150px] animate-pulse duration-[15s] delay-700" />
             </div>
 
+            {/* Subtle Grid Background */}
+            <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:radial-gradient(ellipse_at_center,white,transparent)] opacity-[0.5] pointer-events-none" />
+
             <div className="z-10 w-full max-w-md p-8">
-                <div className="mb-10 text-center">
-                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 shadow-[0_0_30px_-5px_rgba(239,68,68,0.3)]">
-                        <ShieldAlert size={32} />
-                    </div>
-                    <h1 className="text-3xl font-bold tracking-tight text-white mb-2">VulnControl</h1>
-                    <p className="text-sm text-zinc-400">
-                        Acesso Restrito: Equipe de Segurança & Pentest
-                    </p>
+                <div className="mb-10 text-center animate-in fade-in slide-in-from-top-4 duration-1000">
                 </div>
 
-                <form onSubmit={handleLogin} className="space-y-6 bg-zinc-950/50 p-8 rounded-2xl border border-zinc-900 backdrop-blur-xl">
-                    <div className="space-y-4">
+                <form onSubmit={handleLogin} className="space-y-6 bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-2xl shadow-blue-900/5 animate-in zoom-in-95 duration-700">
+                    <div className="space-y-5">
                         <div className="space-y-2">
-                            <Label htmlFor="email" className="text-zinc-400">E-mail Corporativo</Label>
-                            <div className="relative">
-                                <Mail className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
+                            <Label htmlFor="email" className="text-xs font-semibold text-slate-400 uppercase tracking-widest ml-1 opacity-70">E-mail Corporativo</Label>
+                            <div className="relative group">
+                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
                                 <Input
                                     id="email"
                                     type="email"
@@ -77,20 +74,17 @@ export default function LoginPage() {
                                     required
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="pl-10 bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-red-500"
+                                    className="pl-12 h-14 bg-slate-50 border-slate-100 text-slate-900 placeholder:text-slate-400 focus-visible:ring-blue-500/20 focus-visible:bg-white transition-all rounded-2xl"
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <Label htmlFor="password" className="text-zinc-400">Senha</Label>
-                                <a href="#" className="text-xs text-red-500 hover:text-red-400">
-                                    Esqueceu a senha?
-                                </a>
+                            <div className="flex items-center justify-between ml-1">
+                                <Label htmlFor="password" className="text-xs font-semibold text-slate-400 uppercase tracking-widest opacity-70">Senha</Label>
                             </div>
-                            <div className="relative">
-                                <Lock className="absolute left-3 top-3 h-4 w-4 text-zinc-500" />
+                            <div className="relative group">
+                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
                                 <Input
                                     id="password"
                                     type="password"
@@ -98,7 +92,7 @@ export default function LoginPage() {
                                     required
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="pl-10 bg-zinc-900/50 border-zinc-800 text-white placeholder:text-zinc-600 focus-visible:ring-red-500"
+                                    className="pl-12 h-14 bg-slate-50 border-slate-100 text-slate-900 placeholder:text-slate-400 focus-visible:ring-blue-500/20 focus-visible:bg-white transition-all rounded-2xl"
                                 />
                             </div>
                         </div>
@@ -106,22 +100,18 @@ export default function LoginPage() {
 
                     <Button
                         type="submit"
-                        className="w-full bg-red-600 hover:bg-red-700 text-white h-11"
+                        className="w-full bg-blue-600 hover:bg-blue-500 text-white h-14 text-base font-bold rounded-2xl shadow-lg shadow-blue-600/20 group transition-all duration-300 active:scale-95"
                         disabled={isLoading}
                     >
                         {isLoading ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                         ) : (
-                            <>
-                                Entrar Seguramente
-                                <ArrowRight className="ml-2 h-4 w-4" />
-                            </>
+                            <div className="flex items-center justify-center gap-2">
+                                Entrar
+                                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                            </div>
                         )}
                     </Button>
-
-                    <div className="mt-6 text-center text-xs text-zinc-600">
-                        O acesso não autorizado é estritamente proibido e monitorado.
-                    </div>
                 </form>
             </div>
         </div>

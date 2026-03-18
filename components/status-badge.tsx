@@ -2,15 +2,15 @@ import { cn } from "@/lib/utils"
 import type { Status } from "@/lib/types"
 
 const statusConfig: Record<Status, { bg: string; text: string; dot: string }> = {
-  'Nova': { bg: 'bg-zinc-500/10', text: 'text-zinc-400', dot: 'bg-zinc-400' },
-  'Aberta': { bg: 'bg-blue-500/10', text: 'text-blue-400', dot: 'bg-blue-400' },
-  'Em Backlog': { bg: 'bg-purple-500/10', text: 'text-purple-400', dot: 'bg-purple-400' },
-  'Em Correção': { bg: 'bg-amber-500/10', text: 'text-amber-400', dot: 'bg-amber-400' },
-  'Em Reteste': { bg: 'bg-cyan-500/10', text: 'text-cyan-400', dot: 'bg-cyan-400' },
-  'Mitigada': { bg: 'bg-teal-500/10', text: 'text-teal-400', dot: 'bg-teal-400' },
-  'Concluída': { bg: 'bg-green-500/10', text: 'text-green-400', dot: 'bg-green-400' },
-  'Risco Aceito': { bg: 'bg-slate-500/10', text: 'text-slate-400', dot: 'bg-slate-400' },
-  'Fechada': { bg: 'bg-gray-500/10', text: 'text-gray-400', dot: 'bg-gray-400' },
+  'Nova': { bg: 'bg-muted', text: 'text-muted-foreground', dot: 'bg-muted-foreground' },
+  'Aberta': { bg: 'bg-blue-50', text: 'text-blue-700', dot: 'bg-blue-600' },
+  'Em Backlog': { bg: 'bg-purple-50', text: 'text-purple-700', dot: 'bg-purple-600' },
+  'Em Correção': { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-600' },
+  'Em Reteste': { bg: 'bg-cyan-50', text: 'text-cyan-700', dot: 'bg-cyan-600' },
+  'Mitigada': { bg: 'bg-teal-50', text: 'text-teal-700', dot: 'bg-teal-600' },
+  'Concluída': { bg: 'bg-green-50', text: 'text-green-700', dot: 'bg-green-600' },
+  'Risco Aceito': { bg: 'bg-muted', text: 'text-foreground', dot: 'bg-muted-foreground' },
+  'Fechada': { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-600' },
 }
 
 interface StatusBadgeProps {

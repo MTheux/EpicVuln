@@ -159,9 +159,9 @@ export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
     status: <Shield className="h-4 w-4" />,
     criticidade: <AlertTriangle className="h-4 w-4" />,
     responsavel: <User className="h-4 w-4" />,
-    sincronizacao: <RefreshCw className="h-4 w-4" />,
     notificacao: <Bell className="h-4 w-4" />,
     comentario: <FileText className="h-4 w-4" />,
+    sync_jira: <Link2 className="h-4 w-4 text-blue-400" />,
   }
 
   return (
@@ -353,113 +353,26 @@ export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
                   <h4 className="mb-1 text-xs font-medium text-muted-foreground">Reincidência</h4>
                   <p className="text-sm font-medium text-foreground">{vuln.reincidencia}x</p>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Evidências */}
-          <Card className="bg-card">
-            <CardHeader>
-              <CardTitle className="text-base">Evidências</CardTitle>
-              <CardDescription>Provas e anexos relacionados à vulnerabilidade</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {vuln.evidenciaTextual && (
-                <div className="mb-6 space-y-2">
-                  <h4 className="text-sm font-medium text-muted-foreground">Evidência Textual</h4>
-                  <div className="rounded-lg bg-muted/50 p-4">
-                    <pre className="whitespace-pre-wrap font-mono text-xs text-foreground">
-                      {vuln.evidenciaTextual}
-                    </pre>
-                  </div>
+                <div>
+                  <h4 className="mb-1 text-xs font-medium text-muted-foreground">Complexidade Falha</h4>
+                  <Badge variant="outline">{vuln.complexidade}</Badge>
                 </div>
-              )}
-
-              <div className="space-y-4">
-                <div className="flex flex-col gap-2">
-                  <h4 className="text-sm font-medium text-muted-foreground">Anexos</h4>
-                  {vuln.attachments && vuln.attachments.length > 0 ? (
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3">
-                      {vuln.attachments.map((file) => (
-                        <div key={file.id} className="flex flex-col justify-between rounded-md border p-3 hover:bg-muted/50">
-                          <div className="flex items-start gap-2 overflow-hidden">
-                            {file.originalName.match(/\.(jpeg|jpg|png|gif)$/i) ? (
-                              <Image className="h-8 w-8 shrink-0 text-blue-500" />
-                            ) : (
-                              <Code className="h-8 w-8 shrink-0 text-orange-500" />
-                            )}
-                            <div className="flex flex-col overflow-hidden">
-                              <span className="truncate text-sm font-medium" title={file.originalName}>
-                                {file.originalName}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {(file.size / 1024).toFixed(1)} KB
-                              </span>
-                            </div>
-                          </div>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            className="mt-3 w-full"
-                            onClick={() => handleViewEvidence(file.filename)}
-                          >
-                            Visualizar
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">Nenhum anexo registrado.</p>
-                  )}
-                </div>
-
-                {/* Secure Preview Viewer */}
-                {previewContent.type && (
-                  <div className="mt-4 rounded-md border overflow-hidden">
-                    <div className="bg-muted px-4 py-2 flex justify-between items-center">
-                      <span className="text-sm font-medium truncate">Preview: {previewContent.name}</span>
-                      <Button variant="ghost" size="sm" onClick={() => setPreviewContent({ type: null, content: null, name: '' })}>Fechar</Button>
-                    </div>
-                    <div className="p-4 bg-background">
-                      {previewContent.type === 'image' && previewContent.content ? (
-                        <img src={previewContent.content} alt={previewContent.name} className="max-w-full rounded-md border" />
-                      ) : previewContent.type === 'text' && previewContent.content ? (
-                        <pre className="whitespace-pre-wrap font-mono text-xs text-foreground bg-muted/50 p-4 rounded-md overflow-auto max-h-[500px]">
-                          {previewContent.content}
-                        </pre>
-                      ) : null}
-                    </div>
-                  </div>
-                )}
-
-                <div className="mt-4 flex flex-wrap items-center gap-2">
-                  <div className="relative">
-                    <input
-                      type="file"
-                      id="evidence-upload"
-                      className="absolute inset-0 h-full w-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
-                      accept=".png,.jpg,.jpeg,.php,.html"
-                      disabled={uploading}
-                      onChange={handleFileUpload}
-                    />
-                    <Button variant="outline" size="sm" disabled={uploading}>
-                      {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Paperclip className="mr-2 h-4 w-4" />}
-                      Anexar Arquivo
-                    </Button>
-                  </div>
-                  <span className="text-xs text-muted-foreground">Formatos suportados: PNG, JPG, PHP, HTML</span>
+                <div>
+                  <h4 className="mb-1 text-xs font-medium text-muted-foreground">Complexidade Correção</h4>
+                  <Badge variant="outline">{vuln.complexidadeCorrecao}</Badge>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Timeline */}
+          {/* Timeline / Histórico (Unificado com Jira) */}
           <Card className="bg-card">
             <CardHeader>
               <div className="flex items-center gap-2">
                 <History className="h-5 w-5 text-primary" />
-                <CardTitle className="text-base">Histórico</CardTitle>
+                <CardTitle className="text-base">Linha do Tempo de Tratativa</CardTitle>
               </div>
+              <CardDescription>Eventos sincronizados do Jira e ações do sistema</CardDescription>
             </CardHeader>
             <CardContent>
               {vuln.historico && vuln.historico.length > 0 ? (
@@ -468,73 +381,23 @@ export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
                     <div key={index} className="flex gap-4">
                       <div className="flex flex-col items-center">
                         <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
-                          {timelineTypeIcons[item.tipo]}
+                          {timelineTypeIcons[item.tipo?.toLowerCase() || 'sync_jira']}
                         </div>
                         {index < vuln.historico!.length - 1 && (
                           <div className="mt-2 h-full w-px bg-border" />
                         )}
                       </div>
                       <div className="flex-1 pb-4">
-                        <p className="text-sm font-medium text-foreground">{item.descricao}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {item.data} {item.usuario && `• ${item.usuario}`}
+                        <p className="text-sm font-medium text-foreground">{item.description || item.descricao}</p>
+                        <p className="text-xs text-muted-foreground italic">
+                          {new Date(item.createdAt || item.data).toLocaleString('pt-BR')} {item.user?.name && `• ${item.user.name}`} {item.usuario && `• ${item.usuario}`}
                         </p>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">Nenhum histórico registrado.</p>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Comentários */}
-          <Card className="bg-card">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5 text-primary" />
-                <CardTitle className="text-base">Comentários</CardTitle>
-              </div>
-              <CardDescription>Adicione updates, decisões ou contexto técnico</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4 mb-6">
-                <div className="flex flex-col gap-2">
-                  <textarea
-                    className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder="Escreva seu comentário ou update..."
-                    value={novoComentario}
-                    onChange={(e) => setNovoComentario(e.target.value)}
-                  />
-                  <div className="flex justify-end">
-                    <Button size="sm" onClick={handleAddComentario} disabled={!novoComentario.trim()}>
-                      <Send className="mr-2 h-4 w-4" />
-                      Comentar
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              {vuln.comentarios && vuln.comentarios.length > 0 ? (
-                <div className="space-y-4">
-                  {vuln.comentarios.map((comentario) => (
-                    <div key={comentario.id} className="rounded-lg border bg-card text-card-foreground shadow-sm p-4">
-                      <div className="mb-2 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-xs font-semibold text-primary">
-                            {comentario.autor.charAt(0)}
-                          </div>
-                          <span className="text-sm font-semibold">{comentario.autor}</span>
-                        </div>
-                        <span className="text-xs text-muted-foreground">{comentario.data}</span>
-                      </div>
-                      <p className="text-sm text-foreground whitespace-pre-wrap">{comentario.texto}</p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">Nenhum comentário registrado.</p>
+                <p className="text-sm text-muted-foreground">Nenhum evento registrado até o momento.</p>
               )}
             </CardContent>
           </Card>

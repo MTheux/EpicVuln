@@ -17,4 +17,18 @@ export class LlmController {
       });
     }
   };
+
+  getAttackGraph = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const result = await this.llmService.generateAttackGraph();
+      res.json({ success: true, data: result });
+    } catch (error: any) {
+      console.error('Attack Graph Error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Erro ao gerar Attack Graph',
+        error: error.message
+      });
+    }
+  };
 }

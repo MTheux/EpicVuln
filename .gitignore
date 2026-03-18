@@ -9,9 +9,16 @@ __v0_jsx-dev-runtime.ts
 next.user-config.*
 
 # Environment variables
+.env
+.env.*
 .env*.local
+backend/.env
 
 # Common ignores
 node_modules/
 .next/
 .DS_Store
+backend/dist/
+backend/uploads/
+backend/server.log
+*.log

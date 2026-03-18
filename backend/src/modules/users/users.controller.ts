@@ -19,7 +19,8 @@ export class UsersController {
 
   async findOne(req: Request, res: Response) {
     try {
-      const result = await this.usersService.findOne(req.params.id);
+      const { id } = req.params;
+      const result = await this.usersService.findOne(id as string);
       res.json(result);
     } catch (error: any) {
       if (error.message === 'User not found') res.status(404).json({ error: error.message });
@@ -39,7 +40,8 @@ export class UsersController {
 
   async update(req: Request, res: Response) {
     try {
-      const result = await this.usersService.update(req.params.id, req.body);
+      const { id } = req.params;
+      const result = await this.usersService.update(id as string, req.body);
       res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: 'Internal server error' });

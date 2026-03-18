@@ -3,34 +3,34 @@ import type { Criticidade } from "@/lib/types"
 
 const severityConfig: Record<Criticidade, { bg: string; text: string; border: string }> = {
   'Extrema': { 
-    bg: 'bg-red-500/20', 
-    text: 'text-red-400', 
-    border: 'border-red-500/50 animate-pulse' 
+    bg: 'bg-red-50', 
+    text: 'text-red-700', 
+    border: 'border-red-200 animate-pulse' 
   },
   'Crítica': { 
-    bg: 'bg-orange-500/20', 
-    text: 'text-orange-400', 
-    border: 'border-orange-500/40' 
+    bg: 'bg-orange-50', 
+    text: 'text-orange-700', 
+    border: 'border-orange-200' 
   },
   'Alta': { 
-    bg: 'bg-amber-500/20', 
-    text: 'text-amber-400', 
-    border: 'border-amber-500/40' 
+    bg: 'bg-amber-50', 
+    text: 'text-amber-700', 
+    border: 'border-amber-200' 
   },
   'Média': { 
-    bg: 'bg-yellow-500/20', 
-    text: 'text-yellow-400', 
-    border: 'border-yellow-500/40' 
+    bg: 'bg-yellow-50', 
+    text: 'text-yellow-700', 
+    border: 'border-yellow-200' 
   },
   'Baixa': { 
-    bg: 'bg-green-500/20', 
-    text: 'text-green-400', 
-    border: 'border-green-500/40' 
+    bg: 'bg-green-50', 
+    text: 'text-green-700', 
+    border: 'border-green-200' 
   },
   'Informativa': { 
-    bg: 'bg-blue-500/20', 
-    text: 'text-blue-400', 
-    border: 'border-blue-500/40' 
+    bg: 'bg-blue-50', 
+    text: 'text-blue-700', 
+    border: 'border-blue-200' 
   },
 }
 

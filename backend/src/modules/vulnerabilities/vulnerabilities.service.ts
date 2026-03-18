@@ -2,6 +2,22 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export class VulnerabilitiesService {
+  private calculateSlaDate(criticidade: string, dataDeteccao: Date = new Date()): Date {
+    const days: Record<string, number> = {
+      'EXTREMA': 0,
+      'CRITICA': 30,
+      'ALTA': 90,
+      'MEDIA': 180,
+      'BAIXA': 270,
+      'INFORMATIVA': 270
+    };
+    
+    const slaDays = days[criticidade] ?? 90;
+    const slaDate = new Date(dataDeteccao);
+    slaDate.setDate(slaDate.getDate() + slaDays);
+    return slaDate;
+  }
+
   async findAll(filters: any) {
     const where: any = {};
 
@@ -61,17 +77,23 @@ export class VulnerabilitiesService {
       const m: any = { 'PRD': 'PRODUCAO', 'HML': 'HOMOLOGACAO', 'DEV': 'DESENVOLVIMENTO', 'STG': 'STAGING', 'Produção': 'PRODUCAO', 'Homologação': 'HOMOLOGACAO', 'Desenvolvimento': 'DESENVOLVIMENTO' };
       return m[val] || 'PRODUCAO';
     };
+    const mapComplexidade = (val?: string) => {
+      if (!val) return 'MEDIA';
+      const m: any = { 'Baixa': 'BAIXA', 'Média': 'MEDIA', 'Alta': 'ALTA', 'Baxia': 'BAIXA', 'Media': 'MEDIA' };
+      return m[val] || 'MEDIA';
+    };
 
     return prisma.$transaction(async (tx) => {
       // Remover campos que o Prisma não espera ou que preenchemos manualmente
-      const { id, history, comments, attachments, jiraSyncLogs, dbId, dataDeteccao, sla, criticidade, status, origem, ambiente, notificacoesEnviadas, ...validData } = data;
+      const { id, history, comments, attachments, jiraSyncLogs, dbId, dataDeteccao, sla, criticidade, status, origem, ambiente, complexidade, complexidadeCorrecao, notificacoesEnviadas, ...validData } = data;
 
       // Gerar codigoInterno no padrão VULN-TIMESTAMP
       const codigoInterno = `VULN-${Date.now()}`;
 
       // Converter strings de data para objetos Date, se existirem
-      const parsedDataDeteccao = dataDeteccao ? new Date(dataDeteccao) : undefined;
-      const parsedSla = sla ? new Date(sla) : undefined;
+      const parsedDataDeteccao = dataDeteccao ? new Date(dataDeteccao) : new Date();
+      const mappedCriticidade = mapCriticidade(criticidade);
+      const parsedSla = sla ? new Date(sla) : this.calculateSlaDate(mappedCriticidade, parsedDataDeteccao);
 
       const vuln = await tx.vulnerability.create({
         data: {
@@ -81,6 +103,8 @@ export class VulnerabilitiesService {
           status: mapStatus(status),
           origem: mapOrigem(origem),
           ambiente: mapAmbiente(ambiente),
+          complexidade: mapComplexidade(complexidade),
+          complexidadeCorrecao: mapComplexidade(complexidadeCorrecao),
           dataDeteccao: parsedDataDeteccao,
           sla: parsedSla,
           createdById: userId,
@@ -260,12 +284,19 @@ export class VulnerabilitiesService {
         // Calcular dias em aberto baseado na data de criação do Jira
         const dataCriacaoJira = item.dataCriacao ? new Date(item.dataCriacao) : new Date();
         const now = new Date();
-        const diasEmAberto = Math.floor((now.getTime() - dataCriacaoJira.getTime()) / (1000 * 60 * 60 * 24));
+        let diasEmAberto = 0;
+        
+        if (!isNaN(dataCriacaoJira.getTime())) {
+          diasEmAberto = Math.floor((now.getTime() - dataCriacaoJira.getTime()) / (1000 * 60 * 60 * 24));
+        }
+        
+        // Garantir que diasEmAberto não seja NaN nem negativo para o banco
+        if (isNaN(diasEmAberto) || diasEmAberto < 0) diasEmAberto = 0;
 
         const data: any = {
           jiraKey: item.key,
           titulo: item.resumo || 'Sem Título',
-          descricaoExecutiva: item.impacto || item.descricao || '',
+          descricaoExecutiva: item.resumo || item.impacto || item.descricao || '',
           descricaoTecnica: item.descricao || '',
           criticidade: mapCriticidade(item.prioridade),
           status: mapStatus(item.status),
@@ -274,12 +305,14 @@ export class VulnerabilitiesService {
           ativo: item.alvo || 'Não Definido',
           ambiente: mapAmbiente(item.ambiente),
           origem: mapOrigem(item.origem),
-          responsavel: item.responsavel,
-          gestor: item.criador || item.relator,
-          impacto: item.impacto,
-          recomendacao: item.recomendacao,
+          responsavel: item.responsavel || '',
+          gestor: item.criador || item.relator || '',
+          impacto: item.impacto || '',
+          recomendacao: item.recomendacao || '',
           tipo: item.tipo || 'Aplicação',
-          diasEmAberto,
+          diasEmAberto: Math.round(diasEmAberto),
+          complexidade: 'MEDIA',
+          complexidadeCorrecao: 'MEDIA',
         };
 
         // Campos opcionais
@@ -288,13 +321,25 @@ export class VulnerabilitiesService {
 
         // Tratamento de Datas — usar datas do Jira, não a data de import
         if (item.dataCriacao) {
-          data.dataCriacao = new Date(item.dataCriacao);
+          const d = new Date(item.dataCriacao);
+          if (!isNaN(d.getTime())) data.dataCriacao = d;
         }
         if (item.dataDeteccao) {
-          data.dataDeteccao = new Date(item.dataDeteccao);
+          const d = new Date(item.dataDeteccao);
+          if (!isNaN(d.getTime())) data.dataDeteccao = d;
+        }
+        if (item.atualizadoEm) {
+          const d = new Date(item.atualizadoEm);
+          if (!isNaN(d.getTime())) data.ultimaAtualizacao = d;
         }
         if (item.dataLimite) {
-          data.sla = new Date(item.dataLimite);
+          const d = new Date(item.dataLimite);
+          if (!isNaN(d.getTime())) data.sla = d;
+        }
+
+        // Se não tiver SLA, calcula baseado na criticidade
+        if (!data.sla) {
+          data.sla = this.calculateSlaDate(data.criticidade, data.dataDeteccao || data.dataCriacao || new Date());
         }
 
         if (existing) {
@@ -316,6 +361,7 @@ export class VulnerabilitiesService {
         }
         imported++;
       } catch (err: any) {
+        console.error(`Erro ao importar item ${item.key}:`, err);
         errors.push({ key: item.key, error: err.message });
       }
     }

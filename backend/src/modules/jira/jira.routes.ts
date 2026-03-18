@@ -91,8 +91,10 @@ class JiraService {
                 where: { jiraKey: key }
             });
 
+            let vulnId = '';
+
             if (!existing) {
-                await prisma.vulnerability.create({
+                const newVuln = await prisma.vulnerability.create({
                     data: {
                         codigoInterno: `VULN-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`,
                         jiraKey: key,
@@ -109,6 +111,7 @@ class JiraService {
                         createdById: userId,
                     }
                 });
+                vulnId = newVuln.id;
                 imported++;
             } else {
                 await prisma.vulnerability.update({
@@ -118,7 +121,49 @@ class JiraService {
                         status: mappedStatus as any
                     }
                 });
+                vulnId = existing.id;
                 imported++;
+            }
+
+            // --- Sincronizar Comentários do Jira para o Histórico ---
+            try {
+                const commentsRes = await fetch(`${baseUrl}/rest/api/3/issue/${key}/comment`, {
+                    headers: {
+                        'Authorization': authHeader,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (commentsRes.ok) {
+                    const commentsData: any = await commentsRes.json();
+                    for (const comment of commentsData.comments || []) {
+                        const authorName = comment.author?.displayName || 'Jira User';
+                        const commentText = comment.body?.content?.[0]?.content?.[0]?.text || '';
+                        const createdAt = new Date(comment.created);
+
+                        // Evitar duplicar no histórico (checar se já existe comentário com o mesmo texto e data)
+                        const existingHist = await prisma.vulnerabilityHistory.findFirst({
+                            where: {
+                                vulnerabilityId: vulnId,
+                                eventType: 'SYNC_JIRA',
+                                description: { contains: commentText.substring(0, 50) }
+                            }
+                        });
+
+                        if (!existingHist && commentText) {
+                            await prisma.vulnerabilityHistory.create({
+                                data: {
+                                    vulnerabilityId: vulnId,
+                                    eventType: 'SYNC_JIRA',
+                                    description: `[Comentário Jira] ${authorName}: ${commentText}`,
+                                    createdAt: createdAt
+                                }
+                            });
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error(`Erro ao buscar comentários para ${key}:`, err);
             }
         }
 
