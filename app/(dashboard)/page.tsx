@@ -14,7 +14,6 @@ import {
   TrendingUp,
   AlertCircle,
   Timer,
-  UserX,
   Activity,
   Trash2,
   Database,
@@ -79,7 +78,6 @@ export default function DashboardPage() {
   const extremas = vulnerabilidades.filter(v => v.criticidade === 'Extrema').length
   const criticas = vulnerabilidades.filter(v => v.criticidade === 'Crítica').length
   const vencidas = ativas.filter(v => v.sla && new Date(v.sla) < hoje).length
-  const semResponsavel = vulnerabilidades.filter(v => !v.responsavel).length
   const mediadiasAberto = ativas.length > 0
     ? Math.round(ativas.reduce((acc, v) => acc + (v.diasEmAberto || 0), 0) / ativas.length)
     : 0
@@ -143,8 +141,6 @@ export default function DashboardPage() {
   const recentActivity = [...vulnerabilidades]
     .sort((a, b) => new Date(b.ultimaAtualizacao || 0).getTime() - new Date(a.ultimaAtualizacao || 0).getTime())
     .slice(0, 5)
-
-  const vulnsSemResponsavel = vulnerabilidades.filter(v => !v.responsavel).slice(0, 5)
 
   // ─── Falhas mais reportadas por squad ────────────────────────────────────
   const squadFailuresMap: Record<string, Record<string, number>> = {}
@@ -371,13 +367,12 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+      <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
         <StatCard title="Total Abertas" value={totalAbertas} icon={Shield} trend={{ value: 0, label: "dados reais" }} />
         <StatCard title="Extremas" value={extremas} icon={Zap} variant="extreme" />
         <StatCard title="Críticas" value={criticas} icon={AlertTriangle} variant="critical" />
         <StatCard title="Vencidas" value={vencidas} icon={Clock} variant="warning" />
         <StatCard title="Média Dias Aberto" value={`${mediadiasAberto}d`} icon={Timer} />
-        <StatCard title="Sem Responsável" value={semResponsavel} icon={UserX} variant="warning" />
         <StatCard title="Total no Banco" value={vulnerabilidades.length} icon={CheckCircle} variant="success" />
       </div>
 
@@ -747,31 +742,7 @@ export default function DashboardPage() {
 
 
 
-        {/* Falhas sem responsável */}
-        <Card className="bg-card border-border shadow-sm transition-all hover:shadow-md">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <UserX className="h-5 w-5 text-amber-400" />
-              <CardTitle className="text-base">Falhas sem Responsável</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {vulnsSemResponsavel.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Todas as vulnerabilidades têm responsável atribuído.</p>
-              ) : vulnsSemResponsavel.map((vuln) => (
-                <Link key={vuln.id} href={`/vulnerabilidades/${vuln.id}`}
-                  className="flex items-center justify-between rounded-lg border border-border p-3 transition-colors hover:bg-accent">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-foreground">{vuln.titulo}</p>
-                    <p className="text-xs text-muted-foreground">{vuln.squad}</p>
-                  </div>
-                  <SeverityBadge severity={vuln.criticidade} />
-                </Link>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+
 
         {/* Principais Falhas por Squad */}
         <Card className="bg-card border-border shadow-sm transition-all hover:shadow-md">
@@ -837,10 +808,7 @@ export default function DashboardPage() {
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
                 <span className="text-muted-foreground">{vencidas} vulnerabilidades com SLA vencido</span>
               </li>
-              <li className="flex items-start gap-2 text-sm">
-                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
-                <span className="text-muted-foreground">{semResponsavel} vulnerabilidades sem responsável atribuído</span>
-              </li>
+
               <li className="flex items-start gap-2 text-sm">
                 <TrendingUp className="mt-0.5 h-4 w-4 shrink-0 text-green-400" />
                 <span className="text-muted-foreground">Média de {mediadiasAberto} dias em aberto por vulnerabilidade</span>
