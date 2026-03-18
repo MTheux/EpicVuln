@@ -19,7 +19,7 @@ interface VulnState {
   importData: (jsonData: any[]) => Promise<{ imported: number, errors: any[] }>
 }
 
-const getBaseUrl = () => {
+const getApiUrl = () => {
   if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL
   if (typeof window !== 'undefined') {
     return `http://${window.location.hostname}:9001`
@@ -27,8 +27,8 @@ const getBaseUrl = () => {
   return 'http://localhost:9001'
 }
 
-const BASE_URL = getBaseUrl()
-const API_URL = `${BASE_URL}/api/vulnerabilities`
+const VULN_API = () => `${getApiUrl()}/api/vulnerabilities`
+const JIRA_API = () => `${getApiUrl()}/api/jira`
 
 export const useVulnStore = create<VulnState>((set, get) => ({
   vulnerabilidades: [],
@@ -38,7 +38,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
   fetchVulnerabilidades: async () => {
     set({ isLoading: true, error: null })
     try {
-      const response = await fetch(API_URL, { headers: authHeaders() })
+      const response = await fetch(VULN_API(), { headers: authHeaders() })
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Falha ao buscar vulnerabilidades do servidor' }))
         throw new Error(errorData.error || 'Falha ao buscar vulnerabilidades do servidor')
@@ -77,7 +77,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
 
   addVulnerabilidade: async (vuln) => {
     try {
-      const response = await fetch(API_URL, {
+      const response = await fetch(VULN_API(), {
         method: 'POST',
         headers: { ...authHeaders() },
         body: JSON.stringify(vuln)
@@ -101,7 +101,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
 
       const dbId = (vuln as any).dbId
 
-      const response = await fetch(`${API_URL}/${dbId}`, {
+      const response = await fetch(`${VULN_API()}/${dbId}`, {
         method: 'PATCH',
         headers: { ...authHeaders() },
         body: JSON.stringify({ status })
@@ -125,7 +125,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
 
       const dbId = (vuln as any).dbId
 
-      const response = await fetch(`${API_URL}/${dbId}`, {
+      const response = await fetch(`${VULN_API()}/${dbId}`, {
         method: 'PATCH',
         headers: { ...authHeaders() },
         body: JSON.stringify({ responsavel })
@@ -157,7 +157,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
 
       const dbId = (vuln as any).dbId
 
-      const response = await fetch(`${API_URL}/${dbId}`, {
+      const response = await fetch(`${VULN_API()}/${dbId}`, {
         method: 'DELETE',
         headers: authHeaders()
       })
@@ -175,7 +175,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
 
   syncJira: async () => {
     try {
-      const response = await fetch(`${BASE_URL}/api/jira/sync`, {
+      const response = await fetch(`${JIRA_API()}/sync`, {
         method: 'POST',
         headers: { ...authHeaders() }
       })
@@ -192,7 +192,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
 
   importData: async (jsonData: any[]) => {
     try {
-      const response = await fetch(`${API_URL}/import`, {
+      const response = await fetch(`${VULN_API()}/import`, {
         method: 'POST',
         headers: { ...authHeaders() },
         body: JSON.stringify(jsonData)
@@ -214,7 +214,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
 
   clearAll: async () => {
     try {
-      const response = await fetch(`${API_URL}/all`, {
+      const response = await fetch(`${VULN_API()}/all`, {
         method: 'DELETE',
         headers: authHeaders()
       })
@@ -237,7 +237,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
       formData.append('file', file)
 
       const token = getAuthToken()
-      const response = await fetch(`${API_URL}/${dbId}/evidence`, {
+      const response = await fetch(`${VULN_API()}/${dbId}/evidence`, {
         method: 'POST',
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         body: formData // o navegador seta o content-type para multipart form automatico

@@ -19,16 +19,15 @@ export default function LoginPage() {
         e.preventDefault()
         setIsLoading(true)
         try {
-            const getApiUrl = () => {
-  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL
-  if (typeof window !== 'undefined') {
-    return `http://${window.location.hostname}:9001`
-  }
-  return 'http://localhost:9001'
-}
-
-const API_URL = getApiUrl()
-            const res = await fetch(`${API_URL}/api/auth/login`, {
+            const getDynamicApiUrl = () => {
+                if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL
+                if (typeof window !== 'undefined') {
+                    return `http://${window.location.hostname}:9001`
+                }
+                return 'http://localhost:9001'
+            }
+            const CURRENT_API = getDynamicApiUrl()
+            const res = await fetch(`${CURRENT_API}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
