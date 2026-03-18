@@ -30,7 +30,15 @@ import { cn } from "@/lib/utils"
 import { authHeaders } from "@/lib/auth"
 import { toast } from "sonner"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9001'
+const getApiUrl = () => {
+  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL
+  if (typeof window !== 'undefined') {
+    return `http://${window.location.hostname}:9001`
+  }
+  return 'http://localhost:9001'
+}
+
+const API_URL = getApiUrl()
 
 interface Vulnerability {
   id: string
