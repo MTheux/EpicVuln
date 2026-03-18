@@ -15,9 +15,11 @@ const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:9000').spl
 allowedOrigins.push('http://localhost:3005', 'http://localhost:3000');
 
 // Middlewares
-app.use(helmet());
+app.use(helmet({
+    contentSecurityPolicy: false, // para nao dar erro no frontend
+}));
 app.use(cors({
-    origin: allowedOrigins,
+    origin: true, // permite qualquer origem que venha do browser
     credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
