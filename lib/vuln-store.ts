@@ -19,7 +19,15 @@ interface VulnState {
   importData: (jsonData: any[]) => Promise<{ imported: number, errors: any[] }>
 }
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9001'
+const getBaseUrl = () => {
+  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL
+  if (typeof window !== 'undefined') {
+    return `http://${window.location.hostname}:9001`
+  }
+  return 'http://localhost:9001'
+}
+
+const BASE_URL = getBaseUrl()
 const API_URL = `${BASE_URL}/api/vulnerabilities`
 
 export const useVulnStore = create<VulnState>((set, get) => ({
