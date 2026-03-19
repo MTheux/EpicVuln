@@ -14,7 +14,7 @@ services:
     restart: unless-stopped
 
   backend:
-    build: 
+    build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: vulncontrol_backend
@@ -27,13 +27,15 @@ services:
       - PORT=9001
     depends_on:
       - db
+    restart: unless-stopped
 
   frontend:
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-}
+        # No Docker: browser chama backend via localhost:9001
+        - NEXT_PUBLIC_API_URL=http://localhost:9001
     container_name: vulncontrol_frontend
     ports:
       - "9000:9000"
@@ -41,6 +43,7 @@ services:
       - JWT_SECRET=your-secret-key-change-in-production
     depends_on:
       - backend
+    restart: unless-stopped
 
 volumes:
   pgdata:
