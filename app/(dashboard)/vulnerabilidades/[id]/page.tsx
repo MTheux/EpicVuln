@@ -71,7 +71,7 @@ export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
   const handleViewEvidence = async (filename: string) => {
     if (!vuln) return
     const dbId = (vuln as any).dbId
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9001'
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || (typeof window !== 'undefined' ? `http://${window.location.hostname}:9001` : 'http://localhost:9001')
     const url = `${API_URL}/api/vulnerabilities/${dbId}/evidence/${filename}`
 
     const isDangerous = filename.toLowerCase().endsWith('.php') || filename.toLowerCase().endsWith('.html')

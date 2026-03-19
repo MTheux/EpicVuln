@@ -3,10 +3,10 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
-# API URL will be resolved at runtime via window.location
-# Set a placeholder so Next.js build doesn't inline empty string
-ARG NEXT_PUBLIC_API_URL=http://localhost:9001
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+# Não setar NEXT_PUBLIC_API_URL para que o frontend
+# detecte dinamicamente via window.location.hostname:9001
+ARG NEXT_PUBLIC_API_URL=
+ENV NEXT_PUBLIC_API_URL=
 RUN npm run build
 
 FROM node:20-alpine

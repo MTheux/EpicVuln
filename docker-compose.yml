@@ -34,8 +34,8 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        # No Docker: browser chama backend via localhost:9001
-        - NEXT_PUBLIC_API_URL=http://localhost:9001
+        # Vazio para detecção dinâmica via window.location.hostname:9001
+        - NEXT_PUBLIC_API_URL=
     container_name: vulncontrol_frontend
     ports:
       - "9000:9000"
