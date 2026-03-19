@@ -7,11 +7,11 @@ async function main() {
   const hash = await bcrypt.hash('Admin@123', 10);
 
   const users = [
-    { email: 'admin@credsystem.com', name: 'Administrador', role: 'ADMIN' as const },
-    { email: 'security@credsystem.com', name: 'Analista AppSec', role: 'SEGURANCA' as const },
-    { email: 'gestor@credsystem.com', name: 'Gestor de Segurança', role: 'GESTOR' as const },
-    { email: 'squad@credsystem.com', name: 'Dev Squad Backend', role: 'SQUAD' as const },
-    { email: 'leitor@credsystem.com', name: 'Auditor Externo', role: 'LEITURA' as const },
+    { email: 'admin@credsystem.com.br', name: 'Administrador', role: 'ADMIN' as const },
+    { email: 'security@credsystem.com.br', name: 'Analista AppSec', role: 'SEGURANCA' as const },
+    { email: 'gestor@credsystem.com.br', name: 'Gestor de Segurança', role: 'GESTOR' as const },
+    { email: 'squad@credsystem.com.br', name: 'Dev Squad Backend', role: 'SQUAD' as const },
+    { email: 'leitor@credsystem.com.br', name: 'Auditor Externo', role: 'LEITURA' as const },
   ];
 
   for (const u of users) {

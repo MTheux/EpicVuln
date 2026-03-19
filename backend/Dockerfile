@@ -13,5 +13,5 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/prisma ./prisma
 EXPOSE 9001
-# Run migrations then start server
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
+# Run migrations, seed database, then start server
+CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma db seed 2>/dev/null; node dist/index.js"]
