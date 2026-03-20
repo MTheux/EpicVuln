@@ -30,6 +30,20 @@ const getApiUrl = () => {
 const VULN_API = () => `${getApiUrl()}/api/vulnerabilities`
 const JIRA_API = () => `${getApiUrl()}/api/jira`
 
+// Fetch seguro: intercepta 401 (token expirado) e redireciona pro login
+const safeFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+  const response = await fetch(input, init)
+  if (response.status === 401) {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('vulncontrol_user')
+      document.cookie = 'vulncontrol_token=; path=/; max-age=0'
+      window.location.href = '/login'
+    }
+    throw new Error('SESSION_EXPIRED')
+  }
+  return response
+}
+
 export const useVulnStore = create<VulnState>((set, get) => ({
   vulnerabilidades: [],
   isLoading: false,
@@ -38,7 +52,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
   fetchVulnerabilidades: async () => {
     set({ isLoading: true, error: null })
     try {
-      const response = await fetch(VULN_API(), { headers: authHeaders() })
+      const response = await safeFetch(VULN_API(), { headers: authHeaders() })
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Falha ao buscar vulnerabilidades do servidor' }))
         throw new Error(errorData.error || 'Falha ao buscar vulnerabilidades do servidor')
@@ -77,7 +91,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
 
   addVulnerabilidade: async (vuln) => {
     try {
-      const response = await fetch(VULN_API(), {
+      const response = await safeFetch(VULN_API(), {
         method: 'POST',
         headers: { ...authHeaders() },
         body: JSON.stringify(vuln)
@@ -101,7 +115,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
 
       const dbId = (vuln as any).dbId
 
-      const response = await fetch(`${VULN_API()}/${dbId}`, {
+      const response = await safeFetch(`${VULN_API()}/${dbId}`, {
         method: 'PATCH',
         headers: { ...authHeaders() },
         body: JSON.stringify({ status })
@@ -125,7 +139,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
 
       const dbId = (vuln as any).dbId
 
-      const response = await fetch(`${VULN_API()}/${dbId}`, {
+      const response = await safeFetch(`${VULN_API()}/${dbId}`, {
         method: 'PATCH',
         headers: { ...authHeaders() },
         body: JSON.stringify({ responsavel })
@@ -157,7 +171,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
 
       const dbId = (vuln as any).dbId
 
-      const response = await fetch(`${VULN_API()}/${dbId}`, {
+      const response = await safeFetch(`${VULN_API()}/${dbId}`, {
         method: 'DELETE',
         headers: authHeaders()
       })
@@ -175,7 +189,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
 
   syncJira: async () => {
     try {
-      const response = await fetch(`${JIRA_API()}/sync`, {
+      const response = await safeFetch(`${JIRA_API()}/sync`, {
         method: 'POST',
         headers: { ...authHeaders() }
       })
@@ -192,7 +206,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
 
   importData: async (jsonData: any[]) => {
     try {
-      const response = await fetch(`${VULN_API()}/import`, {
+      const response = await safeFetch(`${VULN_API()}/import`, {
         method: 'POST',
         headers: { ...authHeaders() },
         body: JSON.stringify(jsonData)
@@ -214,7 +228,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
 
   clearAll: async () => {
     try {
-      const response = await fetch(`${VULN_API()}/all`, {
+      const response = await safeFetch(`${VULN_API()}/all`, {
         method: 'DELETE',
         headers: authHeaders()
       })
@@ -237,7 +251,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
       formData.append('file', file)
 
       const token = getAuthToken()
-      const response = await fetch(`${VULN_API()}/${dbId}/evidence`, {
+      const response = await safeFetch(`${VULN_API()}/${dbId}/evidence`, {
         method: 'POST',
         headers: token ? { 'Authorization': `Bearer ${token}` } : {},
         body: formData // o navegador seta o content-type para multipart form automatico

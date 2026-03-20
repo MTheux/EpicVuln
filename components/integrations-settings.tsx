@@ -169,6 +169,8 @@ export function IntegrationsSettings() {
           description: `${data.imported || 0} vulnerabilidades importadas, ${data.errors?.length || 0} erros`
         })
         setPastedContent("")
+        // Recarrega a página pra atualizar os dados
+        setTimeout(() => window.location.reload(), 1500)
       } else if (isJson) {
         let payload = JSON.parse(text)
         if (!Array.isArray(payload)) {
@@ -187,6 +189,7 @@ export function IntegrationsSettings() {
           description: `${data.imported || 0} vulnerabilidades importadas, ${data.errors?.length || 0} erros`
         })
         setPastedContent("")
+        setTimeout(() => window.location.reload(), 1500)
       } else {
         throw new Error('Formato não reconhecido. O conteúdo deve começar com < (XML) ou [ / { (JSON).')
       }
@@ -353,7 +356,7 @@ export function IntegrationsSettings() {
 
               <TabsContent value="paste" className="space-y-3">
                 <Textarea
-                  placeholder={'Cole aqui o conteúdo XML ou JSON...\n\nExemplo XML:\n<rss><channel><item>...</item></channel></rss>\n\nExemplo JSON:\n[{"key":"VUL-001", "resumo":"..."}]'}
+                  placeholder={'Cole aqui o XML exportado do Jira...\n\nFormato esperado:\n<Epics>\n  <Epic>\n    <Key>VUL-001</Key>\n    <Resumo>Título da falha [CWE-XXX]</Resumo>\n    <Prioridade>Medium</Prioridade>\n    <Status>Backlog</Status>\n    <SquadResponsavel>Nome</SquadResponsavel>\n    <Alvo>Sistema alvo</Alvo>\n    ...\n  </Epic>\n</Epics>'}
                   className="min-h-[180px] font-mono text-xs"
                   value={pastedContent}
                   onChange={(e) => setPastedContent(e.target.value)}

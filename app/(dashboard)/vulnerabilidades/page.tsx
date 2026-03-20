@@ -62,14 +62,12 @@ import type { Status } from "@/lib/types"
 
 const statusOptions: Status[] = [
   'Nova',
-  'Aberta',
   'Em Backlog',
   'Em Correção',
   'Em Reteste',
   'Mitigada',
   'Concluída',
   'Risco Aceito',
-  'Fechada'
 ]
 
 const criticidadeOptions = [
@@ -484,14 +482,11 @@ export default function VulnerabilidadesPage() {
                   <TableHead className="w-28">Criticidade</TableHead>
                   <TableHead className="w-36">Status</TableHead>
                   <TableHead className="w-28">Squad</TableHead>
-                  <TableHead className="w-28">Sistema</TableHead>
+                  <TableHead className="w-28">Alvo</TableHead>
                   <TableHead className="w-28">Responsável</TableHead>
-                  <TableHead className="w-24">Jira</TableHead>
-                  <TableHead className="w-16 text-center">CVSS</TableHead>
                   <TableHead className="w-24">Criação</TableHead>
                   <TableHead className="w-20 text-center">Dias</TableHead>
                   <TableHead className="w-24">SLA</TableHead>
-                  <TableHead className="w-16 text-center">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -513,18 +508,8 @@ export default function VulnerabilidadesPage() {
                       <StatusBadge status={vuln.status} />
                     </TableCell>
                     <TableCell className="text-sm">{vuln.squad}</TableCell>
-                    <TableCell className="text-sm">{vuln.sistema}</TableCell>
+                    <TableCell className="text-sm">{vuln.sistema || vuln.ativo || '-'}</TableCell>
                     <TableCell className="text-sm">{vuln.responsavel || '-'}</TableCell>
-                    <TableCell>
-                      {vuln.jiraKey ? (
-                        <Badge variant="outline" className="cursor-pointer font-mono text-xs" onClick={() => handleOpenJira(vuln.jiraKey!)}>
-                          {vuln.jiraKey}
-                        </Badge>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-center text-sm font-medium">{vuln.scoreCvss}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">{vuln.dataCriacao}</TableCell>
                     <TableCell className="text-center">
                       <span className={`text-sm font-semibold ${vuln.diasEmAberto > 30 ? 'text-red-500' : 'text-foreground'}`}>
@@ -532,47 +517,6 @@ export default function VulnerabilidadesPage() {
                       </span>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{vuln.sla}</TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <Settings2 className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link href={`/vulnerabilidades/${vuln.id}`}>
-                              <Eye className="mr-2 h-4 w-4" />
-                              Ver detalhe
-                            </Link>
-                          </DropdownMenuItem>
-                          {vuln.jiraKey && (
-                            <DropdownMenuItem onClick={() => handleOpenJira(vuln.jiraKey!)}>
-                              <ExternalLink className="mr-2 h-4 w-4" />
-                              Abrir no Jira
-                            </DropdownMenuItem>
-                          )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => handleNotify(vuln.id)}>
-                            <Bell className="mr-2 h-4 w-4" />
-                            Notificar squad
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => openResponsavelDialog(vuln.id)}>
-                            <UserPlus className="mr-2 h-4 w-4" />
-                            Atribuir responsável
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => openStatusDialog(vuln.id, vuln.status)}>
-                            <Settings2 className="mr-2 h-4 w-4" />
-                            Alterar status
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem onClick={() => handleDelete(vuln.id)} className="text-red-500 focus:text-red-500 focus:bg-red-50 dark:focus:bg-red-950">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Excluir permanentemente
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

@@ -35,7 +35,7 @@ export const env = {
 
   // JWT
   JWT_SECRET: getEnv('JWT_SECRET'),
-  JWT_EXPIRES_IN: getEnv('JWT_EXPIRES_IN', '15m'),
+  JWT_EXPIRES_IN: getEnv('JWT_EXPIRES_IN', '8h'),
   JWT_REFRESH_SECRET: getEnv('JWT_REFRESH_SECRET'),
   JWT_REFRESH_EXPIRES_IN: getEnv('JWT_REFRESH_EXPIRES_IN', '7d'),
 

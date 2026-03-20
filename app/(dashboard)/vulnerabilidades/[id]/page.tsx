@@ -180,12 +180,13 @@ export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-sm text-muted-foreground">{vuln.id}</span>
-              {vuln.jiraKey && (
+              {vuln.jiraKey ? (
                 <Badge variant="outline" className="cursor-pointer font-mono" onClick={handleOpenJira}>
                   <Link2 className="mr-1 h-3 w-3" />
                   {vuln.jiraKey}
                 </Badge>
+              ) : (
+                <span className="font-mono text-sm text-muted-foreground">{vuln.id}</span>
               )}
               <SeverityBadge severity={vuln.criticidade} showIcon={vuln.criticidade === 'Extrema'} />
               <StatusBadge status={vuln.status} />
@@ -194,18 +195,24 @@ export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
             <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Users className="h-4 w-4" />
-                {vuln.squad}
+                Squad: {vuln.squad}
               </span>
+              {vuln.ativo && vuln.ativo !== vuln.squad && (
+                <span className="flex items-center gap-1">
+                  <Server className="h-4 w-4" />
+                  Alvo: {vuln.ativo}
+                </span>
+              )}
               {vuln.responsavel && (
                 <span className="flex items-center gap-1">
                   <User className="h-4 w-4" />
-                  {vuln.responsavel}
+                  Responsável: {vuln.responsavel}
                 </span>
               )}
               {vuln.gestor && (
                 <span className="flex items-center gap-1">
                   <User className="h-4 w-4" />
-                  Gestor: {vuln.gestor}
+                  Analista: {vuln.gestor}
                 </span>
               )}
             </div>
@@ -221,10 +228,6 @@ export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
             <Button variant="outline" size="sm" onClick={handleSync}>
               <RefreshCw className="mr-2 h-4 w-4" />
               Sincronizar
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleNotify}>
-              <Bell className="mr-2 h-4 w-4" />
-              Notificar Squad
             </Button>
             <Button variant="outline" size="sm" onClick={handleExport}>
               <Download className="mr-2 h-4 w-4" />
@@ -248,23 +251,26 @@ export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <h4 className="mb-2 text-sm font-medium text-muted-foreground">Descrição Executiva</h4>
-                <p className="text-sm text-foreground">{vuln.descricaoExecutiva}</p>
+                <h4 className="mb-2 text-sm font-medium text-muted-foreground">Descrição</h4>
+                <div className="text-sm text-foreground whitespace-pre-wrap">{vuln.descricaoTecnica || vuln.descricaoExecutiva}</div>
               </div>
 
-              <Separator />
-
-              <div>
-                <h4 className="mb-2 text-sm font-medium text-muted-foreground">Descrição Técnica</h4>
-                <p className="text-sm text-foreground">{vuln.descricaoTecnica}</p>
-              </div>
+              {vuln.impacto && (
+                <>
+                  <Separator />
+                  <div>
+                    <h4 className="mb-2 text-sm font-medium text-muted-foreground">Impacto</h4>
+                    <div className="text-sm text-foreground whitespace-pre-wrap">{vuln.impacto}</div>
+                  </div>
+                </>
+              )}
 
               {vuln.recomendacao && (
                 <>
                   <Separator />
                   <div>
                     <h4 className="mb-2 text-sm font-medium text-muted-foreground">Recomendação</h4>
-                    <p className="text-sm text-foreground">{vuln.recomendacao}</p>
+                    <div className="text-sm text-foreground whitespace-pre-wrap">{vuln.recomendacao}</div>
                   </div>
                 </>
               )}
@@ -272,40 +278,24 @@ export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
               <Separator />
 
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <div>
-                  <h4 className="mb-1 text-xs font-medium text-muted-foreground">Sistema</h4>
-                  <p className="text-sm font-medium text-foreground">{vuln.sistema}</p>
-                </div>
-                <div>
-                  <h4 className="mb-1 text-xs font-medium text-muted-foreground">Ativo</h4>
-                  <p className="text-sm font-medium text-foreground">{vuln.ativo}</p>
-                </div>
-                {vuln.componente && (
+                {vuln.ativo && (
                   <div>
-                    <h4 className="mb-1 text-xs font-medium text-muted-foreground">Componente</h4>
-                    <p className="text-sm font-medium text-foreground">{vuln.componente}</p>
+                    <h4 className="mb-1 text-xs font-medium text-muted-foreground">Alvo</h4>
+                    <p className="text-sm font-medium text-foreground">{vuln.ativo}</p>
                   </div>
                 )}
                 <div>
                   <h4 className="mb-1 text-xs font-medium text-muted-foreground">Ambiente</h4>
                   <p className="text-sm font-medium text-foreground">{vuln.ambiente}</p>
                 </div>
-                {vuln.endpoint && (
+                <div>
+                  <h4 className="mb-1 text-xs font-medium text-muted-foreground">Squad Responsável</h4>
+                  <p className="text-sm font-medium text-foreground">{vuln.squad}</p>
+                </div>
+                {vuln.responsavel && (
                   <div>
-                    <h4 className="mb-1 text-xs font-medium text-muted-foreground">Endpoint</h4>
-                    <p className="font-mono text-xs text-foreground">{vuln.endpoint}</p>
-                  </div>
-                )}
-                {vuln.metodoHttp && (
-                  <div>
-                    <h4 className="mb-1 text-xs font-medium text-muted-foreground">Método HTTP</h4>
-                    <Badge variant="outline">{vuln.metodoHttp}</Badge>
-                  </div>
-                )}
-                {vuln.parametroAfetado && (
-                  <div>
-                    <h4 className="mb-1 text-xs font-medium text-muted-foreground">Parâmetro Afetado</h4>
-                    <p className="font-mono text-xs text-foreground">{vuln.parametroAfetado}</p>
+                    <h4 className="mb-1 text-xs font-medium text-muted-foreground">Responsável</h4>
+                    <p className="text-sm font-medium text-foreground">{vuln.responsavel}</p>
                   </div>
                 )}
               </div>
@@ -320,25 +310,9 @@ export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
             <CardContent>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
-                  <h4 className="mb-1 text-xs font-medium text-muted-foreground">Score CVSS</h4>
-                  <p className="text-2xl font-bold text-foreground">{vuln.scoreCvss}</p>
-                </div>
-                {vuln.vetorCvss && (
-                  <div className="sm:col-span-2">
-                    <h4 className="mb-1 text-xs font-medium text-muted-foreground">Vetor CVSS</h4>
-                    <p className="font-mono text-xs text-muted-foreground">{vuln.vetorCvss}</p>
-                  </div>
-                )}
-                <div>
                   <h4 className="mb-1 text-xs font-medium text-muted-foreground">Criticidade</h4>
                   <SeverityBadge severity={vuln.criticidade} />
                 </div>
-                {vuln.cwe && (
-                  <div>
-                    <h4 className="mb-1 text-xs font-medium text-muted-foreground">CWE</h4>
-                    <Badge variant="outline">{vuln.cwe}</Badge>
-                  </div>
-                )}
                 {vuln.owaspCategory && (
                   <div className="sm:col-span-2">
                     <h4 className="mb-1 text-xs font-medium text-muted-foreground">OWASP 2025</h4>
@@ -350,16 +324,12 @@ export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
                   <Badge variant="secondary">{vuln.origem}</Badge>
                 </div>
                 <div>
-                  <h4 className="mb-1 text-xs font-medium text-muted-foreground">Reincidência</h4>
-                  <p className="text-sm font-medium text-foreground">{vuln.reincidencia}x</p>
+                  <h4 className="mb-1 text-xs font-medium text-muted-foreground">Tipo</h4>
+                  <Badge variant="secondary">{vuln.tipo || 'Aplicação'}</Badge>
                 </div>
                 <div>
-                  <h4 className="mb-1 text-xs font-medium text-muted-foreground">Complexidade Falha</h4>
-                  <Badge variant="outline">{vuln.complexidade}</Badge>
-                </div>
-                <div>
-                  <h4 className="mb-1 text-xs font-medium text-muted-foreground">Complexidade Correção</h4>
-                  <Badge variant="outline">{vuln.complexidadeCorrecao}</Badge>
+                  <h4 className="mb-1 text-xs font-medium text-muted-foreground">Complexidade de Correção</h4>
+                  <Badge variant="outline">{vuln.complexidadeCorrecao || 'Média'}</Badge>
                 </div>
               </div>
             </CardContent>
@@ -411,6 +381,68 @@ export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
               <CardTitle className="text-base">Informações Rápidas</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* SLA Status com cores */}
+              {(() => {
+                const slaDate = vuln.sla ? new Date(vuln.sla) : null
+                const now = new Date()
+                let diasRestantes = 0
+                let slaStatus: 'ok' | 'warning' | 'expired' = 'ok'
+                let slaLabel = ''
+                let slaColor = ''
+                let slaBgColor = ''
+
+                if (slaDate && !isNaN(slaDate.getTime())) {
+                  diasRestantes = Math.ceil((slaDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+
+                  if (diasRestantes < 0) {
+                    slaStatus = 'expired'
+                    slaLabel = `SLA vencido há ${Math.abs(diasRestantes)} dias`
+                    slaColor = 'text-red-500'
+                    slaBgColor = 'bg-red-500/10 border-red-500/30'
+                  } else if (diasRestantes <= 15) {
+                    slaStatus = 'warning'
+                    slaLabel = `SLA vence em ${diasRestantes} dias`
+                    slaColor = 'text-yellow-500'
+                    slaBgColor = 'bg-yellow-500/10 border-yellow-500/30'
+                  } else {
+                    slaStatus = 'ok'
+                    slaLabel = `SLA vence em ${diasRestantes} dias`
+                    slaColor = 'text-green-500'
+                    slaBgColor = 'bg-green-500/10 border-green-500/30'
+                  }
+                }
+
+                return slaDate ? (
+                  <div className={`rounded-lg border p-3 ${slaBgColor}`}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-medium text-muted-foreground">Prazo SLA</span>
+                      <Clock className={`h-4 w-4 ${slaColor}`} />
+                    </div>
+                    <p className={`text-lg font-bold ${slaColor}`}>
+                      {slaStatus === 'expired' ? `${Math.abs(diasRestantes)}d atrasado` : `${diasRestantes}d restantes`}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Vencimento: {slaDate.toLocaleDateString('pt-BR')}
+                    </p>
+                    {/* Barra de progresso visual */}
+                    <div className="mt-2 h-2 w-full rounded-full bg-muted overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          slaStatus === 'expired' ? 'bg-red-500' :
+                          slaStatus === 'warning' ? 'bg-yellow-500' : 'bg-green-500'
+                        }`}
+                        style={{ width: `${slaStatus === 'expired' ? 100 : Math.max(5, Math.min(100, 100 - (diasRestantes / 90 * 100)))}%` }}
+                      />
+                    </div>
+                  </div>
+                ) : null
+              })()}
+
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Status</span>
+                <StatusBadge status={vuln.status} />
+              </div>
+              <Separator />
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Dias em Aberto</span>
                 <span className={`text-lg font-bold ${vuln.diasEmAberto > 30 ? 'text-red-400' : 'text-foreground'}`}>
@@ -419,23 +451,18 @@ export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
               </div>
               <Separator />
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">SLA</span>
-                <span className="text-sm font-medium text-foreground">{vuln.sla}</span>
+                <span className="text-sm text-muted-foreground">Criação</span>
+                <span className="text-sm text-foreground">{vuln.dataCriacao ? new Date(vuln.dataCriacao).toLocaleDateString('pt-BR') : '—'}</span>
               </div>
               <Separator />
               <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Criação</span>
-                <span className="text-sm text-foreground">{vuln.dataCriacao}</span>
+                <span className="text-sm text-muted-foreground">Detecção</span>
+                <span className="text-sm text-foreground">{(() => { const d = (vuln as any).dataDeteccao || vuln.dataCriacao; return d ? new Date(d).toLocaleDateString('pt-BR') : '—' })()}</span>
               </div>
               <Separator />
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Última Atualização</span>
-                <span className="text-sm text-foreground">{vuln.ultimaAtualizacao}</span>
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">Notificações</span>
-                <Badge variant="secondary">{vuln.notificacoesEnviadas} envios</Badge>
+                <span className="text-sm text-foreground">{vuln.ultimaAtualizacao ? new Date(vuln.ultimaAtualizacao).toLocaleDateString('pt-BR') : '—'}</span>
               </div>
             </CardContent>
           </Card>
@@ -446,27 +473,23 @@ export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
               <CardHeader>
                 <div className="flex items-center gap-2">
                   <Link2 className="h-5 w-5 text-blue-400" />
-                  <CardTitle className="text-base">Integração Jira</CardTitle>
+                  <CardTitle className="text-base">Rastreamento Jira</CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <h4 className="mb-1 text-xs font-medium text-muted-foreground">Chave do Ticket</h4>
+                  <h4 className="mb-1 text-xs font-medium text-muted-foreground">Ticket</h4>
                   <Badge variant="outline" className="cursor-pointer font-mono" onClick={handleOpenJira}>
                     {vuln.jiraKey}
                   </Badge>
                 </div>
                 <div>
-                  <h4 className="mb-1 text-xs font-medium text-muted-foreground">Status no Jira</h4>
-                  <Badge variant="secondary">Em Progresso</Badge>
+                  <h4 className="mb-1 text-xs font-medium text-muted-foreground">Status</h4>
+                  <StatusBadge status={vuln.status} />
                 </div>
                 <div>
-                  <h4 className="mb-1 text-xs font-medium text-muted-foreground">Responsável no Jira</h4>
+                  <h4 className="mb-1 text-xs font-medium text-muted-foreground">Responsável</h4>
                   <p className="text-sm text-foreground">{vuln.responsavel || 'Não atribuído'}</p>
-                </div>
-                <div>
-                  <h4 className="mb-1 text-xs font-medium text-muted-foreground">Última Sincronização</h4>
-                  <p className="text-sm text-muted-foreground">{vuln.ultimaAtualizacao}</p>
                 </div>
                 <Button variant="outline" size="sm" className="w-full" onClick={handleOpenJira}>
                   <ExternalLink className="mr-2 h-4 w-4" />

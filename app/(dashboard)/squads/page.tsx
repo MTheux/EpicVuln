@@ -1,21 +1,17 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import Link from "next/link"
 import {
   Trophy,
-  TrendingDown,
   TrendingUp,
-  Minus,
   AlertTriangle,
   Shield,
   Clock,
-  Target,
   Users,
-  ArrowRight,
   RefreshCw,
-  Medal,
-  Zap,
+  CheckCircle2,
+  XCircle,
+  Target,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -32,16 +28,13 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
+  Legend,
   Cell,
 } from "recharts"
 
 const getApiUrl = () => {
   if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL
-  if (typeof window !== "undefined") {
-    return `http://${window.location.hostname}:9001`
-  }
+  if (typeof window !== "undefined") return `http://${window.location.hostname}:9001`
   return "http://localhost:9001"
 }
 
@@ -61,18 +54,18 @@ interface SquadScorecard {
   slaComplianceRate: number
   mttrDays: number
   avgDaysOpen: number
-  reopenRate: number
-  newLast30: number
-  closedLast30: number
-  trendDirection: "improving" | "worsening" | "stable"
+  proactivityScore: number
   complianceScore: number
   securityDebt: number
-  proactivityScore: number
+  trendDirection: "improving" | "worsening" | "stable"
   tribo: string
   po: string
   techLead: string
   appSec: string
   sre: string
+  newLast30: number
+  closedLast30: number
+  reopenRate: number
 }
 
 interface SsdlcOverview {
@@ -80,49 +73,11 @@ interface SsdlcOverview {
   avgCompliance: number
   avgMttr: number
   avgSlaCompliance: number
-  maturityDistribution: {
-    critical: number
-    low: number
-    medium: number
-    good: number
-    excellent: number
-  }
+  maturityDistribution: any
   worstSquads: SquadScorecard[]
   bestSquads: SquadScorecard[]
   allSquads: SquadScorecard[]
 }
-
-function getScoreColor(score: number) {
-  if (score >= 85) return "text-emerald-600"
-  if (score >= 70) return "text-green-600"
-  if (score >= 50) return "text-amber-600"
-  if (score >= 30) return "text-orange-600"
-  return "text-red-600"
-}
-
-function getScoreBg(score: number) {
-  if (score >= 85) return "bg-emerald-500/10"
-  if (score >= 70) return "bg-green-500/100/10"
-  if (score >= 50) return "bg-amber-500/10"
-  if (score >= 30) return "bg-orange-500/10"
-  return "bg-red-500/100/10"
-}
-
-function getScoreLabel(score: number) {
-  if (score >= 85) return "Excelente"
-  if (score >= 70) return "Bom"
-  if (score >= 50) return "Regular"
-  if (score >= 30) return "Baixo"
-  return "Crítico"
-}
-
-function TrendIcon({ direction }: { direction: string }) {
-  if (direction === "improving") return <TrendingDown className="h-4 w-4 text-emerald-600" />
-  if (direction === "worsening") return <TrendingUp className="h-4 w-4 text-red-600" />
-  return <Minus className="h-4 w-4 text-muted-foreground" />
-}
-
-const MATURITY_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#10b981"]
 
 export default function SquadsPage() {
   const [data, setData] = useState<SsdlcOverview | null>(null)
@@ -132,6 +87,12 @@ export default function SquadsPage() {
     setLoading(true)
     try {
       const res = await fetch(`${API_URL}/api/analytics/ssdlc`, { headers: authHeaders() })
+      if (res.status === 401) {
+        localStorage.removeItem('vulncontrol_user')
+        document.cookie = 'vulncontrol_token=; path=/; max-age=0'
+        window.location.href = '/login'
+        return
+      }
       if (!res.ok) throw new Error("Falha ao carregar dados")
       const json = await res.json()
       setData(json)
@@ -166,30 +127,32 @@ export default function SquadsPage() {
     )
   }
 
-  const maturityData = [
-    { name: "Crítico", value: data.maturityDistribution.critical, color: MATURITY_COLORS[0] },
-    { name: "Baixo", value: data.maturityDistribution.low, color: MATURITY_COLORS[1] },
-    { name: "Regular", value: data.maturityDistribution.medium, color: MATURITY_COLORS[2] },
-    { name: "Bom", value: data.maturityDistribution.good, color: MATURITY_COLORS[3] },
-    { name: "Excelente", value: data.maturityDistribution.excellent, color: MATURITY_COLORS[4] },
-  ].filter(d => d.value > 0)
-
-  const proactivityData = data.allSquads
+  // Dados por squad com métricas de correção
+  const squadsRanking = data.allSquads
     .map(s => {
-      const resolutionPct = s.total > 0 ? Math.round((s.closedCount / s.total) * 100) : 0
+      const correcaoPct = s.total > 0 ? Math.round((s.closedCount / s.total) * 100) : 0
+      const slaPct = s.slaComplianceRate || 0
       return {
-        name: s.squadName.length > 12 ? s.squadName.substring(0, 12) + "…" : s.squadName,
-        score: resolutionPct,
-        total: s.total,
-        closed: s.closedCount,
-        open: s.openCount,
-        resolutionPct,
-        fill: resolutionPct >= 80 ? "#eab308" : resolutionPct >= 50 ? "#22c55e" : "#3b82f6",
-        isCandidate: resolutionPct >= 80
+        ...s,
+        correcaoPct,
+        slaPct,
       }
     })
-    .sort((a, b) => b.resolutionPct - a.resolutionPct)
-    .slice(0, 8)
+    .sort((a, b) => b.correcaoPct - a.correcaoPct)
+
+  // Dados pra gráfico de barras comparativo
+  const chartData = squadsRanking.map(s => ({
+    squad: s.squadName.length > 14 ? s.squadName.substring(0, 14) + '…' : s.squadName,
+    corrigidas: s.closedCount,
+    abertas: s.openCount,
+    slaVencido: s.slaExpired,
+  }))
+
+  // Totais gerais
+  const totalVulns = data.allSquads.reduce((s, q) => s + q.total, 0)
+  const totalCorrigidas = data.allSquads.reduce((s, q) => s + q.closedCount, 0)
+  const totalAbertas = data.allSquads.reduce((s, q) => s + q.openCount, 0)
+  const totalSlaVencido = data.allSquads.reduce((s, q) => s + q.slaExpired, 0)
 
   return (
     <div className="p-6 space-y-6 bg-background min-h-screen">
@@ -198,7 +161,7 @@ export default function SquadsPage() {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Squad Scorecard</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Métricas SSDLC e compliance por squad — {data.totalSquads} squads monitoradas
+            Acompanhamento de correção e SLA por squad — {data.totalSquads} squads monitoradas
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
@@ -207,257 +170,215 @@ export default function SquadsPage() {
         </Button>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-card border-border shadow-sm transition-all hover:shadow-md">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-500/10">
-                <Target className="h-5 w-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Compliance Médio</p>
-                <p className={cn("text-2xl font-bold", getScoreColor(data.avgCompliance))}>{data.avgCompliance}%</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card border-border shadow-sm transition-all hover:shadow-md">
+      {/* KPI Cards - Simples e diretos */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="bg-card border-border shadow-sm">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
-                <Clock className="h-5 w-5 text-blue-600" />
+                <Target className="h-5 w-5 text-blue-500" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">MTTR Médio</p>
-                <p className="text-2xl font-bold text-foreground">{data.avgMttr} dias</p>
+                <p className="text-xs text-muted-foreground">Total Vulnerabilidades</p>
+                <p className="text-2xl font-bold text-foreground">{totalVulns}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card border-border shadow-sm transition-all hover:shadow-md">
+        <Card className="bg-card border-border shadow-sm">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10">
-                <Shield className="h-5 w-5 text-green-600" />
+                <CheckCircle2 className="h-5 w-5 text-green-500" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">SLA Compliance</p>
-                <p className={cn("text-2xl font-bold", data.avgSlaCompliance >= 70 ? "text-green-400" : "text-red-400")}>
-                  {data.avgSlaCompliance}%
-                </p>
+                <p className="text-xs text-muted-foreground">Corrigidas</p>
+                <p className="text-2xl font-bold text-green-500">{totalCorrigidas}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card border-border shadow-sm transition-all hover:shadow-md">
+        <Card className="bg-card border-border shadow-sm">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/10">
+                <XCircle className="h-5 w-5 text-amber-500" />
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Não Corrigidas</p>
+                <p className="text-2xl font-bold text-amber-500">{totalAbertas}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border shadow-sm">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/10">
-                <AlertTriangle className="h-5 w-5 text-red-600" />
+                <AlertTriangle className="h-5 w-5 text-red-500" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Dívida de Segurança</p>
-                <p className="text-2xl font-bold text-red-600">
-                  {data.allSquads.reduce((sum, s) => sum + (Number(s.securityDebt) || 0), 0)} <span className="text-xs font-normal">pts</span>
-                </p>
+                <p className="text-xs text-muted-foreground">SLA Estourados</p>
+                <p className="text-2xl font-bold text-red-500">{totalSlaVencido}</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Charts Row */}
+      {/* Gráfico Comparativo + Ranking */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* DevChamp Hall of Fame */}
-        <Card className="bg-card border-border shadow-sm overflow-hidden group hover:border-primary/30 transition-all duration-500">
-          <CardHeader className="bg-muted/30 border-b border-border">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Trophy className="h-5 w-5 text-yellow-500 animate-bounce" />
-                  DevChamp Hall of Fame
-                </CardTitle>
-                <CardDescription>Elite de Segurança S-SDLC — ranking por % de correção</CardDescription>
-              </div>
-              <Medal className="h-8 w-8 text-yellow-500/20" />
-            </div>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="space-y-4">
-              {proactivityData.slice(0, 5).map((squad, idx) => (
-                <div key={idx} className="flex items-center gap-4 group/item">
-                  <div className={cn(
-                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-bold text-xs ring-2 ring-offset-2 ring-offset-background transition-transform group-hover/item:scale-110",
-                    idx === 0 ? "bg-yellow-500 text-black ring-yellow-500" :
-                    idx === 1 ? "bg-zinc-300 text-zinc-800 ring-zinc-300" :
-                    idx === 2 ? "bg-orange-400 text-black ring-orange-400" :
-                    "bg-muted text-muted-foreground ring-muted"
-                  )}>
-                    {idx + 1}
-                  </div>
-                  <div className="flex-1 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-bold text-foreground group-hover/item:text-yellow-500 transition-colors uppercase tracking-tight">
-                        {squad.name}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-muted-foreground">
-                          {squad.closed}/{squad.total} corrigidas
-                        </span>
-                        <span className={cn("text-xs font-black", squad.score >= 80 ? "text-yellow-500" : "text-muted-foreground")}>
-                          {squad.score}%
-                        </span>
-                      </div>
-                    </div>
-                    <Progress
-                      value={squad.score}
-                      className="h-1.5"
-                    />
-                  </div>
-                  {squad.isCandidate && (
-                    <Trophy className="h-4 w-4 text-yellow-500 opacity-50 fill-yellow-500 ring-2 ring-yellow-500/20 rounded-full p-0.5" />
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-8 relative p-4 rounded-xl border border-primary/20 bg-primary/5 group/tip overflow-hidden">
-               <div className="absolute top-0 right-0 p-2 opacity-5 group-hover/tip:opacity-10 transition-opacity">
-                 <Target className="h-12 w-12 text-primary" />
-               </div>
-               <div className="relative z-10">
-                 <h4 className="text-xs font-bold text-primary mb-1 flex items-center gap-2 uppercase tracking-widest">
-                   <Zap className="h-3 w-3" /> Radar de Talentos
-                 </h4>
-                 <p className="text-[11px] leading-relaxed text-muted-foreground">
-                   Ranking baseado na <span className="text-foreground font-bold italic">% de correção sobre vulnerabilidades abertas</span>, garantindo comparação justa entre squads de volumes diferentes. Squads com score acima de 80% são candidatas a <span className="text-foreground underline decoration-primary/30">Security Champions</span>.
-                 </p>
-               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Maturity Distribution */}
-        <Card className="bg-card border-border">
+        {/* Gráfico de barras: Corrigidas vs Abertas por Squad */}
+        <Card className="bg-card border-border shadow-sm">
           <CardHeader>
-            <CardTitle className="text-base">Distribuição de Maturidade</CardTitle>
-            <CardDescription>Classificação das squads por nível</CardDescription>
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-blue-500" />
+              <CardTitle className="text-base">Corrigidas vs Não Corrigidas por Squad</CardTitle>
+            </div>
+            <CardDescription>Comparativo de resolução entre squads</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px] flex items-center justify-center">
-              {maturityData.length > 0 ? (
+            <div className="h-[300px]">
+              {chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={maturityData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={3}
-                      dataKey="value"
-                      label={({ name, value }) => `${name}: ${value}`}
-                    >
-                      {maturityData.map((entry, index) => (
-                        <Cell key={index} fill={entry.color} />
-                      ))}
-                    </Pie>
+                  <BarChart data={chartData} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                    <XAxis type="number" stroke="var(--color-muted-foreground)" fontSize={12} />
+                    <YAxis dataKey="squad" type="category" stroke="var(--color-muted-foreground)" fontSize={11} width={110} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--foreground)" }}
+                      contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-card-foreground)' }}
+                      itemStyle={{ fontWeight: 600 }}
+                      labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
                     />
-                  </PieChart>
+                    <Legend />
+                    <Bar dataKey="corrigidas" fill="#22c55e" name="Corrigidas" radius={[0, 4, 4, 0]} stackId="a" />
+                    <Bar dataKey="abertas" fill="#f59e0b" name="Não Corrigidas" radius={[0, 4, 4, 0]} stackId="a" />
+                    <Bar dataKey="slaVencido" fill="#ef4444" name="SLA Estourado" radius={[0, 4, 4, 0]} />
+                  </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <p className="text-muted-foreground">Sem dados</p>
+                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Sem dados</div>
               )}
             </div>
           </CardContent>
         </Card>
+
+        {/* Hall of Fame - Ranking por % de correção */}
+        <Card className="bg-card border-border shadow-sm">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-yellow-500" />
+              <CardTitle className="text-base">Ranking de Correção por Squad</CardTitle>
+            </div>
+            <CardDescription>% de vulnerabilidades corrigidas sobre o total — quem resolve mais?</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {squadsRanking.map((squad, idx) => {
+                const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}`
+                const pctColor = squad.correcaoPct >= 80 ? 'text-green-500' : squad.correcaoPct >= 50 ? 'text-amber-500' : 'text-red-500'
+                const barColor = squad.correcaoPct >= 80 ? 'bg-green-500' : squad.correcaoPct >= 50 ? 'bg-amber-500' : 'bg-red-500'
+
+                return (
+                  <div key={squad.squadName} className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg w-8 text-center">{medal}</span>
+                        <div>
+                          <span className="text-sm font-bold text-foreground">{squad.squadName}</span>
+                          <span className="text-xs text-muted-foreground ml-2">
+                            {squad.closedCount}/{squad.total} corrigidas
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {squad.slaExpired > 0 && (
+                          <Badge variant="outline" className="text-[10px] bg-red-500/10 text-red-500 border-red-500/20">
+                            {squad.slaExpired} SLA estourado{squad.slaExpired > 1 ? 's' : ''}
+                          </Badge>
+                        )}
+                        <span className={cn("text-sm font-black", pctColor)}>
+                          {squad.correcaoPct}%
+                        </span>
+                      </div>
+                    </div>
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                      <div className={cn("h-full rounded-full transition-all duration-700", barColor)} style={{ width: `${squad.correcaoPct}%` }} />
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Squad Table */}
-      <Card className="bg-card border-border">
+      {/* Tabela detalhada */}
+      <Card className="bg-card border-border shadow-sm">
         <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-yellow-400" />
-            Ranking Completo das Squads
-          </CardTitle>
-          <CardDescription>Ordenado por compliance score (pior → melhor). Clique para ver detalhes.</CardDescription>
+          <div className="flex items-center gap-2">
+            <Shield className="h-5 w-5 text-blue-500" />
+            <CardTitle className="text-base">Detalhamento por Squad</CardTitle>
+          </div>
+          <CardDescription>Visão completa: total de falhas, corrigidas, SLA estourado e % de correção</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-muted-foreground">
-                  <th className="text-left py-3 px-2 font-medium">#</th>
-                  <th className="text-left py-3 px-2 font-medium">Tribo</th>
-                  <th className="text-left py-3 px-2 font-medium">Squad</th>
-                  <th className="text-center py-3 px-2 font-medium">Score</th>
-                  <th className="text-center py-3 px-2 font-medium">Abertas</th>
-                  <th className="text-center py-3 px-2 font-medium">Liderança</th>
-                  <th className="text-center py-3 px-2 font-medium">Proatividade</th>
-                  <th className="text-center py-3 px-2 font-medium">Dívida</th>
-                  <th className="text-center py-3 px-2 font-medium">Tendência</th>
-                  <th className="text-center py-3 px-2 font-medium"></th>
+                  <th className="text-left py-3 px-3 font-medium">#</th>
+                  <th className="text-left py-3 px-3 font-medium">Squad</th>
+                  <th className="text-center py-3 px-3 font-medium">Total</th>
+                  <th className="text-center py-3 px-3 font-medium">Corrigidas</th>
+                  <th className="text-center py-3 px-3 font-medium">Não Corrigidas</th>
+                  <th className="text-center py-3 px-3 font-medium">Extremas/Críticas</th>
+                  <th className="text-center py-3 px-3 font-medium">SLA Estourado</th>
+                  <th className="text-center py-3 px-3 font-medium">% Correção</th>
+                  <th className="text-center py-3 px-3 font-medium">Situação</th>
                 </tr>
               </thead>
               <tbody>
-                {data.allSquads.map((squad, idx) => (
-                  <tr
-                    key={squad.squadName}
-                    className="border-b border-border/50 hover:bg-muted/30 transition-colors"
-                  >
-                    <td className="py-3 px-2 text-muted-foreground">{idx + 1}</td>
-                    <td className="py-3 px-2">
-                      <Badge variant="outline" className="text-[10px] font-medium border-border text-muted-foreground">
-                        {squad.tribo}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-2">
-                      <span className="font-medium text-foreground">{squad.squadName}</span>
-                      <span className="text-xs text-muted-foreground ml-2 block">({squad.total} total)</span>
-                    </td>
-                    <td className="py-3 px-2 text-center">
-                      <Badge className={cn("font-bold", getScoreBg(squad.complianceScore), getScoreColor(squad.complianceScore))}>
-                        {squad.complianceScore}
-                      </Badge>
-                    </td>
-                    <td className="py-3 px-2 text-center text-foreground">{squad.openCount}</td>
-                    <td className="py-3 px-2 text-center">
-                       <div className="flex flex-col items-center gap-0.5">
-                          <span className="text-[10px] text-muted-foreground">PO: {squad.po}</span>
-                          <span className="text-[10px] text-muted-foreground">TL: {squad.techLead}</span>
-                       </div>
-                    </td>
-                    <td className="py-3 px-2 text-center">
-                      <div className="flex flex-col items-center gap-1">
-                        <Progress value={Number(squad.proactivityScore) || 0} className="h-1.5 w-16" />
-                        <span className={cn("text-[10px] font-bold", (squad.proactivityScore || 0) >= 70 ? "text-emerald-500" : "text-muted-foreground")}>
-                          {Number(squad.proactivityScore) || 0}%
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-2 text-center">
-                      <span className={cn("text-xs font-medium", (squad.securityDebt || 0) > 200 ? "text-red-400" : "text-muted-foreground")}>
-                        {Number(squad.securityDebt) || 0} pts
-                      </span>
-                    </td>
-                    <td className="py-3 px-2 text-center">
-                      <TrendIcon direction={squad.trendDirection} />
-                    </td>
-                    <td className="py-3 px-2 text-center">
-                      <Link href={`/squads/${encodeURIComponent(squad.squadName)}`}>
-                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                          <ArrowRight className="h-4 w-4" />
-                        </Button>
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+                {squadsRanking.map((squad, idx) => {
+                  const pctColor = squad.correcaoPct >= 80 ? 'text-green-500' : squad.correcaoPct >= 50 ? 'text-amber-500' : 'text-red-500'
+                  const situacao = squad.correcaoPct >= 80 ? { label: 'Ótimo', color: 'bg-green-500/10 text-green-500 border-green-500/20' }
+                    : squad.correcaoPct >= 50 ? { label: 'Regular', color: 'bg-amber-500/10 text-amber-500 border-amber-500/20' }
+                    : squad.slaExpired > 0 ? { label: 'Crítico', color: 'bg-red-500/10 text-red-500 border-red-500/20' }
+                    : { label: 'Atenção', color: 'bg-orange-500/10 text-orange-500 border-orange-500/20' }
+
+                  return (
+                    <tr key={squad.squadName} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                      <td className="py-3 px-3 text-muted-foreground font-medium">{idx + 1}</td>
+                      <td className="py-3 px-3 font-bold text-foreground">{squad.squadName}</td>
+                      <td className="py-3 px-3 text-center text-foreground">{squad.total}</td>
+                      <td className="py-3 px-3 text-center text-green-500 font-semibold">{squad.closedCount}</td>
+                      <td className="py-3 px-3 text-center text-amber-500 font-semibold">{squad.openCount}</td>
+                      <td className="py-3 px-3 text-center">
+                        {(squad.extrema + squad.critica) > 0 ? (
+                          <span className="text-red-500 font-bold">{squad.extrema + squad.critica}</span>
+                        ) : (
+                          <span className="text-muted-foreground">0</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-3 text-center">
+                        {squad.slaExpired > 0 ? (
+                          <Badge variant="outline" className="bg-red-500/10 text-red-500 border-red-500/20 font-bold">{squad.slaExpired}</Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-green-500/10 text-green-500 border-green-500/20">0</Badge>
+                        )}
+                      </td>
+                      <td className="py-3 px-3 text-center">
+                        <span className={cn("font-black text-base", pctColor)}>{squad.correcaoPct}%</span>
+                      </td>
+                      <td className="py-3 px-3 text-center">
+                        <Badge variant="outline" className={cn("text-[11px] font-semibold", situacao.color)}>{situacao.label}</Badge>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

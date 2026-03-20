@@ -349,9 +349,10 @@ export default function AlertasPage() {
                   {slaVencidos.map(vuln => {
                     const daysOverdue = getDaysOverdue(vuln.sla!)
                     return (
-                      <div
+                      <Link
                         key={vuln.id}
-                        className={cn("rounded-lg border p-4 transition-all hover:shadow-md", getOverdueBg(daysOverdue))}
+                        href={`/vulnerabilidades/${vuln.codigoInterno}`}
+                        className={cn("block rounded-lg border p-4 transition-all hover:shadow-md cursor-pointer", getOverdueBg(daysOverdue))}
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
@@ -368,7 +369,7 @@ export default function AlertasPage() {
                             <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
                               <span className="font-medium">Squad: {vuln.squad}</span>
                               <span>{vuln.diasEmAberto} dias aberta</span>
-                              {vuln.sistema && <span>Sistema: {vuln.sistema}</span>}
+                              {vuln.sistema && <span>Alvo: {vuln.sistema}</span>}
                             </div>
                           </div>
                           <div className="flex flex-col items-end gap-2 shrink-0">
@@ -379,8 +380,8 @@ export default function AlertasPage() {
                             <div className="text-[10px] text-muted-foreground">
                               SLA: {new Date(vuln.sla!).toLocaleDateString('pt-BR')}
                             </div>
-                            {vuln.jiraUrl && (
-                              <a href={vuln.jiraUrl} target="_blank" rel="noopener noreferrer">
+                            {vuln.jiraKey && (
+                              <a href={`https://credmais.atlassian.net/browse/${vuln.jiraKey}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
                                 <Button variant="ghost" size="sm" className="h-6 px-2 text-xs">
                                   <ExternalLink className="mr-1 h-3 w-3" />
                                   Jira
@@ -389,7 +390,7 @@ export default function AlertasPage() {
                             )}
                           </div>
                         </div>
-                      </div>
+                      </Link>
                     )
                   })}
                 </div>
@@ -499,7 +500,7 @@ function VulnAlertRow({ vuln, now }: { vuln: Vulnerability; now: Date }) {
   const daysOverdue = vuln.sla ? Math.floor((now.getTime() - new Date(vuln.sla).getTime()) / (1000 * 60 * 60 * 24)) : 0
 
   return (
-    <div className="rounded-lg border border-border bg-muted/30 p-4 transition-all hover:bg-muted/50 hover:shadow-md">
+    <Link href={`/vulnerabilidades/${vuln.codigoInterno}`} className="block rounded-lg border border-border bg-muted/30 p-4 transition-all hover:bg-muted/50 hover:shadow-md cursor-pointer">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -521,7 +522,7 @@ function VulnAlertRow({ vuln, now }: { vuln: Vulnerability; now: Date }) {
           <div className="mt-2 flex items-center gap-4 text-xs text-muted-foreground flex-wrap">
             <span className="font-medium">Squad: {vuln.squad}</span>
             <span>{vuln.diasEmAberto} dias aberta</span>
-            {vuln.sistema && <span>Sistema: {vuln.sistema}</span>}
+            {vuln.sistema && <span>Alvo: {vuln.sistema}</span>}
             {vuln.sla && (
               <span className={slaExpired ? "text-amber-500 font-medium" : ""}>
                 SLA: {new Date(vuln.sla).toLocaleDateString('pt-BR')}
@@ -536,8 +537,8 @@ function VulnAlertRow({ vuln, now }: { vuln: Vulnerability; now: Date }) {
             </span>
             <span className="text-[10px] text-muted-foreground block">dias</span>
           </div>
-          {vuln.jiraUrl && (
-            <a href={vuln.jiraUrl} target="_blank" rel="noopener noreferrer">
+          {vuln.jiraKey && (
+            <a href={`https://credmais.atlassian.net/browse/${vuln.jiraKey}`} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
               <Button variant="ghost" size="sm" className="h-7 px-2 text-xs">
                 <ExternalLink className="mr-1 h-3 w-3" />
                 Jira
@@ -546,6 +547,6 @@ function VulnAlertRow({ vuln, now }: { vuln: Vulnerability; now: Date }) {
           )}
         </div>
       </div>
-    </div>
+    </Link>
   )
 }

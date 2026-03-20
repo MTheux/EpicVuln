@@ -242,15 +242,30 @@ export class VulnerabilitiesService {
       return mapeamento[prioridade] || 'MEDIA';
     };
 
-    const mapStatus = (status: string) => {
-      const s = status.toLowerCase();
-      if (s.includes('não corrigida') || s.includes('itens pendentes')) return 'NOVO';
-      if (s.includes('backlog')) return 'EM_BACKLOG';
-      if (s.includes('em correção')) return 'EM_CORRECAO';
-      if (s.includes('reteste')) return 'EM_RETESTE';
-      if (s.includes('mitigada')) return 'MITIGADO';
-      if (s.includes('aceito')) return 'RISCO_ACEITO';
-      if (s.includes('fechada') || s.includes('concluída')) return 'CONCLUIDO';
+    // Mapeia status combinando o campo customizado (Corrigida/Não Corrigida) + workflow do Jira
+    const mapStatus = (statusCorrecao: string, statusWorkflow?: string) => {
+      const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const sc = norm(statusCorrecao || '');
+      const sw = norm(statusWorkflow || '');
+
+      // Campo customizado "Corrigida" = concluído
+      if (sc.includes('corrigida') && !sc.includes('nao corrigida')) return 'CONCLUIDO';
+
+      // Workflow do Jira
+      if (sw.includes('concluido') || sw.includes('concluida')) return 'CONCLUIDO';
+      if (sw.includes('validacoes') || sw.includes('validacao') || sw.includes('seguranca')) return 'EM_RETESTE';
+      if (sw.includes('backlog andamento') || sw.includes('andamento')) return 'EM_CORRECAO';
+      if (sw.includes('appsec')) return 'EM_BACKLOG';
+      if (sw.includes('backlog')) return 'EM_BACKLOG';
+
+      // Campo customizado "Não Corrigida"
+      if (sc.includes('nao corrigida') || sc.includes('itens pendentes')) return 'NOVO';
+
+      // Fallbacks legados
+      if (sc.includes('mitigada')) return 'MITIGADO';
+      if (sc.includes('aceito')) return 'RISCO_ACEITO';
+      if (sc.includes('fechada')) return 'CONCLUIDO';
+
       return 'NOVO';
     };
 
@@ -293,16 +308,23 @@ export class VulnerabilitiesService {
         // Garantir que diasEmAberto não seja NaN nem negativo para o banco
         if (isNaN(diasEmAberto) || diasEmAberto < 0) diasEmAberto = 0;
 
+        // Extrair Alvo do campo ou do título (ex: [APP MAIS! IOS] -> App Mais IOS)
+        let alvo = item.alvo || '';
+        if (!alvo && item.resumo) {
+          const alvoMatch = (item.resumo || '').match(/^\[([^\]]+)\]/);
+          if (alvoMatch) alvo = alvoMatch[1].trim();
+        }
+
         const data: any = {
           jiraKey: item.key,
           titulo: item.resumo || 'Sem Título',
           descricaoExecutiva: item.resumo || item.impacto || item.descricao || '',
           descricaoTecnica: item.descricao || '',
           criticidade: mapCriticidade(item.prioridade),
-          status: mapStatus(item.status),
+          status: mapStatus(item.statusCorrecao || item.status || '', item.statusWorkflow || ''),
           squad: item.squadResponsavel || item.squadLider || 'Não Definido',
-          sistema: item.alvo || 'Não Definido',
-          ativo: item.alvo || 'Não Definido',
+          sistema: alvo || item.squadResponsavel || 'Não Definido',
+          ativo: alvo || item.squadResponsavel || 'Não Definido',
           ambiente: mapAmbiente(item.ambiente),
           origem: mapOrigem(item.origem),
           responsavel: item.responsavel || '',
