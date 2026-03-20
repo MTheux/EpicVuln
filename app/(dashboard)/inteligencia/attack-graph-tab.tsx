@@ -381,7 +381,7 @@ export default function AttackGraphTab() {
     setLoading(true)
     setError(null)
     try {
-      const res = await fetch(`${API_URL}/api/llm/attack-graph`, { headers: authHeaders() })
+      const res = await fetch(`${API_URL}/api/llm/attack-graph`, { headers: authHeaders(), credentials: 'include' })
       const json = await res.json()
       if (json.success && json.data?.scenarios) {
         setScenarios(json.data.scenarios)

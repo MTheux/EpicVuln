@@ -1,5 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+import { prisma } from '../../app';
 
 export class VulnerabilitiesService {
   private calculateSlaDate(criticidade: string, dataDeteccao: Date = new Date()): Date {
@@ -129,10 +128,24 @@ export class VulnerabilitiesService {
     const existing = await prisma.vulnerability.findUnique({ where: { id } });
     if (!existing) throw new Error('Vulnerability not found');
 
+    // Mass assignment protection: only allow whitelisted fields
+    const allowedFields = [
+      'titulo', 'descricaoExecutiva', 'descricaoTecnica', 'criticidade', 'status',
+      'squad', 'sistema', 'ativo', 'ambiente', 'origem', 'responsavel', 'gestor',
+      'impacto', 'recomendacao', 'tipo', 'complexidade', 'complexidadeCorrecao',
+      'cwe', 'owaspCategory', 'tags', 'sla', 'dataDeteccao', 'jiraKey',
+    ];
+    const sanitizedData: Record<string, any> = {};
+    for (const key of allowedFields) {
+      if (data[key] !== undefined) {
+        sanitizedData[key] = data[key];
+      }
+    }
+
     return prisma.$transaction(async (tx) => {
       const updated = await tx.vulnerability.update({
         where: { id },
-        data
+        data: sanitizedData
       });
 
       if (data.status && data.status !== existing.status) {

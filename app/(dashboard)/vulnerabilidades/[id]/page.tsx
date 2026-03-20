@@ -78,8 +78,8 @@ export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
 
     if (isDangerous) {
       try {
-        const res = await fetch(url)
-        if (!res.ok) throw new Error('Não foi possível ler o arquivo')
+        const res = await fetch(url, { credentials: 'include' })
+        if (!res.ok) throw new Error('Nao foi possivel ler o arquivo')
         const text = await res.text()
         setPreviewContent({ type: 'text', content: text, name: filename })
       } catch (e: any) {

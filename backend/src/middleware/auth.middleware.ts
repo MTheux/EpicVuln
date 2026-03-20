@@ -9,23 +9,32 @@ export interface AuthRequest extends Request {
 
 export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const authHeader = req.headers.authorization;
+        // Read token from HttpOnly cookie first, then fall back to Authorization header
+        let token: string | undefined;
 
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            res.status(401).json({ error: 'Token missing or invalid' });
+        if (req.cookies && req.cookies.vulncontrol_token) {
+            token = req.cookies.vulncontrol_token;
+        } else {
+            const authHeader = req.headers.authorization;
+            if (authHeader && authHeader.startsWith('Bearer ')) {
+                token = authHeader.split(' ')[1];
+            }
+        }
+
+        if (!token) {
+            res.status(401).json({ error: 'Token ausente ou invalido' });
             return;
         }
 
-        const token = authHeader.split(' ')[1];
         const secret = env.JWT_SECRET;
 
         const decoded = jwt.verify(token, secret) as { id: string; email: string; role: string };
 
-        // Validar se o usuário ainda existe e está ativo
+        // Validar se o usuario ainda existe e esta ativo
         const user = await prisma.user.findUnique({ where: { id: decoded.id } });
 
         if (!user || (!user.active)) {
-            res.status(401).json({ error: 'User is disabled or not found' });
+            res.status(401).json({ error: 'Usuario desabilitado ou nao encontrado' });
             return;
         }
 
@@ -38,7 +47,8 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
         next();
     } catch (error: any) {
         console.error('Authentication error:', error.message);
-        res.status(401).json({ error: `Invalid token: ${error.message}` });
+        // H3: Don't leak internal error details
+        res.status(401).json({ error: 'Token invalido' });
         return;
     }
 };

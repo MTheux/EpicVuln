@@ -1,6 +1,6 @@
 import { Response } from 'express';
 import { Router } from 'express';
-import { authenticate, AuthRequest } from '../../middleware/auth.middleware';
+import { authenticate, AuthRequest, requireRoles } from '../../middleware/auth.middleware';
 import { prisma } from '../../app';
 
 class JiraService {
@@ -219,17 +219,17 @@ router.get('/settings', authenticate, async (req: AuthRequest, res: Response) =>
         const settings = await service.getSettings();
         res.json(settings);
     } catch (error: any) {
-        res.status(500).json({ error: error.message || 'Internal server error' });
+        res.status(500).json({ error: 'Erro ao buscar configuracoes' });
     }
 });
 
-// Endpoint para salvar as configurações
-router.post('/settings', authenticate, async (req: AuthRequest, res: Response) => {
+// Endpoint para salvar as configuracoes - somente ADMIN
+router.post('/settings', authenticate, requireRoles(['ADMIN']), async (req: AuthRequest, res: Response) => {
     try {
         const result = await service.saveSettings(req.body);
         res.json(result);
     } catch (error: any) {
-        res.status(500).json({ error: error.message || 'Internal server error' });
+        res.status(500).json({ error: 'Erro ao salvar configuracoes' });
     }
 });
 
@@ -240,29 +240,32 @@ router.post('/sync', authenticate, async (req: AuthRequest, res: Response) => {
         res.json(result);
     } catch (error: any) {
         console.error('Jira Sync Error:', error);
-        res.status(500).json({ error: error.message || 'Internal server error' });
+        res.status(500).json({ error: 'Erro ao sincronizar com Jira' });
     }
 });
 
-// Endpoint público/protegido por token passivo para receber Webhooks do Jira
+// Endpoint protegido por secret para receber Webhooks do Jira
 router.post('/webhook', async (req: AuthRequest, res: Response) => {
-    // Nota: Em produção, você verificaria uma Secret originada do Jira aqui (ex: query param ou cabecalho x-hub-signature).
-    const secret = req.query.secret;
-    const expectedSecret = process.env.JIRA_WEBHOOK_SECRET || 'credsystem-vuln-secret';
-    
-    // Descomente em produção para impor segurança passiva:
-    /*
-    if (secret !== expectedSecret) {
-        return res.status(403).json({ error: 'Unauthorized webhook request' });
+    const secret = req.query.secret || req.headers['x-webhook-secret'];
+    const expectedSecret = process.env.JIRA_WEBHOOK_SECRET;
+
+    if (!expectedSecret) {
+        console.error('[Jira Webhook] JIRA_WEBHOOK_SECRET not configured in environment');
+        res.status(500).json({ error: 'Webhook not configured' });
+        return;
     }
-    */
+
+    if (!secret || secret !== expectedSecret) {
+        res.status(403).json({ error: 'Unauthorized webhook request' });
+        return;
+    }
 
     try {
         const result = await service.handleWebhook(req.body);
         res.json(result);
     } catch (error: any) {
         console.error('Jira Webhook Error:', error);
-        res.status(500).json({ error: error.message || 'Internal server error' });
+        res.status(500).json({ error: 'Erro ao processar webhook' });
     }
 });
 

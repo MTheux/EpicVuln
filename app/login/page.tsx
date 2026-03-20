@@ -30,13 +30,14 @@ export default function LoginPage() {
             const res = await fetch(`${CURRENT_API}/api/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
                 body: JSON.stringify({ email, password }),
             })
             const data = await res.json()
 
             if (!res.ok) throw new Error(data.error || 'Credenciais inválidas')
 
-            document.cookie = `vulncontrol_token=${data.token}; path=/; max-age=86400; SameSite=Lax`
+            // HttpOnly cookie is set by the server automatically
             localStorage.setItem('vulncontrol_user', JSON.stringify(data.user))
 
             toast.success("Login aprovado", {

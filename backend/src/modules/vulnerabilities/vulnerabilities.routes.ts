@@ -40,14 +40,14 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req: any, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-    // Extensões permitidas com base no pedido
-    const allowedExts = ['.png', '.jpg', '.jpeg', '.php', '.html'];
+    // Safe file extensions only - no executable types
+    const allowedExts = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.pdf', '.txt', '.csv'];
     const ext = path.extname(file.originalname).toLowerCase();
-    
+
     if (allowedExts.includes(ext)) {
         cb(null, true);
     } else {
-        cb(new Error('Extension not allowed. Default allowed: png, jpg, jpeg, php, html'));
+        cb(new Error('Extensao nao permitida. Tipos aceitos: png, jpg, jpeg, gif, bmp, webp, pdf, txt, csv'));
     }
 };
 

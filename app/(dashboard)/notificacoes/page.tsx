@@ -95,7 +95,7 @@ export default function AlertasPage() {
   const fetchVulns = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`${API_URL}/api/vulnerabilities`, { headers: authHeaders() })
+      const res = await fetch(`${API_URL}/api/vulnerabilities`, { headers: authHeaders(), credentials: 'include' })
       if (res.ok) {
         const json = await res.json()
         const data = Array.isArray(json) ? json : Array.isArray(json?.data) ? json.data : []

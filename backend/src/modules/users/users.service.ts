@@ -1,5 +1,6 @@
 import { prisma } from '../../app';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { Role } from '@prisma/client';
 
 export class UsersService {
@@ -37,8 +38,12 @@ export class UsersService {
     const existing = await prisma.user.findUnique({ where: { email: data.email } });
     if (existing) throw new Error('Email already in use');
 
-    const rawPassword = data.password || 'Mudar@123';
-    const hashedPassword = await bcrypt.hash(rawPassword, 10);
+    // Generate random password if none provided
+    const rawPassword = data.password || crypto.randomBytes(16).toString('hex');
+    const hashedPassword = await bcrypt.hash(rawPassword, 12);
+    if (!data.password) {
+      console.log(`[UsersService] Senha gerada para ${data.email}: ${rawPassword}`);
+    }
 
     return prisma.user.create({
       data: {
@@ -62,7 +67,7 @@ export class UsersService {
     let updateData: any = { ...data };
 
     if (data.password) {
-      updateData.password = await bcrypt.hash(data.password, 10);
+      updateData.password = await bcrypt.hash(data.password, 12);
     }
 
     return prisma.user.update({

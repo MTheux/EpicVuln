@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { Vulnerabilidade, Status } from './types'
-import { authHeaders, getAuthToken } from './auth'
+import { authHeaders } from './auth'
 
 interface VulnState {
   vulnerabilidades: Vulnerabilidade[]
@@ -31,8 +31,13 @@ const VULN_API = () => `${getApiUrl()}/api/vulnerabilities`
 const JIRA_API = () => `${getApiUrl()}/api/jira`
 
 // Fetch seguro: intercepta 401 (token expirado) e redireciona pro login
+// Always includes credentials so HttpOnly cookie is sent
 const safeFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-  const response = await fetch(input, init)
+  const mergedInit: RequestInit = {
+    ...init,
+    credentials: 'include',
+  }
+  const response = await fetch(input, mergedInit)
   if (response.status === 401) {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('vulncontrol_user')
@@ -59,11 +64,11 @@ export const useVulnStore = create<VulnState>((set, get) => ({
       }
       const data = await response.json()
 
-      const reverseCriticidade: any = { 'EXTREMA': 'Extrema', 'CRITICA': 'Crítica', 'ALTA': 'Alta', 'MEDIA': 'Média', 'BAIXA': 'Baixa', 'INFORMATIVA': 'Informativa' };
-      const reverseStatus: any = { 'NOVO': 'Nova', 'ABERTO': 'Aberta', 'EM_BACKLOG': 'Em Backlog', 'EM_CORRECAO': 'Em Correção', 'EM_RETESTE': 'Em Reteste', 'MITIGADO': 'Mitigada', 'CONCLUIDO': 'Concluída', 'RISCO_ACEITO': 'Risco Aceito', 'FECHADO': 'Fechada' };
+      const reverseCriticidade: any = { 'EXTREMA': 'Extrema', 'CRITICA': 'Critica', 'ALTA': 'Alta', 'MEDIA': 'Media', 'BAIXA': 'Baixa', 'INFORMATIVA': 'Informativa' };
+      const reverseStatus: any = { 'NOVO': 'Nova', 'ABERTO': 'Aberta', 'EM_BACKLOG': 'Em Backlog', 'EM_CORRECAO': 'Em Correcao', 'EM_RETESTE': 'Em Reteste', 'MITIGADO': 'Mitigada', 'CONCLUIDO': 'Concluida', 'RISCO_ACEITO': 'Risco Aceito', 'FECHADO': 'Fechada' };
       const reverseOrigem: any = { 'PENTEST': 'Pentest', 'DAST': 'DAST', 'SAST': 'SAST', 'SCA': 'SCA', 'BUG_BOUNTY': 'Bug Bounty', 'MANUAL': 'Manual', 'MONITORAMENTO': 'Monitoramento', 'CODE_REVIEW': 'Code Review' };
-      const reverseAmbiente: any = { 'PRODUCAO': 'Produção', 'HOMOLOGACAO': 'Homologação', 'DESENVOLVIMENTO': 'Desenvolvimento', 'STAGING': 'STG' };
-      const reverseComplexidade: any = { 'BAIXA': 'Baixa', 'MEDIA': 'Média', 'ALTA': 'Alta' };
+      const reverseAmbiente: any = { 'PRODUCAO': 'Producao', 'HOMOLOGACAO': 'Homologacao', 'DESENVOLVIMENTO': 'Desenvolvimento', 'STAGING': 'STG' };
+      const reverseComplexidade: any = { 'BAIXA': 'Baixa', 'MEDIA': 'Media', 'ALTA': 'Alta' };
 
       const mappedData: Vulnerabilidade[] = data.map((item: any) => ({
         ...item,
@@ -71,8 +76,8 @@ export const useVulnStore = create<VulnState>((set, get) => ({
         status: reverseStatus[item.status] || item.status,
         origem: reverseOrigem[item.origem] || item.origem,
         ambiente: reverseAmbiente[item.ambiente] || item.ambiente,
-        complexidade: reverseComplexidade[item.complexidade] || item.complexidade || 'Média',
-        complexidadeCorrecao: reverseComplexidade[item.complexidadeCorrecao] || item.complexidadeCorrecao || 'Média',
+        complexidade: reverseComplexidade[item.complexidade] || item.complexidade || 'Media',
+        complexidadeCorrecao: reverseComplexidade[item.complexidadeCorrecao] || item.complexidadeCorrecao || 'Media',
         id: item.codigoInterno,
         dbId: item.id,
         dataCriacao: new Date(item.dataCriacao).toISOString().split('T')[0],
@@ -111,7 +116,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
   updateStatus: async (id, status) => {
     try {
       const vuln = get().vulnerabilidades.find(v => v.id === id)
-      if (!vuln) throw new Error('Vulnerabilidade não encontrada no local')
+      if (!vuln) throw new Error('Vulnerabilidade nao encontrada no local')
 
       const dbId = (vuln as any).dbId
 
@@ -145,8 +150,8 @@ export const useVulnStore = create<VulnState>((set, get) => ({
         body: JSON.stringify({ responsavel })
       })
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Erro ao atualizar responsável' }))
-        throw new Error(errorData.error || 'Erro ao atualizar responsável')
+        const errorData = await response.json().catch(() => ({ error: 'Erro ao atualizar responsavel' }))
+        throw new Error(errorData.error || 'Erro ao atualizar responsavel')
       }
 
       await get().fetchVulnerabilidades()
@@ -161,7 +166,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
   },
 
   sendNotification: async (id) => {
-    console.log(`Notificação simulada para ${id}`)
+    console.log(`Notificacao simulada para ${id}`)
   },
 
   deleteVulnerabilidade: async (id) => {
@@ -211,12 +216,12 @@ export const useVulnStore = create<VulnState>((set, get) => ({
         headers: { ...authHeaders() },
         body: JSON.stringify(jsonData)
       })
-      
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Falha na importação de dados do Jira' }))
-        throw new Error(errorData.error || 'Falha na importação de dados do Jira')
+        const errorData = await response.json().catch(() => ({ error: 'Falha na importacao de dados do Jira' }))
+        throw new Error(errorData.error || 'Falha na importacao de dados do Jira')
       }
-      
+
       const result = await response.json()
       await get().fetchVulnerabilidades()
       return result
@@ -233,7 +238,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
         headers: authHeaders()
       })
       if (!response.ok) throw new Error('Erro ao limpar base de dados')
-      
+
       await get().fetchVulnerabilidades()
     } catch (err: any) {
       console.error(err)
@@ -244,23 +249,23 @@ export const useVulnStore = create<VulnState>((set, get) => ({
   uploadEvidence: async (id: string, file: File) => {
     try {
       const vuln = get().vulnerabilidades.find(v => v.id === id)
-      if (!vuln) throw new Error('Vulnerabilidade não encontrada')
+      if (!vuln) throw new Error('Vulnerabilidade nao encontrada')
 
       const dbId = (vuln as any).dbId
       const formData = new FormData()
       formData.append('file', file)
 
-      const token = getAuthToken()
+      // Don't set Content-Type for multipart form - browser sets it automatically
+      // credentials: 'include' is handled by safeFetch
       const response = await safeFetch(`${VULN_API()}/${dbId}/evidence`, {
         method: 'POST',
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-        body: formData // o navegador seta o content-type para multipart form automatico
+        body: formData
       })
       if (!response.ok) {
         const errData = await response.json().catch(() => null)
-        throw new Error(errData?.error || 'Erro ao fazer upload da evidência')
+        throw new Error(errData?.error || 'Erro ao fazer upload da evidencia')
       }
-      
+
       const result = await response.json()
       await get().fetchVulnerabilidades()
       return result

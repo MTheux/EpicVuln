@@ -90,7 +90,7 @@ export function IntegrationsSettings() {
   const [jiraProjetos, setJiraProjetos] = useState("")
 
   useEffect(() => {
-    fetch(`${API_URL}/api/jira/settings`, { headers: authHeaders() })
+    fetch(`${API_URL}/api/jira/settings`, { headers: authHeaders(), credentials: 'include' as RequestCredentials })
       .then(r => r.json())
       .then(data => {
         if (data.url) setJiraUrl(data.url)
@@ -117,7 +117,8 @@ export function IntegrationsSettings() {
     try {
       const resp = await fetch(`${API_URL}/api/jira/sync`, {
         method: "POST",
-        headers: { ...authHeaders() }
+        headers: { ...authHeaders() },
+        credentials: 'include',
       })
       const data = await resp.json()
       if (!resp.ok) throw new Error(data.error || "Erro ao sincronizar")
@@ -134,6 +135,7 @@ export function IntegrationsSettings() {
       const resp = await fetch(`${API_URL}/api/jira/settings`, {
         method: "POST",
         headers: { ...authHeaders() },
+        credentials: 'include',
         body: JSON.stringify({ url: jiraUrl, email: jiraEmail, token: jiraToken, projects: jiraProjetos })
       })
       const data = await resp.json()
@@ -161,6 +163,7 @@ export function IntegrationsSettings() {
         const resp = await fetch(`${API_URL}/api/vulnerabilities/import-xml`, {
           method: 'POST',
           headers: { ...authHeaders() },
+          credentials: 'include',
           body: JSON.stringify({ xml: text }),
         })
         const data = await resp.json()
@@ -181,6 +184,7 @@ export function IntegrationsSettings() {
         const resp = await fetch(`${API_URL}/api/vulnerabilities/import`, {
           method: 'POST',
           headers: { ...authHeaders() },
+          credentials: 'include',
           body: JSON.stringify(payload),
         })
         const data = await resp.json()

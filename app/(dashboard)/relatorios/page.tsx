@@ -22,7 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { authHeaders, getAuthToken } from "@/lib/auth"
+import { authHeaders } from "@/lib/auth"
 import { toast } from "sonner"
 import {
   BarChart,
@@ -85,7 +85,7 @@ export default function RelatoriosPage() {
   const fetchInsights = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`${API_URL}/api/reports/insights`, { headers: authHeaders() })
+      const res = await fetch(`${API_URL}/api/reports/insights`, { headers: authHeaders(), credentials: 'include' })
       if (!res.ok) throw new Error("Falha ao carregar insights")
       setData(await res.json())
     } catch (err: any) {
@@ -100,9 +100,8 @@ export default function RelatoriosPage() {
   const handleExport = async (format: "excel" | "pdf") => {
     setExporting(format)
     try {
-      const token = getAuthToken()
       const res = await fetch(`${API_URL}/api/reports/export/${format}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: 'include',
       })
       if (!res.ok) throw new Error("Falha ao gerar relatório")
       const blob = await res.blob()

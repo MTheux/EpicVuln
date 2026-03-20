@@ -63,7 +63,7 @@ export default function InteligenciaPage() {
         return 'http://localhost:9001'
       }
       const CURRENT_API = getDynamicApiUrl()
-      const res = await fetch(`${CURRENT_API}/api/llm/analyze`, { headers: authHeaders() })
+      const res = await fetch(`${CURRENT_API}/api/llm/analyze`, { headers: authHeaders(), credentials: 'include' })
       const json = await res.json()
       if (json.success && json.data) {
         setAiAnalysis(json.data)

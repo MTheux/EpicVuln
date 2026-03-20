@@ -38,8 +38,8 @@ export class VulnerabilitiesController {
       const vulnerability = await this.service.create(req.body, req.user.id);
       res.status(201).json(vulnerability);
     } catch (error: any) {
-      console.error("Erro na criação:", error);
-      res.status(500).json({ error: error.message });
+      console.error("Erro na criacao:", error);
+      res.status(500).json({ error: 'Erro ao criar vulnerabilidade' });
     }
   }
 
@@ -60,7 +60,7 @@ export class VulnerabilitiesController {
       res.status(200).json(result);
     } catch (error: any) {
       console.error("Erro na importação de JSON do Jira:", error);
-      res.status(500).json({ error: error.message || 'Internal server error' });
+      res.status(500).json({ error: 'Erro ao importar dados' });
     }
   }
 
@@ -74,6 +74,12 @@ export class VulnerabilitiesController {
       const xmlBody = req.body?.xml;
       if (!xmlBody || typeof xmlBody !== 'string') {
         res.status(400).json({ error: 'Expected { xml: "<xml string>" } in body' });
+        return;
+      }
+
+      // XXE prevention: reject XML with DOCTYPE or ENTITY declarations
+      if (/<!DOCTYPE/i.test(xmlBody) || /<!ENTITY/i.test(xmlBody)) {
+        res.status(400).json({ error: 'XML com DOCTYPE ou ENTITY nao permitido por seguranca' });
         return;
       }
 
@@ -197,7 +203,7 @@ export class VulnerabilitiesController {
       res.status(200).json(result);
     } catch (error: any) {
       console.error("Erro na importação de XML:", error);
-      res.status(500).json({ error: error.message || 'Erro ao processar XML' });
+      res.status(500).json({ error: 'Erro ao processar XML' });
     }
   }
 
@@ -273,6 +279,12 @@ export class VulnerabilitiesController {
         try {
             const id = req.params.id as string;
             const filename = req.params.filename as string;
+
+            // Path traversal prevention
+            if (!filename || filename.includes('..') || filename.includes('/') || filename.includes('\\') || filename.includes('\0')) {
+                res.status(400).json({ error: 'Nome de arquivo invalido' });
+                return;
+            }
 
             const fileData = await this.service.getAttachment(id, filename);
             

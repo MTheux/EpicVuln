@@ -5,6 +5,8 @@ import { z } from 'zod';
 import { env } from '../../config/env';
 
 export class AuthService {
+  // TODO: Implement per-account login attempt tracking and lockout after N failed attempts
+  // Store failed_attempts and locked_until in the User model for brute-force protection
   async login(email: string, passwordUnencrypted: string) {
     const user = await prisma.user.findUnique({ where: { email } });
 

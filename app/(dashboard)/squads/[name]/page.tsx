@@ -169,6 +169,7 @@ export default function SquadDetailPage() {
     try {
       const res = await fetch(`${API_URL}/api/analytics/squads/${encodeURIComponent(squadName)}`, {
         headers: authHeaders(),
+        credentials: 'include',
       })
       if (res.status === 401) {
         localStorage.removeItem('vulncontrol_user')

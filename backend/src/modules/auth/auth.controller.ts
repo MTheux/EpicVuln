@@ -19,7 +19,18 @@ export class AuthController {
       }
 
       const result = await this.authService.login(email, password);
-      res.json(result);
+
+      // Set HttpOnly cookie with the JWT token
+      res.cookie('vulncontrol_token', result.token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 8 * 60 * 60 * 1000, // 8 hours
+        path: '/',
+      });
+
+      // Return user data but NOT the token in the response body
+      res.json({ user: result.user });
     } catch (error: any) {
       if (error.message === 'Invalid credentials' || error.message === 'User is disable') {
         res.status(401).json({ error: error.message });

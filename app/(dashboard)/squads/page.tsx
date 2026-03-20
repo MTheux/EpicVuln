@@ -88,7 +88,7 @@ export default function SquadsPage() {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const res = await fetch(`${API_URL}/api/analytics/ssdlc`, { headers: authHeaders() })
+      const res = await fetch(`${API_URL}/api/analytics/ssdlc`, { headers: authHeaders(), credentials: 'include' })
       if (res.status === 401) {
         localStorage.removeItem('vulncontrol_user')
         document.cookie = 'vulncontrol_token=; path=/; max-age=0'

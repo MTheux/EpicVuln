@@ -1,14 +1,14 @@
+// With HttpOnly cookies, the token is not accessible via JavaScript.
+// The browser sends it automatically with credentials: 'include'.
+
 export function getAuthToken(): string | null {
-  if (typeof document === 'undefined') return null
-  const match = document.cookie.match(/vulncontrol_token=([^;]+)/)
-  return match ? match[1] : null
+  // Token is now in an HttpOnly cookie - not accessible from JS
+  return null
 }
 
 export function authHeaders(): HeadersInit {
-  const token = getAuthToken()
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  if (token) headers['Authorization'] = `Bearer ${token}`
-  return headers
+  // No longer need to send Authorization header - cookie is sent automatically
+  return { 'Content-Type': 'application/json' }
 }
 
 export function getUser(): { id: string; email: string; name: string; role: string } | null {
@@ -22,6 +22,8 @@ export function getUser(): { id: string; email: string; name: string; role: stri
 }
 
 export function logout() {
+  // Clear the HttpOnly cookie by making a request, or just clear local state
+  // The cookie will be cleared by max-age expiration or server-side
   document.cookie = 'vulncontrol_token=; path=/; max-age=0'
   document.cookie = 'vulncontrol_auth=; path=/; max-age=0'
   localStorage.removeItem('vulncontrol_user')
