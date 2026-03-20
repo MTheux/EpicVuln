@@ -147,6 +147,43 @@ export class AnalyticsService {
         openVulns.sort((a, b) => b.diasEmAberto - a.diasEmAberto);
         const monthlyTrend = this.calculateMonthlyTrend(vulns, now);
 
+        // Agrupar por responsável (dev)
+        const devMap: Record<string, { total: number; open: number; closed: number; extremaCritica: number; slaExpired: number; vulns: any[] }> = {};
+        for (const v of vulns) {
+            const dev = v.responsavel || 'Sem responsável';
+            if (!devMap[dev]) devMap[dev] = { total: 0, open: 0, closed: 0, extremaCritica: 0, slaExpired: 0, vulns: [] };
+            devMap[dev].total++;
+            if (OPEN_STATUSES.includes(v.status)) {
+                devMap[dev].open++;
+                if (v.sla && new Date(v.sla) < now) devMap[dev].slaExpired++;
+            } else {
+                devMap[dev].closed++;
+            }
+            if (v.criticidade === 'EXTREMA' || v.criticidade === 'CRITICA') devMap[dev].extremaCritica++;
+            devMap[dev].vulns.push({
+                id: v.id,
+                codigoInterno: v.codigoInterno,
+                titulo: v.titulo,
+                criticidade: v.criticidade,
+                status: v.status,
+                diasEmAberto: v.diasEmAberto,
+                sla: v.sla,
+                sistema: v.sistema,
+                slaExpired: v.sla ? new Date(v.sla) < now : false,
+            });
+        }
+
+        const devScoreboard = Object.entries(devMap).map(([name, d]) => ({
+            name,
+            total: d.total,
+            open: d.open,
+            closed: d.closed,
+            extremaCritica: d.extremaCritica,
+            slaExpired: d.slaExpired,
+            correcaoPct: d.total > 0 ? Math.round((d.closed / d.total) * 100) : 0,
+            vulns: d.vulns.sort((a: any, b: any) => b.diasEmAberto - a.diasEmAberto),
+        })).sort((a, b) => b.total - a.total);
+
         return {
             ...metrics,
             bySeverity,
@@ -154,6 +191,7 @@ export class AnalyticsService {
             byOwasp,
             openVulns: openVulns.slice(0, 20),
             monthlyTrend,
+            devScoreboard,
         };
     }
 

@@ -210,7 +210,30 @@ export default function DashboardPage() {
   else if (securityScore < 90) { scoreColorClass = 'text-blue-500'; scoreBgClass = 'bg-blue-500/10'; scoreBorderClass = 'border-blue-500/20'; scoreLabel = 'Saudável' }
 
   const handleSync = async () => { setSyncing(true); try { await syncJira(); toast.success("Sincronização com Jira concluída", { description: "Todas as vulnerabilidades foram atualizadas." }) } catch (e: any) { toast.error("Erro na sincronização", { description: e.message }) } finally { setSyncing(false) } }
-  const handleExport = () => { toast.success("Exportação iniciada", { description: "O arquivo será baixado em breve." }) }
+  const handleExport = () => {
+    const headers = ['ID', 'Titulo', 'Criticidade', 'Status', 'Squad', 'Alvo', 'Responsavel', 'Data Criacao', 'Dias Aberto', 'SLA']
+    const rows = vulnerabilidades.map(v => [
+      v.id,
+      `"${(v.titulo || '').replace(/"/g, '""')}"`,
+      v.criticidade,
+      v.status,
+      v.squad,
+      v.sistema || v.ativo || '',
+      v.responsavel || '',
+      v.dataCriacao || '',
+      v.diasEmAberto,
+      v.sla || '',
+    ].join(';'))
+    const csv = '\uFEFF' + [headers.join(';'), ...rows].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `vulncontrol_dashboard_${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success('Exportado!', { description: `${vulnerabilidades.length} vulnerabilidades exportadas para CSV.` })
+  }
   const handleClearAll = async () => { setClearing(true); try { await clearAll(); toast.success("Dados limpos com sucesso", { description: "Todas as vulnerabilidades foram removidas do sistema." }) } catch (e: any) { toast.error("Erro ao limpar dados", { description: e.message }) } finally { setClearing(false) } }
 
   if (!isLoading && vulnerabilidades.length === 0) {
@@ -249,7 +272,7 @@ export default function DashboardPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing} className="bg-card border-border hover:bg-muted text-muted-foreground shadow-sm"><RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />Sincronizar Jira</Button>
-          <Button variant="outline" size="sm" onClick={handleExport} className="bg-card border-border hover:bg-muted text-muted-foreground shadow-sm"><Download className="mr-2 h-4 w-4" />Exportar</Button>
+          <Button variant="outline" size="sm" onClick={handleExport} className="bg-card border-border hover:bg-muted text-muted-foreground shadow-sm"><Download className="mr-2 h-4 w-4" />Exportar CSV</Button>
           <Link href="/vulnerabilidades/nova"><Button size="sm" className="bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20"><Plus className="mr-2 h-4 w-4" />Nova Vulnerabilidade</Button></Link>
           <AlertDialog>
             <AlertDialogTrigger asChild><Button variant="outline" size="sm" disabled={clearing} className="bg-card border-red-500/20 text-red-500 hover:bg-red-500/10 shadow-sm"><Trash2 className="mr-2 h-4 w-4" />{clearing ? 'Limpando...' : 'Limpar Dados'}</Button></AlertDialogTrigger>
@@ -363,50 +386,101 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Evolução Mensal + Tempo Médio de Correção */}
+      {/* Taxa de Correção por Squad + Status do SLA */}
       <div className="grid gap-6 lg:grid-cols-2 mb-6">
         <Card className="bg-card border-border shadow-sm transition-all hover:shadow-md">
-          <CardHeader><div className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-blue-500" /><CardTitle className="text-base">Evolução Mensal</CardTitle></div><CardDescription>Vulnerabilidades abertas vs corrigidas por mês</CardDescription></CardHeader>
+          <CardHeader><div className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-blue-500" /><CardTitle className="text-base">Correção por Squad</CardTitle></div><CardDescription>Quanto cada squad ja corrigiu do total de falhas</CardDescription></CardHeader>
           <CardContent>
-            <div className="h-[250px]">
-              {evolucaoData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={evolucaoData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                    <XAxis dataKey="mes" stroke="var(--color-muted-foreground)" fontSize={12} />
-                    <YAxis stroke="var(--color-muted-foreground)" fontSize={12} />
-                    <Tooltip contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', color: 'var(--color-card-foreground)', borderRadius: '8px' }} itemStyle={{ fontWeight: 600 }} labelStyle={{ color: 'var(--color-muted-foreground)' }} />
-                    <Legend />
-                    <Line type="monotone" dataKey="abertas" stroke="#ef4444" strokeWidth={2} dot={{ r: 4 }} name="Abertas" />
-                    <Line type="monotone" dataKey="corrigidas" stroke="#22c55e" strokeWidth={2} dot={{ r: 4 }} name="Corrigidas" />
-                  </LineChart>
-                </ResponsiveContainer>
-              ) : (<div className="flex h-full items-center justify-center text-sm text-muted-foreground">Sem dados suficientes</div>)}
+            <div className="space-y-4">
+              {(() => {
+                const squadCorrecao = Object.entries(squadMap).map(([nome, stats]) => {
+                  const total = stats.vulnerabilidades
+                  const corr = vulnerabilidades.filter(v => (v.squad || 'Sem Squad') === nome && (v.status === 'Concluída' || v.status === 'Fechada' || v.status === 'Mitigada')).length
+                  const pct = total > 0 ? Math.round((corr / total) * 100) : 0
+                  return { nome, total, corr, aberta: total - corr, pct }
+                }).sort((a, b) => b.pct - a.pct)
+
+                return squadCorrecao.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Sem dados</p>
+                ) : squadCorrecao.map(sq => (
+                  <div key={sq.nome} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-medium text-foreground truncate max-w-[180px]">{sq.nome}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-muted-foreground">{sq.corr}/{sq.total}</span>
+                        <span className={`text-sm font-black ${sq.pct >= 80 ? 'text-green-500' : sq.pct >= 50 ? 'text-amber-500' : 'text-red-500'}`}>{sq.pct}%</span>
+                      </div>
+                    </div>
+                    <div className="h-3 w-full overflow-hidden rounded-full bg-muted flex">
+                      <div className="h-full bg-green-500 transition-all duration-700" style={{ width: `${sq.pct}%` }} />
+                      <div className="h-full bg-red-500/40 transition-all duration-700" style={{ width: `${100 - sq.pct}%` }} />
+                    </div>
+                  </div>
+                ))
+              })()}
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-card border-border shadow-sm transition-all hover:shadow-md">
-          <CardHeader><div className="flex items-center gap-2"><Clock className="h-5 w-5 text-amber-500" /><CardTitle className="text-base">Tempo Médio de Correção por Squad</CardTitle></div><CardDescription>Real vs SLA Corporativo (Extremo=Imediato, Crítico=30d, Alto=90d, Médio=180d, Baixo=270d)</CardDescription></CardHeader>
+          <CardHeader><div className="flex items-center gap-2"><Clock className="h-5 w-5 text-amber-500" /><CardTitle className="text-base">Status do SLA</CardTitle></div><CardDescription>Falhas abertas: dentro do prazo vs vencidas</CardDescription></CardHeader>
           <CardContent>
-            <div className="h-[250px]">
-              {tempoCorrecaoData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={tempoCorrecaoData} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                    <XAxis type="number" stroke="var(--color-muted-foreground)" fontSize={12} unit="d" />
-                    <YAxis dataKey="squad" type="category" stroke="var(--color-muted-foreground)" fontSize={12} width={100} />
-                    <Tooltip contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', color: 'var(--color-card-foreground)', borderRadius: '8px' }} itemStyle={{ fontWeight: 600 }} labelStyle={{ color: 'var(--color-muted-foreground)' }} formatter={(value: number, name: string) => [`${value} dias`, name === 'media' ? 'Tempo Real' : 'SLA Esperado']} cursor={{ fill: 'var(--color-muted)' }} />
-                    <Legend formatter={(value) => value === 'media' ? 'Tempo Real' : 'SLA Esperado'} />
-                    <Bar dataKey="slaEsperado" fill="#3b82f6" opacity={0.3} radius={[0, 4, 4, 0]} name="slaEsperado" />
-                    <Bar dataKey="media" radius={[0, 4, 4, 0]} name="media">
-                      {tempoCorrecaoData.map((entry, i) => (
-                        <Cell key={`cell-${i}`} fill={entry.media > entry.slaEsperado ? '#ef4444' : '#22c55e'} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (<div className="flex h-full items-center justify-center text-sm text-muted-foreground">Nenhuma vulnerabilidade corrigida ainda</div>)}
+            <div className="flex flex-col items-center">
+              {/* Donut simples */}
+              <div className="relative flex h-40 w-40 items-center justify-center mb-4">
+                {(() => {
+                  const dentroSla = ativas.filter(v => !v.sla || new Date(v.sla) >= hoje).length
+                  const foraDoSla = vencidas
+                  const total = dentroSla + foraDoSla
+                  const pctOk = total > 0 ? (dentroSla / total) * 100 : 100
+                  const circumference = 2 * Math.PI * 62
+                  return (
+                    <>
+                      <svg className="h-full w-full rotate-[-90deg]">
+                        <circle cx="80" cy="80" r="62" fill="none" stroke="currentColor" strokeWidth="12" className="text-red-500/30" />
+                        <circle cx="80" cy="80" r="62" fill="none" stroke="currentColor" strokeWidth="12"
+                          strokeDasharray={`${(pctOk / 100) * circumference} ${circumference}`}
+                          strokeLinecap="round" className="text-green-500 transition-all duration-1000" />
+                      </svg>
+                      <div className="absolute flex flex-col items-center">
+                        <span className={`text-3xl font-black ${pctOk >= 80 ? 'text-green-500' : pctOk >= 50 ? 'text-amber-500' : 'text-red-500'}`}>{Math.round(pctOk)}%</span>
+                        <span className="text-[10px] text-muted-foreground">dentro do SLA</span>
+                      </div>
+                    </>
+                  )
+                })()}
+              </div>
+              {/* Resumo */}
+              <div className="w-full grid grid-cols-2 gap-3">
+                <div className="flex items-center gap-3 rounded-lg border border-green-500/20 bg-green-500/5 p-3">
+                  <div className="h-3 w-3 rounded-full bg-green-500" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">No prazo</p>
+                    <p className="text-lg font-bold text-green-500">{ativas.filter(v => !v.sla || new Date(v.sla) >= hoje).length}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 rounded-lg border border-red-500/20 bg-red-500/5 p-3">
+                  <div className="h-3 w-3 rounded-full bg-red-500" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">SLA vencido</p>
+                    <p className="text-lg font-bold text-red-500">{vencidas}</p>
+                  </div>
+                </div>
+              </div>
+              {/* Por criticidade */}
+              <div className="w-full mt-4 space-y-2">
+                {['Extrema', 'Crítica', 'Alta', 'Média', 'Baixa'].map(crit => {
+                  const vencidasCrit = ativas.filter(v => v.criticidade === crit && v.sla && new Date(v.sla) < hoje).length
+                  if (vencidasCrit === 0) return null
+                  const colors: Record<string, string> = { 'Extrema': 'text-red-600', 'Crítica': 'text-red-500', 'Alta': 'text-orange-500', 'Média': 'text-amber-500', 'Baixa': 'text-green-500' }
+                  return (
+                    <div key={crit} className="flex items-center justify-between text-sm px-1">
+                      <span className="text-muted-foreground">{crit}</span>
+                      <span className={`font-bold ${colors[crit]}`}>{vencidasCrit} vencida{vencidasCrit > 1 ? 's' : ''}</span>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           </CardContent>
         </Card>

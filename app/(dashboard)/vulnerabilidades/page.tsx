@@ -339,135 +339,166 @@ export default function VulnerabilidadesPage() {
         </div>
       </div>
 
-      {/* Filters */}
-      <Card className="mb-6 bg-card border-border shadow-sm transition-all hover:shadow-md">
-        <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <CardTitle className="text-base">Filtros</CardTitle>
-            </div>
-            {hasActiveFilters && (
-              <Button variant="ghost" size="sm" onClick={clearFilters}>
-                <X className="mr-2 h-4 w-4" />
-                Limpar filtros
-              </Button>
-            )}
+      {/* Search + Filters compact */}
+      <div className="mb-4 space-y-3">
+        {/* Search bar */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por ID, titulo, squad, alvo..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9 h-10 bg-card border-border"
+          />
+        </div>
+
+        {/* Filter row */}
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+            <SelectTrigger className="h-9 w-[150px] bg-card border-border text-sm">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Todos">Todos os Status</SelectItem>
+              {statusOptions.map((s) => (
+                <SelectItem key={s} value={s}>{s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedCriticidade} onValueChange={setSelectedCriticidade}>
+            <SelectTrigger className="h-9 w-[140px] bg-card border-border text-sm">
+              <SelectValue placeholder="Criticidade" />
+            </SelectTrigger>
+            <SelectContent>
+              {criticidadeOptions.map((crit) => (
+                <SelectItem key={crit} value={crit}>{crit === 'Todas' ? 'Todas Criticidades' : crit}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedSquad} onValueChange={setSelectedSquad}>
+            <SelectTrigger className="h-9 w-[150px] bg-card border-border text-sm">
+              <SelectValue placeholder="Squad" />
+            </SelectTrigger>
+            <SelectContent>
+              {uniqueSquads.map((squad) => (
+                <SelectItem key={squad} value={squad}>{squad === 'Todas' ? 'Todas as Squads' : squad}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={selectedResponsavel} onValueChange={setSelectedResponsavel}>
+            <SelectTrigger className="h-9 w-[160px] bg-card border-border text-sm">
+              <SelectValue placeholder="Responsavel" />
+            </SelectTrigger>
+            <SelectContent>
+              {uniqueResponsaveis.map((resp) => (
+                <SelectItem key={resp} value={resp}>{resp === 'Todos' ? 'Todos Responsaveis' : resp}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Input
+            type="number"
+            placeholder="Min dias"
+            value={diasEmAbertoMin}
+            onChange={(e) => setDiasEmAbertoMin(e.target.value)}
+            className="h-9 w-[100px] bg-card border-border text-sm"
+          />
+
+          <div className="flex items-center gap-1.5 px-2">
+            <Checkbox
+              id="vencidas"
+              checked={showVencidas}
+              onCheckedChange={(checked) => setShowVencidas(checked as boolean)}
+              className="h-4 w-4"
+            />
+            <Label htmlFor="vencidas" className="text-xs font-medium cursor-pointer text-muted-foreground">SLA Vencido</Label>
           </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {/* Row 1: Search and Operational */}
-            <div className="lg:col-span-2">
-              <Label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Buscar</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="ID, título, squad, sistema..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 h-11 bg-muted border-border focus:bg-card transition-all"
-                />
-              </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Status</Label>
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="h-11 bg-muted border-border focus:bg-card transition-all">
-                  <SelectValue placeholder="Todos os Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Todos">Todos os Status</SelectItem>
-                  {statusOptions.map((s) => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 px-2 text-xs text-muted-foreground hover:text-foreground">
+              <X className="mr-1 h-3 w-3" />
+              Limpar
+            </Button>
+          )}
 
-            <div className="space-y-2">
-              <Label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Criticidade</Label>
-              <Select value={selectedCriticidade} onValueChange={setSelectedCriticidade}>
-                <SelectTrigger className="h-11 bg-muted border-border focus:bg-card transition-all">
-                  <SelectValue placeholder="Todas" />
-                </SelectTrigger>
-                <SelectContent>
-                  {criticidadeOptions.map((crit) => (
-                    <SelectItem key={crit} value={crit}>{crit}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Spacer */}
+          <div className="flex-1" />
 
-            {/* Row 2: Responsibility, Squad and Metrics */}
-            <div className="space-y-2">
-              <Label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Responsável</Label>
-              <Select value={selectedResponsavel} onValueChange={setSelectedResponsavel}>
-                <SelectTrigger className="h-11 bg-muted border-border focus:bg-card transition-all">
-                  <div className="flex items-center gap-2">
-                    <UserPlus className="h-4 w-4 text-muted-foreground" />
-                    <SelectValue placeholder="Filtrar por nome" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  {uniqueResponsaveis.map((resp) => (
-                    <SelectItem key={resp} value={resp}>{resp}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          {/* Export button */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 text-xs"
+            onClick={() => {
+              const headers = ['ID', 'Titulo', 'Criticidade', 'Status', 'Squad', 'Alvo', 'Responsavel', 'Data Criacao', 'Dias Aberto', 'SLA']
+              const rows = filteredVulnerabilidades.map(v => [
+                v.id,
+                `"${(v.titulo || '').replace(/"/g, '""')}"`,
+                v.criticidade,
+                v.status,
+                v.squad,
+                v.sistema || v.ativo || '',
+                v.responsavel || '',
+                v.dataCriacao || '',
+                v.diasEmAberto,
+                v.sla || '',
+              ].join(';'))
+              const csv = '\uFEFF' + [headers.join(';'), ...rows].join('\n')
+              const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `vulncontrol_export_${new Date().toISOString().split('T')[0]}.csv`
+              a.click()
+              URL.revokeObjectURL(url)
+              toast.success('Exportado!', { description: `${filteredVulnerabilidades.length} vulnerabilidades exportadas para CSV.` })
+            }}
+          >
+            <Download className="mr-1.5 h-3.5 w-3.5" />
+            Exportar CSV
+          </Button>
+        </div>
 
-            <div className="space-y-2">
-              <Label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Squad</Label>
-              <Select value={selectedSquad} onValueChange={setSelectedSquad}>
-                <SelectTrigger className="h-11 bg-muted border-border focus:bg-card transition-all">
-                  <SelectValue placeholder="Todas as Squads" />
-                </SelectTrigger>
-                <SelectContent>
-                  {uniqueSquads.map((squad) => (
-                    <SelectItem key={squad} value={squad}>{squad}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground">Tempo em Aberto</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  placeholder="Min dias"
-                  value={diasEmAbertoMin}
-                  onChange={(e) => setDiasEmAbertoMin(e.target.value)}
-                  className="h-11 bg-muted border-border focus:bg-card transition-all"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center h-full pt-6">
-              <div className="flex items-center gap-6 px-2">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="vencidas"
-                    checked={showVencidas}
-                    onCheckedChange={(checked) => setShowVencidas(checked as boolean)}
-                    className="h-5 w-5"
-                  />
-                  <Label htmlFor="vencidas" className="text-sm font-medium cursor-pointer">Vencidas (SLA)</Label>
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Results count */}
-      <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          Exibindo <span className="font-medium text-foreground">{filteredVulnerabilidades.length}</span> de{" "}
-          <span className="font-medium text-foreground">{vulnerabilidades.length}</span> vulnerabilidades
-        </p>
+        {/* Results count + active filter badges */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-xs text-muted-foreground">
+            <span className="font-semibold text-foreground">{filteredVulnerabilidades.length}</span> de{" "}
+            <span className="font-semibold text-foreground">{vulnerabilidades.length}</span> vulnerabilidades
+          </p>
+          {selectedStatus !== 'Todos' && (
+            <Badge variant="outline" className="text-[10px] gap-1 h-5 cursor-pointer hover:bg-muted" onClick={() => setSelectedStatus('Todos')}>
+              {selectedStatus} <X className="h-2.5 w-2.5" />
+            </Badge>
+          )}
+          {selectedCriticidade !== 'Todas' && (
+            <Badge variant="outline" className="text-[10px] gap-1 h-5 cursor-pointer hover:bg-muted" onClick={() => setSelectedCriticidade('Todas')}>
+              {selectedCriticidade} <X className="h-2.5 w-2.5" />
+            </Badge>
+          )}
+          {selectedSquad !== 'Todas' && (
+            <Badge variant="outline" className="text-[10px] gap-1 h-5 cursor-pointer hover:bg-muted" onClick={() => setSelectedSquad('Todas')}>
+              {selectedSquad} <X className="h-2.5 w-2.5" />
+            </Badge>
+          )}
+          {selectedResponsavel !== 'Todos' && (
+            <Badge variant="outline" className="text-[10px] gap-1 h-5 cursor-pointer hover:bg-muted" onClick={() => setSelectedResponsavel('Todos')}>
+              {selectedResponsavel} <X className="h-2.5 w-2.5" />
+            </Badge>
+          )}
+          {showVencidas && (
+            <Badge variant="outline" className="text-[10px] gap-1 h-5 cursor-pointer hover:bg-muted bg-red-500/10 text-red-500 border-red-500/20" onClick={() => setShowVencidas(false)}>
+              SLA Vencido <X className="h-2.5 w-2.5" />
+            </Badge>
+          )}
+          {diasEmAbertoMin && (
+            <Badge variant="outline" className="text-[10px] gap-1 h-5 cursor-pointer hover:bg-muted" onClick={() => setDiasEmAbertoMin('')}>
+              {'>='}{diasEmAbertoMin} dias <X className="h-2.5 w-2.5" />
+            </Badge>
+          )}
+        </div>
       </div>
 
       {/* Table */}

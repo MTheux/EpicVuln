@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import {
   Trophy,
   TrendingUp,
@@ -12,6 +13,7 @@ import {
   CheckCircle2,
   XCircle,
   Target,
+  ChevronRight,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -339,6 +341,7 @@ export default function SquadsPage() {
                   <th className="text-center py-3 px-3 font-medium">SLA Estourado</th>
                   <th className="text-center py-3 px-3 font-medium">% Correção</th>
                   <th className="text-center py-3 px-3 font-medium">Situação</th>
+                  <th className="text-center py-3 px-3 font-medium w-10"></th>
                 </tr>
               </thead>
               <tbody>
@@ -350,7 +353,7 @@ export default function SquadsPage() {
                     : { label: 'Atenção', color: 'bg-orange-500/10 text-orange-500 border-orange-500/20' }
 
                   return (
-                    <tr key={squad.squadName} className="border-b border-border/50 hover:bg-muted/30 transition-colors">
+                    <tr key={squad.squadName} className="border-b border-border/50 hover:bg-muted/30 transition-colors cursor-pointer group" onClick={() => window.location.href = `/squads/${encodeURIComponent(squad.squadName)}`}>
                       <td className="py-3 px-3 text-muted-foreground font-medium">{idx + 1}</td>
                       <td className="py-3 px-3 font-bold text-foreground">{squad.squadName}</td>
                       <td className="py-3 px-3 text-center text-foreground">{squad.total}</td>
@@ -375,6 +378,9 @@ export default function SquadsPage() {
                       </td>
                       <td className="py-3 px-3 text-center">
                         <Badge variant="outline" className={cn("text-[11px] font-semibold", situacao.color)}>{situacao.label}</Badge>
+                      </td>
+                      <td className="py-3 px-3 text-center">
+                        <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors mx-auto" />
                       </td>
                     </tr>
                   )
