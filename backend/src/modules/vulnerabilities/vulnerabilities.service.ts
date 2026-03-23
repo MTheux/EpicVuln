@@ -298,10 +298,16 @@ export class VulnerabilitiesService {
       return 'PRODUCAO';
     };
 
+    console.log(`[Service] Iniciando processamento de ${payload.length} itens para importação.`);
+    let skipped = 0;
+
     for (const item of payload) {
       try {
         const jiraKey = item.key;
-        if (!jiraKey) continue;
+        if (!jiraKey) {
+          skipped++;
+          continue;
+        }
 
         // Evitar duplicidade baseada no jiraKey
         const existing = await prisma.vulnerability.findFirst({
@@ -334,8 +340,8 @@ export class VulnerabilitiesService {
         const data: any = {
           jiraKey: item.key,
           titulo: item.resumo || 'Sem Título',
-          descricaoExecutiva: item.resumo || item.impacto || item.descricao || '',
-          descricaoTecnica: item.descricao || '',
+          descricaoExecutiva: item.resumo || item.impacto || item.descricao || 'Importado via Jira',
+          descricaoTecnica: item.descricao || 'Nenhuma descrição detalhada disponível.',
           criticidade: mapCriticidade(item.prioridade),
           status: mapStatus(item.statusCorrecao || item.status || '', item.statusWorkflow || ''),
           squad: item.squadResponsavel || item.squadLider || 'Não Definido',
@@ -395,16 +401,18 @@ export class VulnerabilitiesService {
           if (organizationId) data.organizationId = organizationId;
 
           await prisma.vulnerability.create({
-            data
+            data: data as any
           });
         }
         imported++;
       } catch (err: any) {
-        console.error(`Erro ao importar item ${item.key}:`, err);
+        console.error(`[Service] Erro ao importar item ${item.key}:`, err.message);
         errors.push({ key: item.key, error: err.message });
       }
     }
 
+    console.log(`[Service] Importação Finalizada: ${imported} importados, ${skipped} pulados (sem chave), ${errors.length} erros.`);
     return { success: true, imported, errors };
+
   }
 }

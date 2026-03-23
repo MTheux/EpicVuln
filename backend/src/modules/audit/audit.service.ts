@@ -1,6 +1,5 @@
-import { PrismaClient, AuditAction } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { AuditAction } from '@prisma/client';
+import { prisma } from '../../app';
 
 interface AuditEntry {
   action: AuditAction;

@@ -1,9 +1,8 @@
-import { PrismaClient, AssetType, BusinessCriticality, AssetStatus, Ambiente } from '@prisma/client';
+import { AssetType, BusinessCriticality, AssetStatus, Ambiente, VulnStatus } from '@prisma/client';
+import { prisma } from '../../app';
 import { RiskService } from '../risk/risk.service';
 
-const prisma = new PrismaClient();
-
-const CLOSED_STATUSES = ['CONCLUIDO', 'FECHADO', 'MITIGADO', 'RISCO_ACEITO'];
+const CLOSED_STATUSES: VulnStatus[] = ['CONCLUIDO', 'FECHADO', 'MITIGADO', 'RISCO_ACEITO'];
 
 const riskService = new RiskService();
 
@@ -143,7 +142,7 @@ export class AssetsService {
           vulnerabilities: {
             some: {
               criticidade: { in: ['EXTREMA', 'CRITICA'] },
-              status: { notIn: CLOSED_STATUSES as any },
+              status: { notIn: CLOSED_STATUSES },
             },
           },
         },

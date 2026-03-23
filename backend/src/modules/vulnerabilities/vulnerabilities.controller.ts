@@ -87,82 +87,89 @@ export class VulnerabilitiesController {
       const parser = new xml2js.Parser({ explicitArray: false, trim: true });
       const parsed = await parser.parseStringPromise(xmlBody);
 
+      // Helper to find a field ignoring case
+      const getFieldIgnoringCase = (obj: any, fieldName: string): any => {
+        if (!obj) return undefined;
+        const keys = Object.keys(obj);
+        const foundKey = keys.find(k => k.toLowerCase() === fieldName.toLowerCase());
+        return foundKey ? obj[foundKey] : undefined;
+      };
+
+      const getText = (field: any): string => {
+        if (!field) return '';
+        if (typeof field === 'string') return field.trim();
+        if (field._) return field._.trim();
+        if (field['#text']) return field['#text'].trim();
+        return String(field).trim();
+      };
+
       let rawItems: any[] = [];
       let format: 'rss' | 'epics' | 'unknown' = 'unknown';
 
-      // Formato 1: Jira RSS/XML (<rss><channel><item>)
-      if (parsed.rss?.channel?.item) {
-        rawItems = Array.isArray(parsed.rss.channel.item)
-          ? parsed.rss.channel.item
-          : [parsed.rss.channel.item];
+      // 1. Check for RSS (<rss><channel><item>)
+      const rss = getFieldIgnoringCase(parsed, 'rss');
+      const channel = getFieldIgnoringCase(rss, 'channel');
+      const rssItem = getFieldIgnoringCase(channel, 'item');
+
+      if (rssItem) {
+        rawItems = Array.isArray(rssItem) ? rssItem : [rssItem];
         format = 'rss';
-      }
-      // Formato 2: XML customizado Pentest (<Epics><Epic>)
-      else if (parsed.Epics?.Epic) {
-        rawItems = Array.isArray(parsed.Epics.Epic)
-          ? parsed.Epics.Epic
-          : [parsed.Epics.Epic];
-        format = 'epics';
-      }
-      // Formato 3: Root direto com <Epic> (sem wrapper <Epics>)
-      else if (parsed.Epic) {
-        rawItems = Array.isArray(parsed.Epic) ? parsed.Epic : [parsed.Epic];
-        format = 'epics';
-      }
+      } 
+      // 2. Check for Epics/Epic (<Epics><Epic> or <Epic>)
       else {
-        res.status(400).json({ error: 'Formato XML não reconhecido. Use XML Jira RSS ou formato <Epics><Epic>.' });
+        const epics = getFieldIgnoringCase(parsed, 'Epics');
+        const epic = getFieldIgnoringCase(epics || parsed, 'Epic');
+        if (epic) {
+          rawItems = Array.isArray(epic) ? epic : [epic];
+          format = 'epics';
+        }
+      }
+
+      if (rawItems.length === 0) {
+        res.status(400).json({ error: 'Formato XML não reconhecido ou vazio. Use XML Jira RSS ou formato <Epics><Epic>.' });
         return;
       }
+
+      console.log(`[Import] Detectado formato: ${format} com ${rawItems.length} itens brutos.`);
 
       let items: any[] = [];
 
       if (format === 'epics') {
-        // Parse formato <Epics><Epic> do time de pentest
-        items = rawItems.map((epic: any) => {
-          // Extrair texto de CDATA ou string normal
-          const getText = (field: any): string => {
-            if (!field) return '';
-            if (typeof field === 'string') return field.trim();
-            if (field._) return field._.trim();
-            if (field['#text']) return field['#text'].trim();
-            return String(field).trim();
-          };
-
-          return {
-            key: getText(epic.Key),
-            url: getText(epic.URL),
-            resumo: getText(epic.Resumo),
-            descricao: getText(epic.Descricao),
-            prioridade: getText(epic.Prioridade) || 'Medium',
-            statusCorrecao: getText(epic.StatusCorrecao) || getText(epic.Status) || 'Não Corrigida',
-            statusWorkflow: getText(epic.StatusWorkflow) || '',
-            squadResponsavel: getText(epic.SquadResponsavel),
-            alvo: getText(epic.Alvo) || '',
-            ambiente: getText(epic.Ambiente) || 'Produção',
-            origem: getText(epic.Origem) || 'Pentest',
-            tipo: getText(epic.Tipo) || 'Aplicação',
-            impacto: getText(epic.Impacto) || '',
-            recomendacao: getText(epic.Recomendacao),
-            dataCriacao: getText(epic.DataDaCriacao),
-            dataDeteccao: getText(epic.DataDaDeteccao),
-            dataLimite: getText(epic.DataLimite),
-            atualizadoEm: getText(epic.AtualizadoEm) || '',
-            responsavel: getText(epic.Responsavel) || '',
-            criador: getText(epic.Relator) || getText(epic.Criador) || '',
-          };
-        });
+        items = rawItems.map((epic: any) => ({
+          key: getText(getFieldIgnoringCase(epic, 'Key')),
+          url: getText(getFieldIgnoringCase(epic, 'URL')),
+          resumo: getText(getFieldIgnoringCase(epic, 'Resumo') || getFieldIgnoringCase(epic, 'Summary') || getFieldIgnoringCase(epic, 'Title')),
+          descricao: getText(getFieldIgnoringCase(epic, 'Descricao') || getFieldIgnoringCase(epic, 'Description')),
+          prioridade: getText(getFieldIgnoringCase(epic, 'Prioridade') || getFieldIgnoringCase(epic, 'Priority')) || 'Medium',
+          statusCorrecao: getText(getFieldIgnoringCase(epic, 'StatusCorrecao') || getFieldIgnoringCase(epic, 'Status')) || 'Não Corrigida',
+          statusWorkflow: getText(getFieldIgnoringCase(epic, 'StatusWorkflow')) || '',
+          squadResponsavel: getText(getFieldIgnoringCase(epic, 'SquadResponsavel') || getFieldIgnoringCase(epic, 'Squad')),
+          alvo: getText(getFieldIgnoringCase(epic, 'Alvo') || getFieldIgnoringCase(epic, 'Asset') || getFieldIgnoringCase(epic, 'System')),
+          ambiente: getText(getFieldIgnoringCase(epic, 'Ambiente')) || 'Produção',
+          origem: getText(getFieldIgnoringCase(epic, 'Origem')) || 'Pentest',
+          tipo: getText(getFieldIgnoringCase(epic, 'Tipo')) || 'Aplicação',
+          impacto: getText(getFieldIgnoringCase(epic, 'Impacto')),
+          recomendacao: getText(getFieldIgnoringCase(epic, 'Recomendacao')),
+          dataCriacao: getText(getFieldIgnoringCase(epic, 'DataDaCriacao') || getFieldIgnoringCase(epic, 'Created')),
+          dataDeteccao: getText(getFieldIgnoringCase(epic, 'DataDaDeteccao')),
+          dataLimite: getText(getFieldIgnoringCase(epic, 'DataLimite') || getFieldIgnoringCase(epic, 'DueDate')),
+          responsavel: getText(getFieldIgnoringCase(epic, 'Responsavel') || getFieldIgnoringCase(epic, 'Assignee')),
+          criador: getText(getFieldIgnoringCase(epic, 'Relator') || getFieldIgnoringCase(epic, 'Creator')),
+        }));
       } else {
         // Parse formato Jira RSS
         const getCustomField = (item: any, fieldName: string): string => {
-          const fields = item.customfields?.customfield;
+          const fieldsObj = getFieldIgnoringCase(item, 'customfields');
+          const fields = getFieldIgnoringCase(fieldsObj, 'customfield');
           if (!fields) return '';
           const arr = Array.isArray(fields) ? fields : [fields];
           const field = arr.find((f: any) => {
-            const name = f.customfieldname || '';
-            return name.toLowerCase().includes(fieldName.toLowerCase());
+            const name = getFieldIgnoringCase(f, 'customfieldname') || '';
+            return String(name).toLowerCase().includes(fieldName.toLowerCase());
           });
           if (!field) return '';
-          const vals = field.customfieldvalues?.customfieldvalue;
+          const valsObj = getFieldIgnoringCase(field, 'customfieldvalues');
+          const vals = getFieldIgnoringCase(valsObj, 'customfieldvalue');
           if (!vals) return '';
           if (typeof vals === 'string') return vals;
           if (vals._) return vals._;
@@ -170,37 +177,41 @@ export class VulnerabilitiesController {
           return String(vals);
         };
 
-        items = rawItems.map((item: any) => ({
-          key: item.key?._ || item.key || '',
-          url: item.link || '',
-          resumo: item.summary || item.title?.replace(/^\[.*?\]\s*/, '') || '',
-          descricao: item.description || '',
-          prioridade: item.priority?._ || item.priority || 'Medium',
-          status: getCustomField(item, 'Status') || item.status?._ || item.status || 'Não Corrigida',
-          squadResponsavel: getCustomField(item, 'Squad Respons'),
-          alvo: getCustomField(item, 'Alvo'),
-          ambiente: getCustomField(item, 'Ambiente') || 'Produção',
-          origem: getCustomField(item, 'Origem') || 'Pentest',
-          tipo: getCustomField(item, 'Tipo') || 'Aplicação',
-          impacto: getCustomField(item, 'Impacto'),
-          recomendacao: getCustomField(item, 'Recomenda'),
-          dataCriacao: getCustomField(item, 'Data da Cria') || item.created || '',
-          dataDeteccao: getCustomField(item, 'Data da Detec') || item.created || '',
-          dataLimite: item.due || '',
-          atualizadoEm: item.updated || '',
-          responsavel: item.assignee?._ || item.assignee || '',
-          criador: item.reporter?._ || item.reporter || '',
-        }));
+        items = rawItems.map((item: any) => {
+          const title = getText(getFieldIgnoringCase(item, 'title'));
+          const summary = getText(getFieldIgnoringCase(item, 'summary'));
+          
+          return {
+            key: getText(getFieldIgnoringCase(item, 'key')),
+            url: getText(getFieldIgnoringCase(item, 'link')),
+            resumo: summary || title.replace(/^\[.*?\]\s*/, '') || '',
+            descricao: getText(getFieldIgnoringCase(item, 'description')),
+            prioridade: getText(getFieldIgnoringCase(item, 'priority')) || 'Medium',
+            status: getCustomField(item, 'Status') || getText(getFieldIgnoringCase(item, 'status')) || 'Não Corrigida',
+            squadResponsavel: getCustomField(item, 'Squad Respons') || getCustomField(item, 'Team'),
+            alvo: getCustomField(item, 'Alvo') || getCustomField(item, 'Asset'),
+            ambiente: getCustomField(item, 'Ambiente') || 'Produção',
+            origem: getCustomField(item, 'Origem') || 'Pentest',
+            tipo: getCustomField(item, 'Tipo') || 'Aplicação',
+            recomendacao: getCustomField(item, 'Recomenda'),
+            dataCriacao: getCustomField(item, 'Data da Cria') || getText(getFieldIgnoringCase(item, 'created')) || '',
+            dataDeteccao: getCustomField(item, 'Data da Detec') || getText(getFieldIgnoringCase(item, 'created')) || '',
+            dataLimite: getText(getFieldIgnoringCase(item, 'due')) || '',
+            responsavel: getText(getFieldIgnoringCase(item, 'assignee')) || '',
+            criador: getText(getFieldIgnoringCase(item, 'reporter')) || '',
+          };
+        });
       }
 
       if (items.length === 0) {
-        res.status(400).json({ error: 'Nenhuma vulnerabilidade encontrada no XML.' });
+        res.status(400).json({ error: 'Nenhuma vulnerabilidade válida encontrada no XML.' });
         return;
       }
 
-      console.log(`XML Import: Parsed ${items.length} items from Jira RSS XML`);
+      console.log(`[Import] Sucesso: ${items.length} itens mapeados.`);
       const result = await this.service.importJiraJson(items, req.user.id, req.organizationId);
       res.status(200).json(result);
+
     } catch (error: any) {
       console.error("Erro na importação de XML:", error);
       res.status(500).json({ error: 'Erro ao processar XML' });
