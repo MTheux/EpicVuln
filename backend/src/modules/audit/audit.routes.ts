@@ -1,10 +1,9 @@
 import { Router } from 'express';
 import { AuditController } from './audit.controller';
-import { authMiddleware } from '../../middleware/auth.middleware';
-import { requireRoles } from '../../middleware/role.middleware';
+import { authenticate, requireRoles } from '../../middleware/auth.middleware';
 
 const router = Router();
 
-router.get('/', authMiddleware, requireRoles(['ADMIN']), AuditController.getLogs);
+router.get('/', authenticate, requireRoles(['ADMIN']), AuditController.getLogs);
 
 export default router;
