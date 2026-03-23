@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import {
   Shield,
@@ -27,9 +27,12 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { StatCard } from "@/components/stat-card"
+import { RiskGauge } from "@/components/risk-gauge"
+import { authHeaders } from "@/lib/auth"
 import { SeverityBadge } from "@/components/severity-badge"
 import { StatusBadge } from "@/components/status-badge"
 import { useVulnStore } from "@/lib/vuln-store"
+import { useSlaConfig } from "@/lib/use-sla"
 import { toast } from "sonner"
 import {
   AlertDialog,
@@ -91,10 +94,77 @@ function classifyOwasp(v: any): string {
 
 export default function DashboardPage() {
   const { vulnerabilidades, syncJira, clearAll, fetchVulnerabilidades, isLoading } = useVulnStore()
+  const { getSlaForSeverity } = useSlaConfig()
   const [syncing, setSyncing] = useState(false)
   const [clearing, setClearing] = useState(false)
 
+  // Real Risk Score data
+  const [riskPortfolio, setRiskPortfolio] = useState<{
+    score: number; trend: number; assetCount: number; vulnCount: number;
+    byCategory: { type: string; count: number; avgRisk: number }[];
+    bySeverity: { severity: string; count: number; avgRisk: number }[];
+  } | null>(null)
+  const [riskTrends, setRiskTrends] = useState<{ month: string; score: number }[]>([])
+  const [riskLoading, setRiskLoading] = useState(true)
+
+  const getApiUrl = useCallback(() => {
+    if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL
+    if (typeof window !== 'undefined') return `http://${window.location.hostname}:9001`
+    return 'http://localhost:9001'
+  }, [])
+
   useEffect(() => { fetchVulnerabilidades() }, [])
+
+  useEffect(() => {
+    const fetchRiskData = async () => {
+      setRiskLoading(true)
+      try {
+        const [portfolioRes, trendsRes] = await Promise.all([
+          fetch(`${getApiUrl()}/api/risk/portfolio`, { headers: authHeaders(), credentials: 'include' }),
+          fetch(`${getApiUrl()}/api/risk/trends`, { headers: authHeaders(), credentials: 'include' }),
+        ])
+        if (portfolioRes.ok) {
+          const raw = await portfolioRes.json()
+          // Backend returns Record objects, frontend needs arrays
+          const byCategoryArr = raw.byCategory
+            ? (Array.isArray(raw.byCategory)
+              ? raw.byCategory
+              : Object.entries(raw.byCategory).map(([type, val]: [string, any]) => ({
+                  type,
+                  count: val.count || 0,
+                  avgRisk: val.avgRisk || 0,
+                })))
+            : []
+          const bySeverityArr = raw.bySeverity
+            ? (Array.isArray(raw.bySeverity)
+              ? raw.bySeverity
+              : Object.entries(raw.bySeverity).map(([severity, val]: [string, any]) => ({
+                  severity,
+                  count: val.count || 0,
+                  avgRisk: val.avgRisk || 0,
+                })))
+            : []
+          setRiskPortfolio({
+            score: raw.score ?? 0,
+            trend: raw.trend ?? 0,
+            assetCount: raw.totalAssets ?? raw.assetCount ?? 0,
+            vulnCount: raw.totalOpenVulns ?? raw.vulnCount ?? 0,
+            byCategory: byCategoryArr,
+            bySeverity: bySeverityArr,
+          })
+        }
+        if (trendsRes.ok) {
+          const data = await trendsRes.json()
+          setRiskTrends(Array.isArray(data) ? data.slice(-6) : [])
+        }
+      } catch {
+        // silently fail - risk section will show placeholder
+      } finally {
+        setRiskLoading(false)
+      }
+    }
+    fetchRiskData()
+  }, [getApiUrl])
 
   const hoje = new Date()
   const ativas = vulnerabilidades.filter(v => v.status !== 'Concluída' && v.status !== 'Fechada' && v.status !== 'Mitigada' && v.status !== 'Risco Aceito')
@@ -164,8 +234,7 @@ export default function DashboardPage() {
       corrigidas: data.corrigidas,
     }))
 
-  // SLA Corporativo por criticidade (dias)
-  const SLA_CORP: Record<string, number> = { 'Extrema': 0, 'Crítica': 30, 'Alta': 90, 'Média': 180, 'Baixa': 270, 'Informativa': 270 }
+  // SLA Corporativo por criticidade (dias) - agora vem do hook useSlaConfig
 
   // Tempo médio de correção por squad com comparação SLA
   const squadTempoMap: Record<string, { total: number; count: number; slaTotal: number }> = {}
@@ -175,7 +244,7 @@ export default function DashboardPage() {
     const update = v.ultimaAtualizacao ? new Date(v.ultimaAtualizacao) : null
     if (criacao && update && !isNaN(criacao.getTime()) && !isNaN(update.getTime())) {
       const dias = Math.max(1, Math.ceil((update.getTime() - criacao.getTime()) / (1000 * 60 * 60 * 24)))
-      const slaEsperado = SLA_CORP[v.criticidade] ?? 180
+      const slaEsperado = getSlaForSeverity(v.criticidade)
       if (!squadTempoMap[squad]) squadTempoMap[squad] = { total: 0, count: 0, slaTotal: 0 }
       squadTempoMap[squad].total += dias
       squadTempoMap[squad].slaTotal += slaEsperado
@@ -200,8 +269,9 @@ export default function DashboardPage() {
   }
   const squadTopFailures = Object.entries(squadFailuresMap).map(([nome, falhas]) => {
     const sorted = Object.entries(falhas).sort((a, b) => b[1] - a[1])
+    if (sorted.length === 0) return { nome, falha: 'Sem dados', quantidade: 0 }
     return { nome, falha: sorted[0][0], quantidade: sorted[0][1] }
-  }).sort((a, b) => b.quantidade - a.quantidade).slice(0, 6)
+  }).filter(s => s.quantidade > 0).sort((a, b) => b.quantidade - a.quantidade).slice(0, 6)
 
   let securityScore = Math.max(0, 100 - extremas * 15 - criticas * 8 - vencidas * 10 - Math.max(0, (naoCorrigidas - extremas - criticas)) * 2)
   let scoreColorClass = 'text-green-500', scoreBgClass = 'bg-green-500/10', scoreBorderClass = 'border-green-500/20', scoreLabel = 'Excelente'
@@ -283,6 +353,123 @@ export default function DashboardPage() {
           </AlertDialog>
         </div>
       </div>
+
+      {/* Real Risk Score Section */}
+      {!riskLoading && riskPortfolio && (
+        <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-700">
+          <Card className="bg-card border-border shadow-sm overflow-hidden">
+            <CardContent className="p-6">
+              <div className="flex flex-col lg:flex-row gap-6">
+                {/* Portfolio Risk Gauge */}
+                <div className="flex flex-col items-center justify-center lg:min-w-[160px] shrink-0">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Risco do Portfólio</p>
+                  <RiskGauge score={riskPortfolio.score} size={140} />
+                  {riskPortfolio.trend != null && riskPortfolio.trend !== 0 && (
+                    <p className={`text-xs mt-2 font-medium ${riskPortfolio.trend > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                      {riskPortfolio.trend > 0 ? '+' : ''}{(riskPortfolio.trend || 0).toFixed(1)}% vs mês anterior
+                    </p>
+                  )}
+                </div>
+
+                {/* Trend Sparkline */}
+                <div className="flex flex-col justify-center min-w-[180px]">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Tendência (6 meses)</p>
+                  {riskTrends.length > 1 ? (() => {
+                    const w = 180, h = 60
+                    const scores = riskTrends.map(t => t.score)
+                    const minS = Math.max(0, Math.min(...scores) - 5)
+                    const maxS = Math.min(100, Math.max(...scores) + 5)
+                    const range = maxS - minS || 1
+                    const points = scores.map((s, i) =>
+                      `${(i / (scores.length - 1)) * w},${h - ((s - minS) / range) * h}`
+                    ).join(' ')
+                    const lastScore = scores[scores.length - 1]
+                    const color = lastScore <= 25 ? '#22c55e' : lastScore <= 50 ? '#eab308' : lastScore <= 75 ? '#f97316' : '#ef4444'
+                    return (
+                      <div>
+                        <svg width={w} height={h} className="overflow-visible">
+                          <polyline
+                            points={points}
+                            fill="none"
+                            stroke={color}
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                          {scores.map((s, i) => (
+                            <circle
+                              key={i}
+                              cx={(i / (scores.length - 1)) * w}
+                              cy={h - ((s - minS) / range) * h}
+                              r="3"
+                              fill={color}
+                            />
+                          ))}
+                        </svg>
+                        <div className="flex justify-between mt-1">
+                          {riskTrends.map((t, i) => (
+                            <span key={i} className="text-[9px] text-muted-foreground">
+                              {t.month.split('-')[1]}/{t.month.split('-')[0]?.slice(2)}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })() : (
+                    <p className="text-xs text-muted-foreground">Dados insuficientes</p>
+                  )}
+                </div>
+
+                {/* Quick Stats */}
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="rounded-lg border border-border bg-muted/30 p-4 flex flex-col items-center justify-center">
+                    <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Ativos em Risco</span>
+                    <span className="text-2xl font-black text-foreground mt-1">{riskPortfolio.assetCount}</span>
+                  </div>
+                  <div className="rounded-lg border border-border bg-muted/30 p-4 flex flex-col items-center justify-center">
+                    <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Vulns Críticas</span>
+                    <span className="text-2xl font-black text-red-400 mt-1">
+                      {riskPortfolio.bySeverity?.find(s => s.severity === 'Crítica' || s.severity === 'Extrema')?.count || criticas + extremas}
+                    </span>
+                  </div>
+                  <div className="rounded-lg border border-border bg-muted/30 p-4 flex flex-col items-center justify-center">
+                    <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Média Dias Aberto</span>
+                    <span className="text-2xl font-black text-amber-400 mt-1">
+                      {ativas.length > 0 ? Math.round(ativas.reduce((sum, v) => sum + (v.diasEmAberto || 0), 0) / ativas.length) : 0}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Risk by Category */}
+                {riskPortfolio.byCategory && riskPortfolio.byCategory.length > 0 && (
+                  <div className="lg:min-w-[220px] shrink-0">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Risco por Categoria</p>
+                    <div className="space-y-2.5">
+                      {riskPortfolio.byCategory.slice(0, 5).map((cat) => {
+                        const barColor = cat.avgRisk <= 25 ? 'bg-green-500' : cat.avgRisk <= 50 ? 'bg-yellow-500' : cat.avgRisk <= 75 ? 'bg-orange-500' : 'bg-red-500'
+                        return (
+                          <div key={cat.type}>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs text-foreground">{cat.type}</span>
+                              <span className="text-xs font-semibold text-muted-foreground">{Math.round(cat.avgRisk)}</span>
+                            </div>
+                            <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${barColor}`}
+                                style={{ width: `${Math.min(cat.avgRisk, 100)}%`, transition: 'width 0.6s ease-in-out' }}
+                              />
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">

@@ -1,25 +1,21 @@
 import { prisma } from '../../app';
+import { SettingsService } from '../settings/settings.service';
+
+const settingsService = new SettingsService();
 
 export class VulnerabilitiesService {
-  private calculateSlaDate(criticidade: string, dataDeteccao: Date = new Date()): Date {
-    const days: Record<string, number> = {
-      'EXTREMA': 0,
-      'CRITICA': 30,
-      'ALTA': 90,
-      'MEDIA': 180,
-      'BAIXA': 270,
-      'INFORMATIVA': 270
-    };
-    
-    const slaDays = days[criticidade] ?? 90;
+  private async calculateSlaDate(criticidade: string, dataDeteccao: Date = new Date()): Promise<Date> {
+    const slaConfig = await settingsService.getSlaConfig();
+    const slaDays = slaConfig[criticidade] ?? 90;
     const slaDate = new Date(dataDeteccao);
     slaDate.setDate(slaDate.getDate() + slaDays);
     return slaDate;
   }
 
-  async findAll(filters: any) {
+  async findAll(filters: any, organizationId?: string) {
     const where: any = {};
 
+    if (organizationId) where.organizationId = organizationId;
     if (filters.status) where.status = filters.status;
     if (filters.squad) where.squad = filters.squad;
     if (filters.criticidade) where.criticidade = filters.criticidade;
@@ -30,6 +26,7 @@ export class VulnerabilitiesService {
       include: {
         comments: { select: { id: true } },
         attachments: true,
+        asset: { select: { id: true, name: true, type: true, businessCriticality: true } },
       }
     });
   }
@@ -48,6 +45,7 @@ export class VulnerabilitiesService {
         },
         attachments: true,
         jiraSyncLogs: true,
+        asset: { select: { id: true, name: true, type: true, businessCriticality: true } },
       }
     });
 
@@ -55,7 +53,7 @@ export class VulnerabilitiesService {
     return vuln;
   }
 
-  async create(data: any, userId: string) {
+  async create(data: any, userId: string, organizationId?: string) {
     const mapCriticidade = (val?: string) => {
       if (!val) return 'ALTA';
       const m: any = { 'Extrema': 'EXTREMA', 'Crítica': 'CRITICA', 'Alta': 'ALTA', 'Média': 'MEDIA', 'Baixa': 'BAIXA', 'Informativa': 'INFORMATIVA' };
@@ -92,7 +90,7 @@ export class VulnerabilitiesService {
       // Converter strings de data para objetos Date, se existirem
       const parsedDataDeteccao = dataDeteccao ? new Date(dataDeteccao) : new Date();
       const mappedCriticidade = mapCriticidade(criticidade);
-      const parsedSla = sla ? new Date(sla) : this.calculateSlaDate(mappedCriticidade, parsedDataDeteccao);
+      const parsedSla = sla ? new Date(sla) : await this.calculateSlaDate(mappedCriticidade, parsedDataDeteccao);
 
       const vuln = await tx.vulnerability.create({
         data: {
@@ -107,6 +105,7 @@ export class VulnerabilitiesService {
           dataDeteccao: parsedDataDeteccao,
           sla: parsedSla,
           createdById: userId,
+          organizationId: organizationId || undefined,
         }
       });
 
@@ -133,7 +132,7 @@ export class VulnerabilitiesService {
       'titulo', 'descricaoExecutiva', 'descricaoTecnica', 'criticidade', 'status',
       'squad', 'sistema', 'ativo', 'ambiente', 'origem', 'responsavel', 'gestor',
       'impacto', 'recomendacao', 'tipo', 'complexidade', 'complexidadeCorrecao',
-      'cwe', 'owaspCategory', 'tags', 'sla', 'dataDeteccao', 'jiraKey',
+      'cwe', 'owaspCategory', 'tags', 'sla', 'dataDeteccao', 'jiraKey', 'assetId',
     ];
     const sanitizedData: Record<string, any> = {};
     for (const key of allowedFields) {
@@ -165,13 +164,17 @@ export class VulnerabilitiesService {
     });
   }
 
-  async addComment(id: string, text: string, userId: string) {
+  async addComment(id: string, text: string, userId: string, type?: string) {
     const existing = await prisma.vulnerability.findUnique({ where: { id } });
     if (!existing) throw new Error('Vulnerability not found');
+
+    const allowedTypes = ['observacao', 'decisao', 'tecnico', 'update'];
+    const commentType = type && allowedTypes.includes(type) ? type : null;
 
     return prisma.vulnerabilityComment.create({
       data: {
         text,
+        type: commentType,
         vulnerabilityId: id,
         authorId: userId,
       },
@@ -239,7 +242,7 @@ export class VulnerabilitiesService {
     };
   }
 
-  async importJiraJson(payload: any[], userId: string) {
+  async importJiraJson(payload: any[], userId: string, organizationId?: string) {
     let imported = 0;
     let errors = [];
 
@@ -374,7 +377,7 @@ export class VulnerabilitiesService {
 
         // Se não tiver SLA, calcula baseado na criticidade
         if (!data.sla) {
-          data.sla = this.calculateSlaDate(data.criticidade, data.dataDeteccao || data.dataCriacao || new Date());
+          data.sla = await this.calculateSlaDate(data.criticidade, data.dataDeteccao || data.dataCriacao || new Date());
         }
 
         if (existing) {
@@ -389,6 +392,7 @@ export class VulnerabilitiesService {
           // Usar jiraKey como codigoInterno (mais útil que VULN-timestamp)
           data.codigoInterno = item.key;
           data.createdById = userId;
+          if (organizationId) data.organizationId = organizationId;
 
           await prisma.vulnerability.create({
             data

@@ -32,16 +32,19 @@ const JIRA_API = () => `${getApiUrl()}/api/jira`
 
 // Fetch seguro: intercepta 401 (token expirado) e redireciona pro login
 // Always includes credentials so HttpOnly cookie is sent
+let isRedirecting = false
 const safeFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
   const mergedInit: RequestInit = {
     ...init,
     credentials: 'include',
   }
   const response = await fetch(input, mergedInit)
-  if (response.status === 401) {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('vulncontrol_user')
+  if (response.status === 401 && !isRedirecting) {
+    if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+      isRedirecting = true
+      document.cookie = 'vulncontrol_session=; path=/; max-age=0'
       document.cookie = 'vulncontrol_token=; path=/; max-age=0'
+      localStorage.removeItem('vulncontrol_user')
       window.location.href = '/login'
     }
     throw new Error('SESSION_EXPIRED')
@@ -64,11 +67,11 @@ export const useVulnStore = create<VulnState>((set, get) => ({
       }
       const data = await response.json()
 
-      const reverseCriticidade: any = { 'EXTREMA': 'Extrema', 'CRITICA': 'Critica', 'ALTA': 'Alta', 'MEDIA': 'Media', 'BAIXA': 'Baixa', 'INFORMATIVA': 'Informativa' };
-      const reverseStatus: any = { 'NOVO': 'Nova', 'ABERTO': 'Aberta', 'EM_BACKLOG': 'Em Backlog', 'EM_CORRECAO': 'Em Correcao', 'EM_RETESTE': 'Em Reteste', 'MITIGADO': 'Mitigada', 'CONCLUIDO': 'Concluida', 'RISCO_ACEITO': 'Risco Aceito', 'FECHADO': 'Fechada' };
+      const reverseCriticidade: any = { 'EXTREMA': 'Extrema', 'CRITICA': 'Crítica', 'ALTA': 'Alta', 'MEDIA': 'Média', 'BAIXA': 'Baixa', 'INFORMATIVA': 'Informativa' };
+      const reverseStatus: any = { 'NOVO': 'Nova', 'ABERTO': 'Aberta', 'EM_BACKLOG': 'Em Backlog', 'EM_CORRECAO': 'Em Correção', 'EM_RETESTE': 'Em Reteste', 'MITIGADO': 'Mitigada', 'CONCLUIDO': 'Concluída', 'RISCO_ACEITO': 'Risco Aceito', 'FECHADO': 'Fechada' };
       const reverseOrigem: any = { 'PENTEST': 'Pentest', 'DAST': 'DAST', 'SAST': 'SAST', 'SCA': 'SCA', 'BUG_BOUNTY': 'Bug Bounty', 'MANUAL': 'Manual', 'MONITORAMENTO': 'Monitoramento', 'CODE_REVIEW': 'Code Review' };
-      const reverseAmbiente: any = { 'PRODUCAO': 'Producao', 'HOMOLOGACAO': 'Homologacao', 'DESENVOLVIMENTO': 'Desenvolvimento', 'STAGING': 'STG' };
-      const reverseComplexidade: any = { 'BAIXA': 'Baixa', 'MEDIA': 'Media', 'ALTA': 'Alta' };
+      const reverseAmbiente: any = { 'PRODUCAO': 'Produção', 'HOMOLOGACAO': 'Homologação', 'DESENVOLVIMENTO': 'Desenvolvimento', 'STAGING': 'STG' };
+      const reverseComplexidade: any = { 'BAIXA': 'Baixa', 'MEDIA': 'Média', 'ALTA': 'Alta' };
 
       const mappedData: Vulnerabilidade[] = data.map((item: any) => ({
         ...item,

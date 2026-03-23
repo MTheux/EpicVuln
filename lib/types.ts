@@ -78,6 +78,8 @@ export interface Vulnerabilidade {
   dataDeteccao?: string
   notificacoesEnviadas: number
   status: Status
+  assetId?: string | null
+  asset?: { id: string; name: string; type: string } | null
   comentarios?: ComentarioItem[]
 }
 
@@ -129,4 +131,28 @@ export interface IntegracaoJira {
   projetosMonitorados: string[]
   ultimaSincronizacao?: string
   issuesImportadas: number
+}
+
+export type AssetType = 'API' | 'Web App' | 'Mobile' | 'Infra' | 'Database' | 'Cloud Service' | 'IoT' | 'Outro'
+export type BusinessCriticality = 'Critical' | 'High' | 'Medium' | 'Low'
+export type AssetStatus = 'Active' | 'Inactive' | 'Decommissioned'
+
+export interface Asset {
+  id: string
+  name: string
+  type: AssetType
+  description?: string
+  businessCriticality: BusinessCriticality
+  owner?: string
+  squad?: string
+  environment: string
+  url?: string
+  tags: string[]
+  status: AssetStatus
+  createdAt: string
+  updatedAt: string
+  vulnerabilityCount?: number
+  openVulnCount?: number
+  criticalVulnCount?: number
+  riskScore?: number
 }

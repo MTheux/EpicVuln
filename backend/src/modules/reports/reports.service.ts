@@ -136,6 +136,237 @@ export class ReportsService {
         };
     }
 
+    // ─── DORA Security Metrics ──────────────────────────────────
+    async getDoraMetrics() {
+        const now = new Date();
+        const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+
+        const allVulns = await prisma.vulnerability.findMany({
+            select: {
+                id: true, squad: true, criticidade: true, status: true,
+                sla: true, dataCriacao: true, reincidencia: true,
+                history: {
+                    select: { eventType: true, createdAt: true }
+                }
+            }
+        });
+
+        const CLOSED_STATUSES = ['CONCLUIDO', 'FECHADO', 'MITIGADO', 'RISCO_ACEITO'];
+        const DAY_MS = 1000 * 60 * 60 * 24;
+
+        // ── Helper: get conclusion date for a vuln
+        const getConclusionDate = (v: typeof allVulns[0]) => {
+            const evt = v.history.find(h => h.eventType === 'CONCLUSAO');
+            return evt ? new Date(evt.createdAt) : null;
+        };
+
+        // ── Helper: month key "YYYY-MM"
+        const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+
+        // ── Helper: month label "MMM/YY"
+        const monthLabel = (key: string) => {
+            const [y, m] = key.split('-');
+            const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+            return `${months[parseInt(m) - 1]}/${y.slice(2)}`;
+        };
+
+        // Generate last 6 month keys
+        const last6Months: string[] = [];
+        for (let i = 5; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            last6Months.push(monthKey(d));
+        }
+
+        // ═══════════════════════════════════════════════════
+        // 1. MTTR (Mean Time to Remediate)
+        // ═══════════════════════════════════════════════════
+        let mttrTotal = 0, mttrCount = 0;
+        const mttrBySeverity: Record<string, { total: number; count: number }> = {};
+        const mttrBySquad: Record<string, { total: number; count: number }> = {};
+        const mttrTrendData: Record<string, { total: number; count: number }> = {};
+
+        for (const mk of last6Months) {
+            mttrTrendData[mk] = { total: 0, count: 0 };
+        }
+
+        for (const v of allVulns) {
+            const conclusionDate = getConclusionDate(v);
+            if (!conclusionDate) continue;
+
+            const days = (conclusionDate.getTime() - new Date(v.dataCriacao).getTime()) / DAY_MS;
+            if (days < 0) continue;
+
+            mttrTotal += days;
+            mttrCount++;
+
+            // By severity
+            const sevLabel = SEVERITY_LABELS[v.criticidade] || v.criticidade;
+            if (!mttrBySeverity[sevLabel]) mttrBySeverity[sevLabel] = { total: 0, count: 0 };
+            mttrBySeverity[sevLabel].total += days;
+            mttrBySeverity[sevLabel].count++;
+
+            // By squad
+            if (!mttrBySquad[v.squad]) mttrBySquad[v.squad] = { total: 0, count: 0 };
+            mttrBySquad[v.squad].total += days;
+            mttrBySquad[v.squad].count++;
+
+            // Trend (by conclusion month)
+            const mk = monthKey(conclusionDate);
+            if (mttrTrendData[mk]) {
+                mttrTrendData[mk].total += days;
+                mttrTrendData[mk].count++;
+            }
+        }
+
+        const mttr = {
+            overall: mttrCount > 0 ? Math.round(mttrTotal / mttrCount) : 0,
+            bySeverity: Object.fromEntries(
+                Object.entries(mttrBySeverity).map(([k, v]) => [k, Math.round(v.total / v.count)])
+            ),
+            bySquad: Object.fromEntries(
+                Object.entries(mttrBySquad).map(([k, v]) => [k, Math.round(v.total / v.count)])
+            ),
+            trend: last6Months.map(mk => ({
+                month: monthLabel(mk),
+                value: mttrTrendData[mk].count > 0
+                    ? Math.round(mttrTrendData[mk].total / mttrTrendData[mk].count)
+                    : 0,
+            })),
+        };
+
+        // ═══════════════════════════════════════════════════
+        // 2. Taxa de Reincidência
+        // ═══════════════════════════════════════════════════
+        const reincidenteIds = new Set<string>();
+        for (const v of allVulns) {
+            if (v.reincidencia > 0 || v.history.some(h => h.eventType === 'REABERTURA')) {
+                reincidenteIds.add(v.id);
+            }
+        }
+
+        const reincBySquad: Record<string, { total: number; reincidentes: number }> = {};
+        for (const v of allVulns) {
+            if (!reincBySquad[v.squad]) reincBySquad[v.squad] = { total: 0, reincidentes: 0 };
+            reincBySquad[v.squad].total++;
+            if (reincidenteIds.has(v.id)) reincBySquad[v.squad].reincidentes++;
+        }
+
+        const reincidencia = {
+            overall: allVulns.length > 0
+                ? Math.round((reincidenteIds.size / allVulns.length) * 100)
+                : 0,
+            bySquad: Object.fromEntries(
+                Object.entries(reincBySquad).map(([k, v]) => [
+                    k,
+                    v.total > 0 ? Math.round((v.reincidentes / v.total) * 100) : 0,
+                ])
+            ),
+            total: allVulns.length,
+            reincidentes: reincidenteIds.size,
+        };
+
+        // ═══════════════════════════════════════════════════
+        // 3. Taxa de Correção (opened vs closed)
+        // ═══════════════════════════════════════════════════
+        const abertas30d = allVulns.filter(v => new Date(v.dataCriacao) >= thirtyDaysAgo).length;
+        const fechadas30d = allVulns.filter(v =>
+            v.history.some(h => h.eventType === 'CONCLUSAO' && new Date(h.createdAt) >= thirtyDaysAgo)
+        ).length;
+
+        // Monthly trend
+        const correcaoTrendData: Record<string, { abertas: number; fechadas: number }> = {};
+        for (const mk of last6Months) {
+            correcaoTrendData[mk] = { abertas: 0, fechadas: 0 };
+        }
+        for (const v of allVulns) {
+            const criacaoMk = monthKey(new Date(v.dataCriacao));
+            if (correcaoTrendData[criacaoMk]) correcaoTrendData[criacaoMk].abertas++;
+
+            const conclusionDate = getConclusionDate(v);
+            if (conclusionDate) {
+                const closeMk = monthKey(conclusionDate);
+                if (correcaoTrendData[closeMk]) correcaoTrendData[closeMk].fechadas++;
+            }
+        }
+
+        // By squad
+        const correcaoBySquad: Record<string, { abertas: number; fechadas: number }> = {};
+        for (const v of allVulns) {
+            if (!correcaoBySquad[v.squad]) correcaoBySquad[v.squad] = { abertas: 0, fechadas: 0 };
+            if (new Date(v.dataCriacao) >= thirtyDaysAgo) correcaoBySquad[v.squad].abertas++;
+            if (v.history.some(h => h.eventType === 'CONCLUSAO' && new Date(h.createdAt) >= thirtyDaysAgo)) {
+                correcaoBySquad[v.squad].fechadas++;
+            }
+        }
+
+        const taxaCorrecao = {
+            last30d: {
+                abertas: abertas30d,
+                fechadas: fechadas30d,
+                rate: abertas30d > 0 ? Math.round((fechadas30d / abertas30d) * 100) : 0,
+            },
+            trend: last6Months.map(mk => ({
+                month: monthLabel(mk),
+                abertas: correcaoTrendData[mk].abertas,
+                fechadas: correcaoTrendData[mk].fechadas,
+            })),
+            bySquad: correcaoBySquad,
+        };
+
+        // ═══════════════════════════════════════════════════
+        // 4. SLA Compliance
+        // ═══════════════════════════════════════════════════
+        // Only consider vulns that have an SLA date AND are closed or have passed SLA
+        const vulnsWithSla = allVulns.filter(v => v.sla);
+
+        let slaCompliantCount = 0;
+        const slaBySev: Record<string, { total: number; compliant: number }> = {};
+        const slaBySquad: Record<string, { total: number; compliant: number }> = {};
+
+        for (const v of vulnsWithSla) {
+            const slaDate = new Date(v.sla!);
+            const conclusionDate = getConclusionDate(v);
+            const isClosed = CLOSED_STATUSES.includes(v.status);
+
+            // Compliant = closed before SLA deadline
+            const compliant = isClosed && conclusionDate && conclusionDate <= slaDate;
+
+            if (compliant) slaCompliantCount++;
+
+            // By severity
+            const sevLabel = SEVERITY_LABELS[v.criticidade] || v.criticidade;
+            if (!slaBySev[sevLabel]) slaBySev[sevLabel] = { total: 0, compliant: 0 };
+            slaBySev[sevLabel].total++;
+            if (compliant) slaBySev[sevLabel].compliant++;
+
+            // By squad
+            if (!slaBySquad[v.squad]) slaBySquad[v.squad] = { total: 0, compliant: 0 };
+            slaBySquad[v.squad].total++;
+            if (compliant) slaBySquad[v.squad].compliant++;
+        }
+
+        const slaCompliance = {
+            overall: vulnsWithSla.length > 0
+                ? Math.round((slaCompliantCount / vulnsWithSla.length) * 100)
+                : 0,
+            bySeverity: Object.fromEntries(
+                Object.entries(slaBySev).map(([k, v]) => [
+                    k,
+                    v.total > 0 ? Math.round((v.compliant / v.total) * 100) : 0,
+                ])
+            ),
+            bySquad: Object.fromEntries(
+                Object.entries(slaBySquad).map(([k, v]) => [
+                    k,
+                    v.total > 0 ? Math.round((v.compliant / v.total) * 100) : 0,
+                ])
+            ),
+        };
+
+        return { mttr, reincidencia, taxaCorrecao, slaCompliance };
+    }
+
     // ─── Gerar Excel ────────────────────────────────────────────
     async generateExcel(): Promise<Buffer> {
         const vulns = await prisma.vulnerability.findMany({

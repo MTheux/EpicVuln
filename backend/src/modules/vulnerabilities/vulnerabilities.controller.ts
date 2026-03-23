@@ -9,9 +9,9 @@ export class VulnerabilitiesController {
         this.service = new VulnerabilitiesService();
     }
 
-    async findAll(req: Request, res: Response) {
+    async findAll(req: AuthRequest, res: Response) {
         try {
-            const result = await this.service.findAll(req.query);
+            const result = await this.service.findAll(req.query, req.organizationId);
             res.json(result);
         } catch (error: any) {
             res.status(500).json({ error: 'Internal server error' });
@@ -35,7 +35,7 @@ export class VulnerabilitiesController {
         res.status(401).json({ error: 'Unauthorized' });
         return;
       }
-      const vulnerability = await this.service.create(req.body, req.user.id);
+      const vulnerability = await this.service.create(req.body, req.user.id, req.organizationId);
       res.status(201).json(vulnerability);
     } catch (error: any) {
       console.error("Erro na criacao:", error);
@@ -56,7 +56,7 @@ export class VulnerabilitiesController {
         return;
       }
 
-      const result = await this.service.importJiraJson(payload, req.user.id);
+      const result = await this.service.importJiraJson(payload, req.user.id, req.organizationId);
       res.status(200).json(result);
     } catch (error: any) {
       console.error("Erro na importação de JSON do Jira:", error);
@@ -199,7 +199,7 @@ export class VulnerabilitiesController {
       }
 
       console.log(`XML Import: Parsed ${items.length} items from Jira RSS XML`);
-      const result = await this.service.importJiraJson(items, req.user.id);
+      const result = await this.service.importJiraJson(items, req.user.id, req.organizationId);
       res.status(200).json(result);
     } catch (error: any) {
       console.error("Erro na importação de XML:", error);
@@ -223,12 +223,12 @@ export class VulnerabilitiesController {
         try {
             const userId = req.user!.id;
             const id = req.params.id as string;
-            const { text } = req.body;
+            const { text, type } = req.body;
             if (!text) {
                 res.status(400).json({ error: 'Text is required' });
                 return;
             }
-            const result = await this.service.addComment(id, text, userId);
+            const result = await this.service.addComment(id, text, userId, type);
             res.status(201).json(result);
         } catch (error: any) {
             if (error.message === 'Vulnerability not found') res.status(404).json({ error: error.message });

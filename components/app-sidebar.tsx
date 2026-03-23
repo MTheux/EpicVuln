@@ -2,150 +2,142 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
   Shield,
+  Server,
   Brain,
-  Link2,
-  Bell,
   AlertTriangle,
   FileText,
-  Search,
-  ShieldAlert,
-  LogOut,
   Users,
-  Settings
+  ChevronRight,
+  Kanban,
+  BarChart3,
+  Settings,
+  Building2
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { getUser, logout } from "@/lib/auth"
+import { authHeaders } from "@/lib/auth"
 
 const menuItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/vulnerabilidades", label: "Vulnerabilidades", icon: Shield },
+  { href: "/kanban", label: "Kanban", icon: Kanban },
+  { href: "/ativos", label: "Ativos", icon: Server },
   { href: "/squads", label: "Squad Scorecard", icon: Users },
+  { href: "/metricas", label: "Métricas DORA", icon: BarChart3 },
   { href: "/inteligencia", label: "Inteligência", icon: Brain },
   { href: "/notificacoes", label: "Alertas", icon: AlertTriangle },
   { href: "/relatorios", label: "Relatórios", icon: FileText },
 ]
 
-const roleLabels: Record<string, string> = {
-  ADMIN: 'Admin',
-  SEGURANCA: 'AppSec',
-  GESTOR: 'Gestor',
-  SQUAD: 'Squad',
-  LEITURA: 'Leitura',
-}
-
-const roleColors: Record<string, string> = {
-  ADMIN: 'bg-red-100 text-red-700',
-  SEGURANCA: 'bg-purple-100 text-purple-700',
-  GESTOR: 'bg-blue-100 text-blue-700',
-  SQUAD: 'bg-green-100 text-green-700',
-  LEITURA: 'bg-slate-100 text-slate-700',
-}
-
 export function AppSidebar() {
   const pathname = usePathname()
-  const [user, setUser] = useState<{ name: string; email: string; role: string } | null>(null)
+  const [company, setCompany] = useState<{ name?: string; sector?: string } | null>(null)
 
   useEffect(() => {
-    setUser(getUser())
-  }, [])
+    const getApiUrl = () => {
+      if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL
+      if (typeof window !== 'undefined') return `http://${window.location.hostname}:9001`
+      return 'http://localhost:9001'
+    }
+    fetch(`${getApiUrl()}/api/settings/company-profile`, {
+      headers: authHeaders(),
+      credentials: 'include',
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.name) setCompany(data) })
+      .catch(() => {})
+  }, [pathname])
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-border bg-card">
-      <div className="flex h-16 items-center gap-3 border-b border-border px-6">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg overflow-hidden border border-border p-1 bg-card">
-          <Image 
-            src="/logo-credsystem.png" 
-            alt="CredSystem Logo" 
-            width={40} 
-            height={40}
-            className="object-contain"
-          />
+    <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950">
+      {/* Logo */}
+      <div className="flex h-16 items-center gap-3 px-5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/25">
+          <Shield className="h-5 w-5 text-white" />
         </div>
         <div className="flex flex-col">
-          <span className="text-base font-bold tracking-tight text-foreground">VulnControl</span>
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Dashboard</span>
+          <span className="text-[15px] font-bold tracking-tight text-white">VulnControl</span>
+          <span className="text-[10px] uppercase tracking-[0.15em] text-slate-400 font-medium">Security Platform</span>
         </div>
       </div>
 
-      {/* Search */}
-      <div className="p-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input 
-            placeholder="Buscar..." 
-            className="h-9 bg-muted border-border pl-9 text-sm placeholder:text-muted-foreground"
-          />
-        </div>
+      {/* Company badge - clickable */}
+      {company?.name && (
+        <Link href="/empresa" className="block mx-4 mt-3 mb-1 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-white/[0.12] transition-all cursor-pointer group">
+          <div className="flex items-center gap-2">
+            <Building2 className="h-3.5 w-3.5 text-slate-500 group-hover:text-blue-400 shrink-0 transition-colors" />
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-semibold text-slate-300 truncate">{company.name}</p>
+              {company.sector && (
+                <p className="text-[9px] text-slate-500 uppercase tracking-wider">{company.sector}</p>
+              )}
+            </div>
+            <ChevronRight className="h-3 w-3 text-slate-600 group-hover:text-blue-400 shrink-0 transition-colors" />
+          </div>
+        </Link>
+      )}
+
+      {/* Section Label */}
+      <div className="px-5 mb-2 mt-4">
+        <span className="text-[10px] uppercase tracking-[0.15em] text-slate-500 font-semibold">Menu</span>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 px-3">
+      <nav className="flex-1 space-y-0.5 px-3 overflow-y-auto">
         {menuItems.map((item) => {
-          const isActive = pathname === item.href || 
+          const isActive = pathname === item.href ||
             (item.href !== "/" && pathname.startsWith(item.href))
-          
+
           return (
             <Link
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all",
-                isActive 
-                  ? "bg-blue-50 text-blue-600" 
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-200",
+                isActive
+                  ? "bg-blue-500/15 text-blue-400 shadow-sm shadow-blue-500/5"
+                  : "text-slate-400 hover:bg-white/5 hover:text-white"
               )}
             >
-              <item.icon className={cn("h-4 w-4", isActive && "text-sidebar-primary")} />
-              {item.label}
+              <div className={cn(
+                "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
+                isActive
+                  ? "bg-blue-500/20 text-blue-400"
+                  : "bg-white/5 text-slate-500 group-hover:bg-white/10 group-hover:text-slate-300"
+              )}>
+                <item.icon className="h-4 w-4" />
+              </div>
+              <span className="flex-1">{item.label}</span>
+              {isActive && (
+                <ChevronRight className="h-3.5 w-3.5 text-blue-400/60" />
+              )}
             </Link>
           )
         })}
       </nav>
 
-      {/* User Footer */}
-      <div className="border-t border-sidebar-border p-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">
-            {user?.name?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'CS'}
+      {/* Footer */}
+      <div className="px-3 py-3 border-t border-white/[0.06]">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-[11px] text-slate-600">
+            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Online</span>
           </div>
-          <div className="flex flex-1 flex-col">
-            <span className="text-sm font-medium text-sidebar-foreground">{user?.name || 'Credsystem'}</span>
-            <div className="flex items-center gap-1.5">
-              {user?.role && (
-                <Badge className={cn("text-[10px] px-1.5 py-0", roleColors[user.role] || 'bg-zinc-500/20 text-zinc-400')}>
-                  {roleLabels[user.role] || user.role}
-                </Badge>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-1">
-            <Link
-              href="/configuracoes"
-              className={cn(
-                "rounded-lg p-1.5 text-muted-foreground transition-colors",
-                pathname.startsWith("/configuracoes") 
-                  ? "bg-sidebar-accent text-sidebar-primary" 
-                  : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-              )}
-              title="Configurações"
-            >
-              <Settings className="h-4 w-4" />
-            </Link>
-            <button
-              onClick={logout}
-              className="rounded-lg p-1.5 text-muted-foreground hover:bg-sidebar-accent hover:text-red-400 transition-colors"
-              title="Sair"
-            >
-              <LogOut className="h-4 w-4" />
-            </button>
-          </div>
+          <Link
+            href="/configuracoes"
+            className={cn(
+              "flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200",
+              pathname === "/configuracoes"
+                ? "bg-blue-500/20 text-blue-400"
+                : "text-slate-500 hover:bg-white/10 hover:text-slate-300"
+            )}
+            title="Configurações"
+          >
+            <Settings className="h-4 w-4" />
+          </Link>
         </div>
       </div>
     </aside>

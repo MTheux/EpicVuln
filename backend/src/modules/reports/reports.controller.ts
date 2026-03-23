@@ -18,6 +18,16 @@ export class ReportsController {
         }
     }
 
+    async getDora(req: Request, res: Response) {
+        try {
+            const data = await this.service.getDoraMetrics();
+            res.json(data);
+        } catch (error) {
+            console.error('Error fetching DORA metrics:', error);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    }
+
     async downloadExcel(req: Request, res: Response) {
         try {
             const buffer = await this.service.generateExcel();

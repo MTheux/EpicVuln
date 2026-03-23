@@ -517,6 +517,7 @@ export default function VulnerabilidadesPage() {
                   <TableHead className="w-28">Responsável</TableHead>
                   <TableHead className="w-24">Criação</TableHead>
                   <TableHead className="w-20 text-center">Dias</TableHead>
+                  <TableHead className="w-16 text-center">Risco</TableHead>
                   <TableHead className="w-24">SLA</TableHead>
                 </TableRow>
               </TableHeader>
@@ -546,6 +547,23 @@ export default function VulnerabilidadesPage() {
                       <span className={`text-sm font-semibold ${vuln.diasEmAberto > 30 ? 'text-red-500' : 'text-foreground'}`}>
                         {vuln.diasEmAberto}
                       </span>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {(() => {
+                        const baseScoreMap: Record<string, number> = { Extrema: 95, Crítica: 80, Alta: 60, Média: 40, Baixa: 20, Informativa: 5 }
+                        const base = baseScoreMap[vuln.criticidade] || 40
+                        const ageFactor = 1 + Math.min((vuln.diasEmAberto || 0) / 90, 1) * 0.5
+                        const risk = Math.min(Math.round(base * ageFactor), 100)
+                        const color = risk <= 25 ? 'bg-green-500/20 text-green-400 border-green-500/30'
+                          : risk <= 50 ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
+                          : risk <= 75 ? 'bg-orange-500/20 text-orange-400 border-orange-500/30'
+                          : 'bg-red-500/20 text-red-400 border-red-500/30'
+                        return (
+                          <span className={`inline-flex items-center justify-center rounded-md border px-1.5 py-0.5 text-xs font-bold ${color}`}>
+                            {risk}
+                          </span>
+                        )
+                      })()}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{vuln.sla}</TableCell>
                   </TableRow>

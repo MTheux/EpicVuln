@@ -1,18 +1,24 @@
 // With HttpOnly cookies, the token is not accessible via JavaScript.
 // The browser sends it automatically with credentials: 'include'.
 
+const getApiUrl = () => {
+  if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL
+  if (typeof window !== 'undefined') {
+    return `http://${window.location.hostname}:9001`
+  }
+  return 'http://localhost:9001'
+}
+
 export function getAuthToken(): string | null {
-  // Token is now in an HttpOnly cookie - not accessible from JS
   return null
 }
 
 export function authHeaders(): HeadersInit {
-  // No longer need to send Authorization header - cookie is sent automatically
   return { 'Content-Type': 'application/json' }
 }
 
-export function getUser(): { id: string; email: string; name: string; role: string } | null {
-  if (typeof localStorage === 'undefined') return null
+export function getUser(): { id: string; email: string; name: string; role: string; organizationId?: string } | null {
+  if (typeof window === 'undefined') return null
   try {
     const raw = localStorage.getItem('vulncontrol_user')
     return raw ? JSON.parse(raw) : null
@@ -22,10 +28,20 @@ export function getUser(): { id: string; email: string; name: string; role: stri
 }
 
 export function logout() {
-  // Clear the HttpOnly cookie by making a request, or just clear local state
-  // The cookie will be cleared by max-age expiration or server-side
+  // Clear ALL local state FIRST (before any async calls)
+  document.cookie = 'vulncontrol_session=; path=/; max-age=0'
   document.cookie = 'vulncontrol_token=; path=/; max-age=0'
-  document.cookie = 'vulncontrol_auth=; path=/; max-age=0'
+  // Also try clearing with domain variants
+  document.cookie = 'vulncontrol_session=; path=/; max-age=0; domain=localhost'
+  document.cookie = 'vulncontrol_token=; path=/; max-age=0; domain=localhost'
   localStorage.removeItem('vulncontrol_user')
+
+  // Call backend to clear HttpOnly cookie (fire and forget)
+  fetch(`${getApiUrl()}/api/auth/logout`, {
+    method: 'POST',
+    credentials: 'include',
+  }).catch(() => {})
+
+  // Redirect immediately
   window.location.href = '/login'
 }

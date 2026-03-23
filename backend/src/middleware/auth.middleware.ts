@@ -28,7 +28,7 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
 
         const secret = env.JWT_SECRET;
 
-        const decoded = jwt.verify(token, secret) as { id: string; email: string; role: string };
+        const decoded = jwt.verify(token, secret) as { id: string; email: string; role: string; organizationId?: string };
 
         // Validar se o usuario ainda existe e esta ativo
         const user = await prisma.user.findUnique({ where: { id: decoded.id } });
@@ -42,7 +42,9 @@ export const authenticate = async (req: AuthRequest, res: Response, next: NextFu
             id: user.id,
             email: user.email,
             role: user.role,
+            organizationId: user.organizationId,
         };
+        req.organizationId = user.organizationId || decoded.organizationId;
 
         next();
     } catch (error: any) {

@@ -142,3 +142,53 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* ===== Compact Mode ===== */
+.compact main {
+  padding: 1rem !important;
+}
+.compact main .p-6 {
+  padding: 0.75rem !important;
+}
+.compact main .p-8 {
+  padding: 1rem !important;
+}
+.compact main .mb-8 {
+  margin-bottom: 1rem !important;
+}
+.compact main .mb-6 {
+  margin-bottom: 0.75rem !important;
+}
+.compact main .gap-6 {
+  gap: 0.75rem !important;
+}
+.compact main .gap-4 {
+  gap: 0.5rem !important;
+}
+.compact main .py-3 {
+  padding-top: 0.375rem !important;
+  padding-bottom: 0.375rem !important;
+}
+.compact main .space-y-6 > * + * {
+  margin-top: 0.75rem !important;
+}
+.compact main .text-2xl {
+  font-size: 1.25rem !important;
+}
+.compact main .text-3xl {
+  font-size: 1.5rem !important;
+}
+
+/* ===== High Contrast Mode ===== */
+.high-contrast {
+  --foreground: oklch(0.05 0.01 260);
+  --card-foreground: oklch(0.05 0.01 260);
+  --muted-foreground: oklch(0.35 0.01 260);
+  --border: oklch(0.78 0.01 260);
+}
+.high-contrast.dark {
+  --foreground: oklch(0.99 0 0);
+  --card-foreground: oklch(0.99 0 0);
+  --muted-foreground: oklch(0.75 0 0);
+  --border: oklch(0.32 0.01 260);
+}

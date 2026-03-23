@@ -8,6 +8,26 @@ datasource db {
 }
 
 // ============================================================
+// ORGANIZATIONS (Multi-Tenant)
+// ============================================================
+
+model Organization {
+  id          String   @id @default(uuid())
+  name        String
+  sector      String?
+  description String?  @db.Text
+  logo        String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  users           User[]
+  vulnerabilities Vulnerability[]
+  assets          Asset[]
+
+  @@map("organizations")
+}
+
+// ============================================================
 // AUTH & USERS
 // ============================================================
 
@@ -28,6 +48,9 @@ model User {
   active    Boolean  @default(true)
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
+
+  organizationId String?       @map("organization_id")
+  organization   Organization? @relation(fields: [organizationId], references: [id])
 
   refreshTokens  RefreshToken[]
   vulnerabilities Vulnerability[]  @relation("CreatedBy")
@@ -50,6 +73,61 @@ model RefreshToken {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("refresh_tokens")
+}
+
+// ============================================================
+// ASSETS
+// ============================================================
+
+enum AssetType {
+  API
+  WEB_APP
+  MOBILE
+  INFRA
+  DATABASE
+  CLOUD_SERVICE
+  IOT
+  OUTRO
+}
+
+enum BusinessCriticality {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum AssetStatus {
+  ACTIVE
+  INACTIVE
+  DECOMMISSIONED
+}
+
+model Asset {
+  id                  String              @id @default(uuid())
+  name                String
+  type                AssetType
+  description         String?             @db.Text
+  businessCriticality BusinessCriticality  @map("business_criticality")
+  owner               String?
+  squad               String?
+  environment         Ambiente             @default(PRODUCAO)
+  url                 String?
+  tags                String[]             @default([])
+  status              AssetStatus          @default(ACTIVE)
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+
+  organizationId String?       @map("organization_id")
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
+  vulnerabilities     Vulnerability[]
+
+  @@index([type])
+  @@index([businessCriticality])
+  @@index([squad])
+  @@index([status])
+  @@map("assets")
 }
 
 // ============================================================
@@ -140,9 +218,14 @@ model Vulnerability {
   dataCriacao      DateTime     @default(now()) @map("data_criacao")
   ultimaAtualizacao DateTime    @updatedAt @map("ultima_atualizacao")
 
+  assetId          String?      @map("asset_id")
   createdById      String       @map("created_by_id")
   updatedById      String?      @map("updated_by_id")
 
+  organizationId String?       @map("organization_id")
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
+  asset       Asset? @relation(fields: [assetId], references: [id], onDelete: SetNull)
   createdBy   User @relation("CreatedBy", fields: [createdById], references: [id])
   updatedBy   User? @relation("UpdatedBy", fields: [updatedById], references: [id])
 
@@ -156,6 +239,7 @@ model Vulnerability {
   @@index([squad])
   @@index([origem])
   @@index([owaspCategory])
+  @@index([assetId])
   @@map("vulnerabilities")
 }
 
@@ -406,4 +490,45 @@ model SystemSettings {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("system_settings")
+}
+
+// ============================================================
+// AUDIT LOG
+// ============================================================
+
+enum AuditAction {
+  LOGIN
+  LOGOUT
+  CREATE
+  UPDATE
+  DELETE
+  EXPORT
+  IMPORT
+  SYNC
+  CONFIG_CHANGE
+  ACCESS_DENIED
+}
+
+model AuditLog {
+  id             String      @id @default(uuid())
+  action         AuditAction
+  entity         String?     // e.g. "vulnerability", "asset", "user", "settings"
+  entityId       String?     @map("entity_id")
+  description    String      @db.Text
+  previousValue  String?     @map("previous_value") @db.Text
+  newValue       String?     @map("new_value") @db.Text
+  userId         String?     @map("user_id")
+  userEmail      String?     @map("user_email")
+  ipAddress      String?     @map("ip_address")
+  userAgent      String?     @map("user_agent") @db.Text
+  organizationId String?     @map("organization_id")
+  metadata       Json?
+  createdAt      DateTime    @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([action])
+  @@index([entity])
+  @@index([organizationId])
+  @@index([createdAt])
+  @@map("audit_logs")
 }

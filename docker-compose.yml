@@ -25,7 +25,9 @@ services:
     environment:
       - DATABASE_URL=postgresql://vulncontrol:vulncontrol@db:5432/vulncontrol
       - PORT=9001
-      - SEED_ADMIN_PASSWORD=Admin@Cred2026!
+      - SEED_ADMIN_PASSWORD=Admin@123
+    volumes:
+      - backend_data:/app/data
     depends_on:
       - db
     restart: unless-stopped
@@ -48,3 +50,4 @@ services:
 
 volumes:
   pgdata:
+  backend_data:

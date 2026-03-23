@@ -428,7 +428,7 @@ export default function AttackGraphTab() {
       <div className="flex flex-col items-center justify-center py-24 space-y-6">
         <Loader2 className="h-12 w-12 text-purple-500 animate-spin" />
         <p className="text-lg font-medium text-purple-500/80 animate-pulse">
-          Mytchi AI esta gerando cenarios de ataque com base nas vulnerabilidades reais...
+          Gerando cenários de ataque com base nas vulnerabilidades reais...
         </p>
         <p className="text-sm text-muted-foreground">
           Isso pode levar alguns segundos

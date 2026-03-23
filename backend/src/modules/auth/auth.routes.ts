@@ -9,15 +9,17 @@ const authController = new AuthController();
 router.post('/login', authLimiter, authController.login.bind(authController));
 router.get('/me', authenticate, authController.me.bind(authController));
 
-// Logout endpoint to clear HttpOnly cookie
+// Logout endpoint to clear both cookies
 router.post('/logout', (req: Request, res: Response) => {
-  res.cookie('vulncontrol_token', '', {
-    httpOnly: true,
+  const clearOptions = {
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: 'lax' as const,
     maxAge: 0,
     path: '/',
-  });
+  };
+
+  res.cookie('vulncontrol_token', '', { ...clearOptions, httpOnly: true });
+  res.cookie('vulncontrol_session', '', { ...clearOptions, httpOnly: false });
   res.json({ success: true });
 });
 

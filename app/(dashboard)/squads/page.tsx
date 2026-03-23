@@ -115,7 +115,7 @@ export default function SquadsPage() {
     )
   }
 
-  if (!data || data.totalSquads === 0) {
+  if (!data || !Array.isArray(data.allSquads) || data.totalSquads === 0) {
     return (
       <div className="p-6">
         <h1 className="text-2xl font-bold text-foreground mb-4">Squad Scorecard</h1>

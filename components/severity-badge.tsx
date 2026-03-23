@@ -1,48 +1,49 @@
 import { cn } from "@/lib/utils"
-import type { Criticidade } from "@/lib/types"
 
-const severityConfig: Record<Criticidade, { bg: string; text: string; border: string }> = {
-  'Extrema': { 
-    bg: 'bg-red-50', 
-    text: 'text-red-700', 
-    border: 'border-red-200 animate-pulse' 
+const severityConfig: Record<string, { bg: string; text: string; border: string }> = {
+  'Extrema': {
+    bg: 'bg-red-50 dark:bg-red-950/30',
+    text: 'text-red-700 dark:text-red-400',
+    border: 'border-red-200 dark:border-red-800 animate-pulse'
   },
-  'Crítica': { 
-    bg: 'bg-orange-50', 
-    text: 'text-orange-700', 
-    border: 'border-orange-200' 
+  'Crítica': {
+    bg: 'bg-orange-50 dark:bg-orange-950/30',
+    text: 'text-orange-700 dark:text-orange-400',
+    border: 'border-orange-200 dark:border-orange-800'
   },
-  'Alta': { 
-    bg: 'bg-amber-50', 
-    text: 'text-amber-700', 
-    border: 'border-amber-200' 
+  'Alta': {
+    bg: 'bg-amber-50 dark:bg-amber-950/30',
+    text: 'text-amber-700 dark:text-amber-400',
+    border: 'border-amber-200 dark:border-amber-800'
   },
-  'Média': { 
-    bg: 'bg-yellow-50', 
-    text: 'text-yellow-700', 
-    border: 'border-yellow-200' 
+  'Média': {
+    bg: 'bg-yellow-50 dark:bg-yellow-950/30',
+    text: 'text-yellow-700 dark:text-yellow-400',
+    border: 'border-yellow-200 dark:border-yellow-800'
   },
-  'Baixa': { 
-    bg: 'bg-green-50', 
-    text: 'text-green-700', 
-    border: 'border-green-200' 
+  'Baixa': {
+    bg: 'bg-green-50 dark:bg-green-950/30',
+    text: 'text-green-700 dark:text-green-400',
+    border: 'border-green-200 dark:border-green-800'
   },
-  'Informativa': { 
-    bg: 'bg-blue-50', 
-    text: 'text-blue-700', 
-    border: 'border-blue-200' 
+  'Informativa': {
+    bg: 'bg-blue-50 dark:bg-blue-950/30',
+    text: 'text-blue-700 dark:text-blue-400',
+    border: 'border-blue-200 dark:border-blue-800'
   },
 }
 
+const fallbackConfig = { bg: 'bg-muted', text: 'text-muted-foreground', border: 'border-border' }
+
 interface SeverityBadgeProps {
-  severity: Criticidade
+  severity: string
   className?: string
   showIcon?: boolean
 }
 
 export function SeverityBadge({ severity, className, showIcon = false }: SeverityBadgeProps) {
-  const config = severityConfig[severity]
-  
+  const config = severityConfig[severity] || fallbackConfig
+
   return (
     <span className={cn(
       "inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium",
@@ -57,7 +58,7 @@ export function SeverityBadge({ severity, className, showIcon = false }: Severit
           <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
         </span>
       )}
-      {severity}
+      {severity || 'N/A'}
     </span>
   )
 }

@@ -20,13 +20,23 @@ export class AuthController {
 
       const result = await this.authService.login(email, password);
 
-      // Set HttpOnly cookie with the JWT token
-      res.cookie('vulncontrol_token', result.token, {
-        httpOnly: true,
+      const cookieOptions = {
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
+        sameSite: 'lax' as const,
         maxAge: 8 * 60 * 60 * 1000, // 8 hours
         path: '/',
+      };
+
+      // HttpOnly cookie with the JWT token (not accessible from JS)
+      res.cookie('vulncontrol_token', result.token, {
+        ...cookieOptions,
+        httpOnly: true,
+      });
+
+      // Non-HttpOnly session flag (for middleware/JS to check auth state)
+      res.cookie('vulncontrol_session', '1', {
+        ...cookieOptions,
+        httpOnly: false,
       });
 
       // Return user data but NOT the token in the response body

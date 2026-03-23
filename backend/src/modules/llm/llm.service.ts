@@ -1,28 +1,45 @@
 import { PrismaClient } from '@prisma/client';
 import Groq from 'groq-sdk';
+import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getSquadMetadata } from '../analytics/squad-mapping';
+import { loadLlmConfig, LlmConfig } from './llm-config';
 
 const prisma = new PrismaClient();
 
 export class LlmService {
-  private client: Groq | null = null;
   private cache: { data: any; timestamp: number } | null = null;
   private attackGraphCache: { data: any; timestamp: number } | null = null;
   private readonly CACHE_TTL = 30 * 60 * 1000; // 30 minutes
-  private readonly MODEL = 'llama-3.3-70b-versatile';
-
-  private getClient(): Groq {
-    if (!this.client) {
-      this.client = new Groq({
-        apiKey: process.env.GROQ_API_KEY || 'missing-key',
-      });
-    }
-    return this.client;
-  }
 
   private async callLLM(systemPrompt: string, userMessage: string): Promise<string> {
-    const response = await this.getClient().chat.completions.create({
-      model: this.MODEL,
+    const config = loadLlmConfig();
+
+    if (!config.apiKey && config.provider !== 'ollama') {
+      throw new Error(`API Key não configurada para ${config.provider}. Configure em Configurações → Integrações → IA.`);
+    }
+
+    switch (config.provider) {
+      case 'groq':
+        return this.callGroq(config, systemPrompt, userMessage);
+      case 'openai':
+        return this.callOpenAI(config, systemPrompt, userMessage);
+      case 'anthropic':
+        return this.callAnthropic(config, systemPrompt, userMessage);
+      case 'google':
+        return this.callGoogle(config, systemPrompt, userMessage);
+      case 'ollama':
+        return this.callOllama(config, systemPrompt, userMessage);
+      default:
+        throw new Error(`Provider desconhecido: ${config.provider}`);
+    }
+  }
+
+  private async callGroq(config: LlmConfig, systemPrompt: string, userMessage: string): Promise<string> {
+    const client = new Groq({ apiKey: config.apiKey });
+    const response = await client.chat.completions.create({
+      model: config.model,
       max_tokens: 4096,
       temperature: 0.3,
       messages: [
@@ -30,15 +47,71 @@ export class LlmService {
         { role: 'user', content: userMessage },
       ],
     });
-
     const text = response.choices[0]?.message?.content;
     if (!text) throw new Error('Resposta vazia da IA');
     return text;
   }
 
+  private async callOpenAI(config: LlmConfig, systemPrompt: string, userMessage: string): Promise<string> {
+    const client = new OpenAI({ apiKey: config.apiKey });
+    const response = await client.chat.completions.create({
+      model: config.model,
+      max_tokens: 4096,
+      temperature: 0.3,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage },
+      ],
+    });
+    const text = response.choices[0]?.message?.content;
+    if (!text) throw new Error('Resposta vazia da IA');
+    return text;
+  }
+
+  private async callAnthropic(config: LlmConfig, systemPrompt: string, userMessage: string): Promise<string> {
+    const client = new Anthropic({ apiKey: config.apiKey });
+    const response = await client.messages.create({
+      model: config.model,
+      max_tokens: 4096,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userMessage }],
+    });
+    const block = response.content[0];
+    if (block.type !== 'text' || !block.text) throw new Error('Resposta vazia da IA');
+    return block.text;
+  }
+
+  private async callGoogle(config: LlmConfig, systemPrompt: string, userMessage: string): Promise<string> {
+    const genAI = new GoogleGenerativeAI(config.apiKey);
+    const model = genAI.getGenerativeModel({ model: config.model, systemInstruction: systemPrompt });
+    const result = await model.generateContent(userMessage);
+    const text = result.response.text();
+    if (!text) throw new Error('Resposta vazia da IA');
+    return text;
+  }
+
+  private async callOllama(config: LlmConfig, systemPrompt: string, userMessage: string): Promise<string> {
+    const baseUrl = config.baseUrl || 'http://localhost:11434';
+    const response = await fetch(`${baseUrl}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: config.model,
+        stream: false,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage },
+        ],
+      }),
+    });
+    if (!response.ok) throw new Error(`Ollama error: ${response.status}`);
+    const data: any = await response.json();
+    return data.message?.content || '';
+  }
+
   async generateAnalysis() {
     if (this.cache && (Date.now() - this.cache.timestamp) < this.CACHE_TTL) {
-      console.log('Mytchi AI: Retornando resultado do cache.');
+      console.log('VulnControl AI: Retornando resultado do cache.');
       return { ...this.cache.data, _cached: true, _cachedAt: new Date(this.cache.timestamp).toISOString() };
     }
 
@@ -51,28 +124,61 @@ export class LlmService {
         codigoInterno: true,
         titulo: true,
         criticidade: true,
+        status: true,
         squad: true,
         sistema: true,
         ativo: true,
         owaspCategory: true,
         diasEmAberto: true,
-        reincidencia: true
+        reincidencia: true,
+        sla: true,
+        responsavel: true,
+        cwe: true,
       }
     });
 
     const activeCount = vulnerabilidades.length;
+    const config = loadLlmConfig();
 
-    if (!process.env.GROQ_API_KEY) {
+    if (!config.apiKey && config.provider !== 'ollama') {
       return {
-        resumoExecutivo: "Configuracao Pendente: Cerebro da Mytchi AI Desconectado.",
-        fortaleza: "A chave GROQ_API_KEY nao foi encontrada nas variaveis de ambiente do backend.",
-        fraqueza: "Sem ela, o relatorio C-Level gerativo fica desligado.",
-        acao: "Acesse https://console.groq.com/keys, gere uma key gratuita e adicione no .env."
+        resumoExecutivo: "Configuração Pendente: IA não configurada.",
+        fortaleza: "Nenhum provider de IA está configurado.",
+        fraqueza: "Sem a API Key, o relatório C-Level gerativo fica desligado.",
+        acao: "Vá em Configurações → Integrações → Inteligência Artificial e configure seu provider."
       };
     }
 
-    // Temporarily disable cache to force new format
     this.cache = null;
+
+    // 1. Risk portfolio data
+    let riskData: any = null;
+    try {
+      const riskService = new (await import('../risk/risk.service')).RiskService();
+      riskData = await riskService.getPortfolioRisk();
+    } catch {}
+
+    // 2. DORA metrics
+    let doraData: any = null;
+    try {
+      const reportsService = new (await import('../reports/reports.service')).ReportsService();
+      doraData = await reportsService.getDoraMetrics();
+    } catch {}
+
+    // 3. Assets with business criticality
+    const assets = await prisma.asset.findMany({
+      select: {
+        id: true, name: true, type: true, businessCriticality: true, status: true,
+        _count: { select: { vulnerabilities: true } }
+      }
+    });
+
+    // 4. Company profile from SystemSettings
+    let companyProfile: any = null;
+    try {
+      const setting = await prisma.systemSettings.findUnique({ where: { key: 'company_profile' } });
+      if (setting) companyProfile = JSON.parse(setting.value);
+    } catch {}
 
     if (activeCount === 0) {
       return {
@@ -87,86 +193,203 @@ export class LlmService {
       };
     }
 
-    // Priorizar as mais críticas para a análise
     const severityOrder: Record<string, number> = { 'EXTREMA': 0, 'CRITICA': 1, 'ALTA': 2, 'MEDIA': 3, 'BAIXA': 4 };
     const sortedVulns = vulnerabilidades.sort((a, b) => {
-        const orderA = severityOrder[a.criticidade.toUpperCase()] ?? 99;
-        const orderB = severityOrder[b.criticidade.toUpperCase()] ?? 99;
-        return orderA - orderB;
-    }).slice(0, 30); // Limitar as 30 mais perigosas para o contexto
+      const orderA = severityOrder[a.criticidade.toUpperCase()] ?? 99;
+      const orderB = severityOrder[b.criticidade.toUpperCase()] ?? 99;
+      return orderA - orderB;
+    }).slice(0, 30);
 
-    // Enriquecer com metadados de liderança para o contexto da IA
     const enrichedVulns = sortedVulns.map(v => ({
       ...v,
       metadata: v.squad ? getSquadMetadata(v.squad) : null
     }));
 
-    const contextData = JSON.stringify(enrichedVulns);
+    // 5. History events for trend analysis
+    let recentHistory: any[] = [];
+    try {
+      recentHistory = await prisma.vulnerabilityHistory.findMany({
+        take: 100,
+        orderBy: { createdAt: 'desc' },
+        select: { eventType: true, createdAt: true, newValue: true }
+      });
+    } catch {}
 
-    const systemPrompt = `Voce e a "Mytchi AI", o Chief Information Security Officer (CISO) e Head de Application Security da "CredSystem", uma instituicao financeira de alto rigor transacional.
+    // 6. Squad performance aggregation
+    const squadPerformance: Record<string, { total: number; criticas: number; corrigidas: number; reincidentes: number; diasTotal: number }> = {};
+    for (const v of vulnerabilidades) {
+      const s = v.squad || 'Sem Squad';
+      if (!squadPerformance[s]) squadPerformance[s] = { total: 0, criticas: 0, corrigidas: 0, reincidentes: 0, diasTotal: 0 };
+      squadPerformance[s].total++;
+      if (['EXTREMA', 'CRITICA'].includes(v.criticidade.toUpperCase())) squadPerformance[s].criticas++;
+      if (v.reincidencia > 0) squadPerformance[s].reincidentes++;
+      squadPerformance[s].diasTotal += v.diasEmAberto || 0;
+    }
 
-Sua missao e ler um dump de dados contendo as vulnerabilidades de software (AppSec) mais perigosas atualmente em aberto.
+    // Count closed vulns per squad
+    const closedVulns = await prisma.vulnerability.findMany({
+      where: { status: { in: ['CONCLUIDO', 'FECHADO', 'MITIGADO'] } },
+      select: { squad: true }
+    });
+    for (const v of closedVulns) {
+      const s = v.squad || 'Sem Squad';
+      if (squadPerformance[s]) squadPerformance[s].corrigidas++;
+    }
 
-Diretrizes de Analise PROPRIA (Deep Insight):
-1. PRIORIDADE MAXIMA: Foque estritamente nas falhas EXTREMAS e CRITICAS. Ignore falhas baixas/medias a menos que elas sejam parte de um encadeamento de ataque.
-2. FOCO NO NEGOCIO: Avalie o risco sob a otica de um Banco (Fraude, Vazamento de Dados de Cartao, LGPD).
-3. SSDLC & CULTURA: Identifique onde a cultura esta falhando (ex: falta de patching ou correcao rapida de CRITICOS).
+    // 7. CWE/OWASP category distribution
+    const cweCounts: Record<string, number> = {};
+    const owaspCounts: Record<string, number> = {};
+    for (const v of vulnerabilidades) {
+      if (v.owaspCategory) owaspCounts[v.owaspCategory] = (owaspCounts[v.owaspCategory] || 0) + 1;
+    }
 
-Com base na massa de dados fornecida, gere EXATAMENTE um objeto JSON contendo as chaves a seguir:
+    // 8. SLA breach details
+    const slaBreach = vulnerabilidades.filter(v => {
+      if (!v.sla) return false;
+      return new Date(v.sla) < new Date();
+    });
+
+    const fullContext = {
+      vulnerabilidades: enrichedVulns,
+      riskPortfolio: riskData ? {
+        score: riskData.score,
+        totalAssets: riskData.totalAssets,
+        totalOpenVulns: riskData.totalOpenVulns,
+      } : null,
+      doraMetrics: doraData ? {
+        mttrOverall: doraData.mttr?.overall,
+        mttrBySeverity: doraData.mttr?.bySeverity,
+        mttrBySquad: doraData.mttr?.bySquad,
+        reincidenciaRate: doraData.reincidencia?.overall,
+        taxaCorrecao30d: doraData.taxaCorrecao?.last30d?.rate,
+        taxaCorrecao90d: doraData.taxaCorrecao?.last90d?.rate,
+        slaComplianceOverall: doraData.slaCompliance?.overall,
+        slaBySquad: doraData.slaCompliance?.bySquad,
+      } : null,
+      assets: assets.map(a => ({
+        name: a.name, type: a.type,
+        businessCriticality: a.businessCriticality,
+        vulnCount: a._count.vulnerabilities,
+      })),
+      companyProfile: companyProfile,
+      squadPerformance,
+      owaspDistribution: owaspCounts,
+      slaBreachCount: slaBreach.length,
+      slaBreachBySeverity: {
+        extrema: slaBreach.filter(v => v.criticidade.toUpperCase() === 'EXTREMA').length,
+        critica: slaBreach.filter(v => v.criticidade.toUpperCase() === 'CRITICA').length,
+        alta: slaBreach.filter(v => v.criticidade.toUpperCase() === 'ALTA').length,
+      },
+      recentActivityCount: recentHistory.length,
+    };
+
+    const contextData = JSON.stringify(fullContext);
+
+    const systemPrompt = `Voce e o motor de inteligencia do VulnControl, atuando como CISO virtual e Head de Application Security.
+
+CONTEXTO DA EMPRESA:
+${companyProfile ? `
+- Nome: ${companyProfile.name || 'Nao configurado'}
+- Setor: ${companyProfile.sector || 'Financeiro'}
+- Descricao: ${companyProfile.description || 'Instituicao financeira'}
+- Tamanho: ${companyProfile.size || 'Nao informado'}
+` : '- Empresa nao configurada (perfil padrao)'}
+
+METRICAS OPERACIONAIS:
+${riskData ? `- Risk Score do Portfolio: ${riskData.score}/100 (0=seguro, 100=critico)` : ''}
+${doraData?.mttr ? `- MTTR Global: ${doraData.mttr.overall} dias` : ''}
+${doraData?.mttr?.bySeverity ? `- MTTR por Severidade: ${JSON.stringify(doraData.mttr.bySeverity)}` : ''}
+${doraData?.mttr?.bySquad ? `- MTTR por Squad: ${JSON.stringify(doraData.mttr.bySquad)}` : ''}
+${doraData?.reincidencia ? `- Taxa de Reincidencia: ${doraData.reincidencia.overall}%` : ''}
+${doraData?.taxaCorrecao?.last30d ? `- Taxa de Correcao (30d): ${doraData.taxaCorrecao.last30d.rate}% (${doraData.taxaCorrecao.last30d.fechadas} fechadas / ${doraData.taxaCorrecao.last30d.abertas} abertas)` : ''}
+${doraData?.taxaCorrecao?.last90d ? `- Taxa de Correcao (90d): ${doraData.taxaCorrecao.last90d.rate}%` : ''}
+${doraData?.slaCompliance ? `- SLA Compliance Global: ${doraData.slaCompliance.overall}%` : ''}
+${doraData?.slaCompliance?.bySquad ? `- SLA por Squad: ${JSON.stringify(doraData.slaCompliance.bySquad)}` : ''}
+- SLA Vencidos: ${slaBreach.length} (Extremas: ${slaBreach.filter(v => v.criticidade.toUpperCase() === 'EXTREMA').length}, Criticas: ${slaBreach.filter(v => v.criticidade.toUpperCase() === 'CRITICA').length})
+
+PERFORMANCE POR SQUAD:
+${Object.entries(squadPerformance).map(([squad, data]) => `- ${squad}: ${data.total} ativas, ${data.criticas} criticas, ${data.corrigidas} corrigidas, ${data.reincidentes} reincidentes, MTTR medio: ${data.total > 0 ? Math.round(data.diasTotal / data.total) : 0}d`).join('\n')}
+
+DISTRIBUICAO OWASP:
+${Object.entries(owaspCounts).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([cat, count]) => `- ${cat}: ${count}`).join('\n') || '- Sem categorias OWASP'}
+
+ATIVOS CRITICOS:
+${assets.filter(a => (a.businessCriticality as string) === 'CRITICAL' || (a.businessCriticality as string) === 'HIGH').map(a => `- ${a.name} (${a.type}, criticidade: ${a.businessCriticality}, ${a._count.vulnerabilities} vulns)`).join('\n') || '- Nenhum ativo de alta criticidade cadastrado'}
+
+TODOS OS ATIVOS:
+${assets.map(a => `- ${a.name} (${a.type}, ${a.businessCriticality || 'sem criticidade'}, ${a._count.vulnerabilities} vulns)`).join('\n') || '- Nenhum ativo'}
+
+DIRETRIZES DE ANALISE:
+1. PRECISAO: Use APENAS dados reais fornecidos. Nunca invente metricas, codigos ou valores. Se um dado nao esta disponivel, diga "dado nao disponivel".
+2. FOCO SETORIAL: Adapte a analise ao setor da empresa. Financeiro: fraude, PCI-DSS, LGPD, BACEN. Saude: HIPAA, dados pacientes. Varejo: PCI, e-commerce.
+3. METRICAS CONCRETAS: Sempre cite numeros reais (Risk Score X/100, MTTR de Y dias, Z vulns criticas).
+4. SQUADS: Compare performance entre squads usando MTTR, SLA compliance e taxa de reincidencia reais.
+5. ATIVOS: Priorize falhas em ativos com criticidade CRITICAL e HIGH. APIs sao altissima criticidade.
+6. PROJECAO MATEMATICA: Use taxa de correcao e MTTR reais para projetar risco futuro. Se taxa de correcao 30d < 50%, o backlog esta crescendo.
+7. CULTURA DEVSECOPS: Avalie maturidade com base em: reincidencia (alta = falta de root cause analysis), SLA (baixo = falta de prioridade), MTTR (alto = processo lento).
+8. KILL CHAIN: Crie uma cadeia de ataque REALISTA baseada nas vulns reais. Cada "node" DEVE ser uma vulnerabilidade real do payload.
+
+Gere EXATAMENTE um objeto JSON com estas chaves:
 
 {
-  "resumoExecutivo": "Veredito focado nas maiores ameaças encontradas.",
-  "fortaleza": "Tribos com melhor higiene de seguranca.",
-  "fraqueza": "O maior perigo atual (ex: Risco de Invasao de Core via API).",
-  "acao": "Plano pratico imediato para conter os riscos EXTREMOS.",
+  "resumoExecutivo": "Veredito direto com metricas concretas. Risk Score, MTTR, SLA compliance, vulns criticas. Maximo 5 frases como se estivesse apresentando ao board.",
+  "fortaleza": "Squads e areas com melhor performance. Cite metricas REAIS de MTTR, SLA, taxa de correcao. Destaque o que esta funcionando bem.",
+  "fraqueza": "Maior perigo atual. Quantifique: X vulns criticas em ativos de alta criticidade, Y SLAs vencidos, squad Z com MTTR de W dias. Impacto potencial de negocio.",
+  "acao": "Plano pratico com 3-5 acoes PRIORIZADAS e ESPECIFICAS. Cada acao deve ter: o que fazer, qual squad, qual prazo sugerido. Ex: 'Squad X deve corrigir VUL-123 (API exposta) em 7 dias'.",
   "topVulnerabilities": [
-    {"codigo": "VUL-XXX", "motivo": "Impacto financeiro devastador se nao corrigida agora."}
+    {"codigo": "VUL-XXX", "motivo": "Impacto especifico no negocio com metrica", "ativoAfetado": "Nome real do ativo", "diasAberto": 45}
   ],
   "maturidadeGaps": [
-    {"squad": "Nome", "gap": "Falha repetitiva de gravidade alta/extrema.", "lider": "Responsavel"}
+    {"squad": "Nome real", "gap": "Problema especifico com metrica real", "lider": "Responsavel", "mttr": 45, "slaCompliance": 60}
   ],
-  "culturaInsights": "Conselho para elevar o nivel de seguranca organizacional.",
+  "projecaoRisco": {
+    "dias30": "Cenario em 30 dias baseado na taxa de correcao atual. Quantifique: se continuar assim, havera X vulns criticas. Cite compliance em risco.",
+    "dias90": "Cenario em 90 dias. Impacto regulatorio, financeiro e operacional projetado com base nos dados."
+  },
+  "culturaInsights": "Analise profunda da maturidade DevSecOps. Compare squads, cite metricas DORA, identifique padroes de reincidencia e gaps de processo.",
   "evolucao": [
-     {"mes": "Jan", "fechadas": 15, "abertas": 5},
-     {"mes": "Fev", "fechadas": 22, "abertas": 8},
-     {"mes": "Mar", "fechadas": 30, "abertas": 3}
+    {"mes": "Jan", "fechadas": 15, "abertas": 5}
   ],
   "attackPath": [
-     {"node": "Vulnerabilidade Real (ex: Injeção SQL na API X)", "escalatesTo": "Consequencia Real (ex: Acesso total ao Banco de Clientes)"}
+    {"node": "Titulo REAL de uma vulnerabilidade do payload", "escalatesTo": "Consequencia REAL e especifica para o negocio"}
   ]
 }
 
-A chave "attackPath" DEVE conter vulnerabilidades REAIS extraidas do payload. NAO use termos genericos como "Phishing" se eles nao estiverem nos dados.
-
-IMPORTANTE: DEVOLVA APENAS O JSON PURO E VALIDO. SEM TEXTO EXTRA.`;
+REGRAS ABSOLUTAS:
+- DEVOLVA APENAS O JSON PURO. SEM TEXTO EXTRA. SEM markdown. SEM \`\`\`.
+- Use SOMENTE dados reais do payload. Nunca invente codigos VUL, nomes de squad ou metricas.
+- O attackPath DEVE ter entre 3 e 5 etapas, cada uma referenciando uma vulnerabilidade REAL.
+- topVulnerabilities deve ter entre 3 e 5 itens, priorizados por risco de negocio.
+- maturidadeGaps deve ter entre 2 e 4 itens com metricas reais.`;
 
     try {
-      console.log("Mytchi AI: Iniciando analise com Groq...");
-      let text = await this.callLLM(systemPrompt, `Massa de dados das ${activeCount} vulnerabilidades: ${contextData}`);
+      const cfg = loadLlmConfig();
+      console.log(`VulnControl AI: Iniciando analise com ${cfg.provider}/${cfg.model}...`);
+      let text = await this.callLLM(systemPrompt, `Dados completos de seguranca (${activeCount} vulnerabilidades ativas, ${assets.length} ativos, metricas DORA incluidas):\n${contextData}`);
       text = text.replace(/```json/g, '').replace(/```/g, '').trim();
 
       const parsed = JSON.parse(text);
-      console.log("Mytchi AI: Analise gerada com sucesso. Keys:", Object.keys(parsed));
+      console.log("VulnControl AI: Analise gerada com sucesso. Keys:", Object.keys(parsed));
       this.cache = { data: parsed, timestamp: Date.now() };
-      return { ...parsed, _cached: false };
+      return { ...parsed, _cached: false, _provider: cfg.provider, _model: cfg.model };
     } catch (e: any) {
       console.error("LLM Error:", e.message);
       if (this.cache) {
-        console.log('Mytchi AI: Retornando cache antigo como fallback.');
+        console.log('VulnControl AI: Retornando cache antigo como fallback.');
         return { ...this.cache.data, _cached: true, _stale: true, _error: e.message };
       }
       return {
-        resumoExecutivo: "Erro ao gerar Relatorio Executivo.",
-        fortaleza: "Servidor detectou falha na comunicacao com a IA.",
+        resumoExecutivo: "Erro ao gerar Relatório Executivo.",
+        fortaleza: "Servidor detectou falha na comunicação com a IA.",
         fraqueza: "Causa base: " + e.message,
-        acao: "Verifique a chave GROQ_API_KEY no .env e reinicie o backend."
+        acao: "Verifique as configurações de IA em Configurações → Integrações."
       };
     }
   }
 
   async generateAttackGraph() {
     if (this.attackGraphCache && (Date.now() - this.attackGraphCache.timestamp) < this.CACHE_TTL) {
-      console.log('Mytchi AI: Retornando attack graph do cache.');
+      console.log('VulnControl AI: Retornando attack graph do cache.');
       return { ...this.attackGraphCache.data, _cached: true, _cachedAt: new Date(this.attackGraphCache.timestamp).toISOString() };
     }
 
@@ -195,13 +418,26 @@ IMPORTANTE: DEVOLVA APENAS O JSON PURO E VALIDO. SEM TEXTO EXTRA.`;
       }
     });
 
-    if (!process.env.GROQ_API_KEY) {
-      return { scenarios: [], error: 'GROQ_API_KEY nao configurada.' };
+    const config = loadLlmConfig();
+    if (!config.apiKey && config.provider !== 'ollama') {
+      return { scenarios: [], error: 'IA não configurada. Vá em Configurações → Integrações.' };
     }
 
     if (vulnerabilidades.length < 2) {
       return { scenarios: [], message: 'Menos de 2 vulnerabilidades ativas para gerar Attack Graph.' };
     }
+
+    // Get assets for better context
+    const assetsForGraph = await prisma.asset.findMany({
+      select: { name: true, type: true, businessCriticality: true },
+      where: { vulnerabilities: { some: {} } }
+    });
+
+    let companyProfileGraph: any = null;
+    try {
+      const setting = await prisma.systemSettings.findUnique({ where: { key: 'company_profile' } });
+      if (setting) companyProfileGraph = JSON.parse(setting.value);
+    } catch {}
 
     const byAsset: Record<string, typeof vulnerabilidades> = {};
     for (const v of vulnerabilidades) {
@@ -230,32 +466,32 @@ IMPORTANTE: DEVOLVA APENAS O JSON PURO E VALIDO. SEM TEXTO EXTRA.`;
       }))
     }));
 
-    const systemPrompt = `Voce e a "Mytchi AI", CISO virtual da CredSystem (instituicao financeira).
+    const systemPrompt = `Voce e o motor de inteligencia do VulnControl, CISO virtual e especialista em Application Security.
 
-REGRAS ABSOLUTAS - QUEBRE QUALQUER UMA E O OUTPUT SERA REJEITADO:
+CONTEXTO: ${companyProfileGraph?.name || 'Empresa'}. ${companyProfileGraph?.description || 'Organizacao com ativos digitais.'}. Setor: ${companyProfileGraph?.sector || 'Nao informado'}.
+ATIVOS CADASTRADOS: ${assetsForGraph.map(a => `${a.name} (${a.type}, ${a.businessCriticality})`).join(', ') || 'Nenhum'}
+
+REGRAS ABSOLUTAS:
 1. Use APENAS as vulnerabilidades listadas abaixo. NAO invente CVEs, CWEs, falhas ou codigos.
-2. Cada no do grafo com tipo "entry" ou "exploit" DEVE referenciar um codigo real da lista (ex: VUL-394).
-3. O impacto final (no tipo "impact") DEVE ser EXATAMENTE uma destas categorias:
+2. Cada no do grafo com tipo "entry" ou "exploit" DEVE referenciar um codigo real da lista.
+3. O impacto final DEVE ser EXATAMENTE uma destas categorias:
    "Fraude Financeira", "Multa LGPD/Regulatoria", "Indisponibilidade de Servico", "Dano Reputacional"
-4. NAO invente cenarios que nao podem ser logicamente derivados das vulnerabilidades fornecidas.
+4. NAO invente cenarios que nao podem ser derivados das vulnerabilidades fornecidas.
 5. Cada cenario deve ter entre 2 e 6 nos (entry/exploit) mais 1 no de impact.
-6. As edges devem explicar em 1 frase curta COMO a exploracao de um no leva ao proximo.
 
-TAREFA: Para cada ativo que tenha 2+ vulns, gere UM cenario de ataque mostrando como as vulns podem ser ENCADEADAS para causar dano financeiro/regulatorio a CredSystem.
-
-Formato JSON EXATO (devolva APENAS o JSON puro, sem markdown, sem texto extra):
+Formato JSON EXATO (devolva APENAS o JSON puro):
 {
   "scenarios": [
     {
       "id": "scenario-1",
-      "title": "Nome descritivo do cenario de ataque",
-      "asset": "Nome do ativo (exatamente como na lista)",
-      "squad": "Nome da squad responsavel",
+      "title": "Nome descritivo do cenario",
+      "asset": "Nome do ativo",
+      "squad": "Nome da squad",
       "riskLevel": "CRITICO|ALTO|MEDIO",
-      "impactCategory": "Uma das 4 categorias fixas",
-      "description": "Resumo executivo do cenario em 2 linhas max",
+      "impactCategory": "Uma das 4 categorias",
+      "description": "Resumo em 2 linhas",
       "nodes": [
-        { "id": "n1", "vulnKey": "VUL-XXX", "label": "Titulo curto da vuln", "type": "entry", "criticidade": "EXTREMA" },
+        { "id": "n1", "vulnKey": "VUL-XXX", "label": "Titulo curto", "type": "entry", "criticidade": "EXTREMA" },
         { "id": "n2", "vulnKey": "VUL-YYY", "label": "Titulo curto", "type": "exploit", "criticidade": "ALTA" },
         { "id": "n3", "vulnKey": null, "label": "Categoria de Impacto", "type": "impact", "criticidade": null }
       ],
@@ -263,19 +499,19 @@ Formato JSON EXATO (devolva APENAS o JSON puro, sem markdown, sem texto extra):
         { "source": "n1", "target": "n2", "label": "Como A leva a B" },
         { "source": "n2", "target": "n3", "label": "Como B causa o impacto" }
       ],
-      "recommendation": "Acao corretiva especifica referenciando os codigos das vulns"
+      "recommendation": "Acao corretiva"
     }
   ]
 }`;
 
     try {
-      console.log("Mytchi AI: Gerando Attack Graph com Groq...");
-      let text = await this.callLLM(systemPrompt, `VULNERABILIDADES REAIS DO AMBIENTE CREDSYSTEM:\n${JSON.stringify(vulnData, null, 2)}`);
+      console.log(`VulnControl AI: Gerando Attack Graph com ${config.provider}/${config.model}...`);
+      let text = await this.callLLM(systemPrompt, `VULNERABILIDADES REAIS:\n${JSON.stringify(vulnData, null, 2)}`);
       text = text.replace(/```json/g, '').replace(/```/g, '').trim();
 
       const parsed = JSON.parse(text);
       this.attackGraphCache = { data: parsed, timestamp: Date.now() };
-      return { ...parsed, _cached: false };
+      return { ...parsed, _cached: false, _provider: config.provider, _model: config.model };
     } catch (e: any) {
       console.error("LLM Attack Graph Error:", e.message);
       if (this.attackGraphCache) {

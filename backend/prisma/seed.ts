@@ -13,6 +13,21 @@ async function main() {
     { email: 'leitor@credsystem.com.br', name: 'Auditor Externo', role: 'LEITURA' as const },
   ];
 
+  // Create test user with fixed password
+  const testPassword = await bcrypt.hash('teste@123', 12);
+  const testUser = await prisma.user.upsert({
+    where: { email: 'teste@gmail.com.br' },
+    update: { password: testPassword, active: true },
+    create: {
+      email: 'teste@gmail.com.br',
+      name: 'Usuário Teste',
+      role: 'ADMIN',
+      password: testPassword,
+      active: true,
+    },
+  });
+  console.log(`[TEST] ${testUser.email} => Senha: teste@123`);
+
   // Em producao, use SEED_ADMIN_PASSWORD env var. Em dev, gera senhas aleatorias.
   const envPassword = process.env.SEED_ADMIN_PASSWORD;
 
@@ -24,7 +39,7 @@ async function main() {
 
     const user = await prisma.user.upsert({
       where: { email: u.email },
-      update: {},
+      update: { password: hash, active: true },
       create: { ...u, password: hash, active: true },
     });
 

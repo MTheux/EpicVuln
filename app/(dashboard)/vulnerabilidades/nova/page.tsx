@@ -1,9 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Save, X, Loader2 } from "lucide-react"
+import { ArrowLeft, Save, X, Loader2, Server } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useVulnStore } from "@/lib/vuln-store"
+import { useAssetStore } from "@/lib/asset-store"
 import { toast } from "sonner"
 import type { Criticidade, Status, OwaspCategory, Complexidade } from "@/lib/types"
 
@@ -48,8 +49,13 @@ const complexidades: Complexidade[] = ['Baixa', 'Média', 'Alta']
 export default function NovaVulnerabilidadePage() {
   const router = useRouter()
   const { addVulnerabilidade } = useVulnStore()
+  const { assets, fetchAssets } = useAssetStore()
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    fetchAssets()
+  }, [])
 
   const [formData, setFormData] = useState({
     titulo: '',
@@ -82,6 +88,7 @@ export default function NovaVulnerabilidadePage() {
     observacao: '',
     complexidade: 'Média' as Complexidade,
     complexidadeCorrecao: 'Média' as Complexidade,
+    assetId: '',
   })
 
   const handleChange = (field: string, value: string) => {
@@ -164,6 +171,7 @@ export default function NovaVulnerabilidadePage() {
         status: formData.status as Status,
         complexidade: formData.complexidade,
         complexidadeCorrecao: formData.complexidadeCorrecao,
+        assetId: formData.assetId || undefined,
       })
 
       setSaving(false)
@@ -547,8 +555,45 @@ export default function NovaVulnerabilidadePage() {
               </div>
             </div>
 
+            {/* Ativo Vinculado (da Gestão de Ativos) */}
+            {assets.length > 0 && (
+              <div>
+                <Label className="flex items-center gap-1.5">
+                  <Server className="h-3.5 w-3.5 text-muted-foreground" />
+                  Ativo Vinculado
+                </Label>
+                <Select value={formData.assetId} onValueChange={(v) => {
+                  handleChange('assetId', v === '_none' ? '' : v)
+                  if (v && v !== '_none') {
+                    const selectedAsset = assets.find(a => a.id === v)
+                    if (selectedAsset) {
+                      if (!formData.ativo.trim()) handleChange('ativo', selectedAsset.name)
+                    }
+                  }
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Vincular a um ativo cadastrado" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="_none">Nenhum (não vincular)</SelectItem>
+                    {assets.map((a) => (
+                      <SelectItem key={a.id} value={a.id}>
+                        <span className="flex items-center gap-2">
+                          {a.name}
+                          <span className="text-xs text-muted-foreground">({a.type})</span>
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Ao vincular, a vuln aparece na página do ativo e conta no Risk Score.
+                </p>
+              </div>
+            )}
+
             <div>
-              <Label htmlFor="ativo">Ativo *</Label>
+              <Label htmlFor="ativo">Ativo (texto) *</Label>
               <Input
                 id="ativo"
                 placeholder="Ex: api-gateway, web-app"

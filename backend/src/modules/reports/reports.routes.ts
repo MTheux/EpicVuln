@@ -8,6 +8,7 @@ const controller = new ReportsController();
 router.use(authenticate);
 
 router.get('/insights', controller.getInsights.bind(controller));
+router.get('/dora', controller.getDora.bind(controller));
 router.get('/export/excel', controller.downloadExcel.bind(controller));
 router.get('/export/pdf', controller.downloadPdf.bind(controller));
 

@@ -28,7 +28,7 @@ export class AuthService {
     const jwtExpiresIn = env.JWT_EXPIRES_IN;
 
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
+      { id: user.id, email: user.email, role: user.role, organizationId: user.organizationId },
       jwtSecret,
       { expiresIn: jwtExpiresIn as any } // Cast to any to handle type mismatch in older jsonwebtoken types or env var
     );
@@ -40,6 +40,7 @@ export class AuthService {
         email: user.email,
         name: user.name,
         role: user.role,
+        organizationId: user.organizationId,
       }
     };
   }
@@ -54,6 +55,7 @@ export class AuthService {
         role: true,
         active: true,
         createdAt: true,
+        organizationId: true,
       }
     });
 
