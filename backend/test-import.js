@@ -49,7 +49,7 @@ async function run() {
     const loginRes = await fetch('http://localhost:3001/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'admin@credsystem.com.br', password: 'Admin@123' })
+      body: JSON.stringify({ email: 'admin@unisys.com', password: 'Admin@123' })
     });
     
     if (!loginRes.ok) throw new Error('Auth failed');

@@ -43,9 +43,9 @@ const safeFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<
   if (response.status === 401 && !isRedirecting) {
     if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
       isRedirecting = true
-      document.cookie = 'vulncontrol_session=; path=/; max-age=0'
-      document.cookie = 'vulncontrol_token=; path=/; max-age=0'
-      localStorage.removeItem('vulncontrol_user')
+      document.cookie = 'epicvuln_session=; path=/; max-age=0'
+      document.cookie = 'epicvuln_token=; path=/; max-age=0'
+      localStorage.removeItem('epicvuln_user')
       window.location.href = '/login'
     }
     throw new Error('SESSION_EXPIRED')

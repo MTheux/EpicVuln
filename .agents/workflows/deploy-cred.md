@@ -1,8 +1,8 @@
 ---
-description: Como extrair o projeto e subir no servidor da CredSystem via Docker
+description: Como extrair o projeto e subir no servidor da Unisys via Docker
 ---
 
-# Guia de Deployment (CredSystem VulnControl)
+# Guia de Deployment (Unisys VulnControl)
 
 Siga estes passos para extrair o projeto da sua máquina e subir no servidor.
 
@@ -37,4 +37,4 @@ Compress-Archive -Path .\* -DestinationPath ..\vulncontrol_deploy.zip -Exclude "
 
 ---
 > [!IMPORTANT]
-> Certifique-se de que as portas 9000 e 9001 estão abertas no firewall do servidor da CredSystem.
+> Certifique-se de que as portas 9000 e 9001 estão abertas no firewall do servidor da Unisys.

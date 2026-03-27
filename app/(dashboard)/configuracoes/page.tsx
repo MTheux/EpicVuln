@@ -60,7 +60,6 @@ import { usePreferences } from "@/components/preferences-provider"
 import { authHeaders, getUser } from "@/lib/auth"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
-import { useSlaConfig } from "@/lib/use-sla"
 
 const getApiUrl = () => {
   if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL
@@ -79,7 +78,7 @@ function ThemePreview({ variant }: { variant: "light" | "dark" }) {
       <div className="flex h-full">
         <div className={cn("w-[22%] h-full p-1.5 space-y-1", d ? "bg-slate-800" : "bg-slate-100")}>
           <div className={cn("h-1.5 w-3/4 rounded-full", d ? "bg-slate-600" : "bg-slate-300")} />
-          <div className={cn("h-1.5 w-full rounded-full", d ? "bg-blue-500/60" : "bg-blue-500/50")} />
+          <div className={cn("h-1.5 w-full rounded-full", d ? "bg-emerald-500/60" : "bg-emerald-500/50")} />
           <div className={cn("h-1.5 w-5/6 rounded-full", d ? "bg-slate-600" : "bg-slate-300")} />
           <div className={cn("h-1.5 w-4/5 rounded-full", d ? "bg-slate-600" : "bg-slate-300")} />
         </div>
@@ -115,16 +114,6 @@ function SettingRow({ icon: Icon, label, description, checked, onChange }: {
   )
 }
 
-// ============ SLA Config ============
-const SLA_SEVERITY_META: { key: string; severity: string; color: string }[] = [
-  { key: 'EXTREMA', severity: 'Extrema', color: 'bg-red-600' },
-  { key: 'CRITICA', severity: 'Crítica', color: 'bg-orange-500' },
-  { key: 'ALTA', severity: 'Alta', color: 'bg-amber-500' },
-  { key: 'MEDIA', severity: 'Média', color: 'bg-yellow-400' },
-  { key: 'BAIXA', severity: 'Baixa', color: 'bg-blue-500' },
-  { key: 'INFORMATIVA', severity: 'Informativa', color: 'bg-slate-400' },
-]
-
 // ============ Role Config ============
 const roleLabels: Record<string, string> = {
   ADMIN: 'Administrador',
@@ -141,7 +130,7 @@ const roleBadgeColors: Record<string, string> = {
   LEITURA: 'bg-slate-500/10 text-slate-600 border-slate-500/20',
 }
 
-type TabId = 'appearance' | 'sla' | 'notifications' | 'users' | 'security' | 'integrations'
+type TabId = 'appearance' | 'notifications' | 'users' | 'integrations'
 
 export default function ConfiguracoesPage() {
   const router = useRouter()
@@ -159,7 +148,7 @@ export default function ConfiguracoesPage() {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search)
       const tab = params.get('tab')
-      if (tab && ['appearance', 'sla', 'notifications', 'users', 'security', 'integrations'].includes(tab)) {
+      if (tab && ['appearance', 'notifications', 'users', 'integrations'].includes(tab)) {
         setActiveTab(tab as TabId)
       }
     }
@@ -178,25 +167,6 @@ export default function ConfiguracoesPage() {
 
   // Company profile state
   const [companyProfile, setCompanyProfile] = useState<{ name?: string; sector?: string; description?: string } | null>(null)
-
-  // SLA state (from API via hook)
-  const { slaConfig: slaFromApi, saveSlaConfig, loading: slaLoading } = useSlaConfig()
-  const [localSla, setLocalSla] = useState<Record<string, number>>({})
-  const [slaEditing, setSlaEditing] = useState(false)
-
-  // Sync local SLA edits from API data
-  useEffect(() => {
-    if (!slaLoading) {
-      setLocalSla(slaFromApi)
-    }
-  }, [slaFromApi, slaLoading])
-
-  // Build slaItems for display
-  const slaItems = SLA_SEVERITY_META.map(meta => ({
-    ...meta,
-    days: localSla[meta.key] ?? 0,
-    label: (localSla[meta.key] ?? 0) === 0 ? 'Imediato' : `${localSla[meta.key]} dias`,
-  }))
 
   // Notification prefs
   const [notifPrefs, setNotifPrefs] = useState({
@@ -319,10 +289,8 @@ export default function ConfiguracoesPage() {
 
   const tabs: { id: TabId; label: string; icon: LucideIcon; adminOnly?: boolean }[] = [
     { id: 'appearance', label: 'Aparência', icon: Palette },
-    { id: 'sla', label: 'SLA & Prazos', icon: Clock },
     { id: 'notifications', label: 'Notificações', icon: Bell },
     { id: 'users', label: 'Usuários', icon: Users, adminOnly: true },
-    { id: 'security', label: 'Segurança', icon: Shield },
     { id: 'integrations', label: 'Integrações', icon: Link2 },
   ]
 
@@ -333,8 +301,8 @@ export default function ConfiguracoesPage() {
       {/* Header */}
       <div className="mb-8 max-w-5xl">
         <div className="flex items-center gap-3 mb-1">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/10">
-            <Settings className="h-5 w-5 text-blue-500" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/10">
+            <Settings className="h-5 w-5 text-emerald-500" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground">Configurações</h1>
@@ -354,7 +322,7 @@ export default function ConfiguracoesPage() {
                 className={cn(
                   "w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all text-left",
                   activeTab === tab.id
-                    ? "bg-blue-500/10 text-blue-500 border border-blue-500/20"
+                    ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
@@ -374,7 +342,7 @@ export default function ConfiguracoesPage() {
           <div>
             <div className="mb-4">
               <h2 className="text-lg font-semibold text-foreground">Tema da Interface</h2>
-              <p className="text-sm text-muted-foreground">Escolha como o VulnControl aparece para você</p>
+              <p className="text-sm text-muted-foreground">Escolha como o EpicVuln aparece para você</p>
             </div>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               {[
@@ -387,10 +355,10 @@ export default function ConfiguracoesPage() {
                   <button key={opt.value} onClick={() => setTheme(opt.value)}
                     className={cn(
                       "group relative flex flex-col rounded-xl border-2 p-4 text-left transition-all duration-200 hover:shadow-md",
-                      isActive ? "border-blue-500 bg-blue-500/5 shadow-sm shadow-blue-500/10" : "border-border bg-card hover:border-muted-foreground/30"
+                      isActive ? "border-emerald-500 bg-emerald-500/5 shadow-sm shadow-emerald-500/10" : "border-border bg-card hover:border-muted-foreground/30"
                     )}>
                     {isActive && (
-                      <div className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 shadow-lg shadow-blue-500/30">
+                      <div className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 shadow-lg shadow-emerald-500/30">
                         <Check className="h-3 w-3 text-white" />
                       </div>
                     )}
@@ -401,8 +369,8 @@ export default function ConfiguracoesPage() {
                       </div>
                     )}
                     <div className="mt-3 flex items-center gap-2">
-                      <opt.icon className={cn("h-4 w-4", isActive ? "text-blue-500" : "text-muted-foreground")} />
-                      <span className={cn("text-sm font-semibold", isActive ? "text-blue-500" : "text-foreground")}>{opt.label}</span>
+                      <opt.icon className={cn("h-4 w-4", isActive ? "text-emerald-500" : "text-muted-foreground")} />
+                      <span className={cn("text-sm font-semibold", isActive ? "text-emerald-500" : "text-foreground")}>{opt.label}</span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5 ml-6">{opt.desc}</p>
                   </button>
@@ -461,103 +429,6 @@ export default function ConfiguracoesPage() {
         </div>
       )}
 
-      {/* ===================== SLA & PRAZOS ===================== */}
-      {activeTab === 'sla' && (
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">SLA Corporativo</h2>
-            <p className="text-sm text-muted-foreground">Prazos máximos para correção de vulnerabilidades por severidade</p>
-          </div>
-
-          <Card className="border-border bg-card">
-            <CardContent className="p-0">
-              <div className="grid grid-cols-1 divide-y divide-border">
-                {slaItems.map((item) => (
-                  <div key={item.severity} className="flex items-center gap-4 px-5 py-4">
-                    <div className={cn("h-10 w-10 rounded-xl flex items-center justify-center text-white text-xs font-bold shrink-0", item.color)}>
-                      {item.days === 0 ? '!' : item.days}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-foreground">{item.severity}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {item.days === 0 ? 'Correção imediata necessária' : `Até ${item.days} dias para correção`}
-                      </p>
-                    </div>
-                    {slaEditing ? (
-                      <div className="flex items-center gap-2">
-                        <Input
-                          type="number"
-                          className="w-20 h-8 text-sm text-center"
-                          value={item.days}
-                          min={0}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value) || 0
-                            setLocalSla(prev => ({ ...prev, [item.key]: val }))
-                          }}
-                        />
-                        <span className="text-xs text-muted-foreground">dias</span>
-                      </div>
-                    ) : (
-                      <Badge variant="outline" className="text-xs font-medium shrink-0">
-                        {item.label}
-                      </Badge>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="flex gap-2">
-            <Button variant={slaEditing ? "default" : "outline"} size="sm"
-              disabled={slaLoading}
-              onClick={async () => {
-                if (slaEditing) {
-                  try {
-                    await saveSlaConfig(localSla)
-                    toast.success('SLA salvo com sucesso')
-                  } catch (e: any) {
-                    toast.error('Erro ao salvar SLA', { description: e.message })
-                  }
-                }
-                setSlaEditing(!slaEditing)
-              }}>
-              {slaEditing ? (
-                <><Check className="mr-2 h-4 w-4" /> Salvar</>
-              ) : (
-                <><Pencil className="mr-2 h-4 w-4" /> Editar Prazos</>
-              )}
-            </Button>
-            {slaEditing && (
-              <Button variant="ghost" size="sm" onClick={() => { setLocalSla(slaFromApi); setSlaEditing(false) }}>
-                Cancelar
-              </Button>
-            )}
-          </div>
-
-          <Separator />
-
-          {/* SLA Timeline */}
-          <div>
-            <h3 className="text-sm font-semibold text-foreground mb-4">Linha do Tempo SLA</h3>
-            <div className="relative">
-              {/* Base line */}
-              <div className="h-1 bg-muted rounded-full" />
-              {/* Points */}
-              <div className="flex justify-between -mt-3">
-                {slaItems.map((item) => (
-                  <div key={item.severity} className="flex flex-col items-center">
-                    <div className={cn("h-5 w-5 rounded-full border-2 border-background shadow-sm", item.color)} />
-                    <span className="text-[10px] font-semibold text-foreground mt-1.5">{item.severity.substring(0, 3)}</span>
-                    <span className="text-[10px] text-muted-foreground">{item.days === 0 ? 'Imediato' : `${item.days}d`}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ===================== NOTIFICAÇÕES ===================== */}
       {activeTab === 'notifications' && (
         <div className="space-y-6">
@@ -599,7 +470,7 @@ export default function ConfiguracoesPage() {
           <Card className="border-border bg-card">
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
-                <Bell className="h-4 w-4 text-blue-500" />
+                <Bell className="h-4 w-4 text-emerald-500" />
                 Atividades
               </CardTitle>
               <CardDescription className="text-xs">Atualizações sobre vulnerabilidades e relatórios</CardDescription>
@@ -817,7 +688,7 @@ export default function ConfiguracoesPage() {
                     </div>
                     <div className="space-y-2">
                       <Label className="text-xs font-medium">Email</Label>
-                      <Input placeholder="email@credsystem.com.br" value={newUser.email}
+                      <Input placeholder="email@unisys.com" value={newUser.email}
                         onChange={e => setNewUser(p => ({ ...p, email: e.target.value }))} />
                     </div>
                     <div className="space-y-2">
@@ -840,78 +711,6 @@ export default function ConfiguracoesPage() {
               </Dialog>
             </>
           )}
-        </div>
-      )}
-
-      {/* ===================== SEGURANÇA ===================== */}
-      {activeTab === 'security' && (
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">Segurança da Conta</h2>
-            <p className="text-sm text-muted-foreground">Gerencie sua sessão e visualize as proteções ativas</p>
-          </div>
-
-          {/* Current session info */}
-          <Card className="border-border bg-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <KeyRound className="h-4 w-4 text-blue-500" />
-                Sessão Atual
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="rounded-xl bg-muted/40 border border-border p-3">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Usuário</p>
-                  <p className="text-sm font-semibold text-foreground">{currentUser?.name || '—'}</p>
-                  <p className="text-xs text-muted-foreground">{currentUser?.email || '—'}</p>
-                </div>
-                <div className="rounded-xl bg-muted/40 border border-border p-3">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Perfil</p>
-                  <Badge variant="outline" className={cn("text-xs border mt-1", roleBadgeColors[currentUser?.role || ''] || '')}>
-                    {roleLabels[currentUser?.role || ''] || currentUser?.role}
-                  </Badge>
-                </div>
-                <div className="rounded-xl bg-muted/40 border border-border p-3">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Token</p>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-xs text-emerald-600 font-medium">HttpOnly Cookie (8h)</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Security Tips */}
-          <Card className="border-border bg-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Shield className="h-4 w-4 text-emerald-500" />
-                Segurança da Plataforma
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {[
-                  { label: 'Autenticação', desc: 'JWT via HttpOnly Cookie', ok: true },
-                  { label: 'CORS', desc: 'Apenas origens autorizadas', ok: true },
-                  { label: 'Rate Limiting', desc: 'Proteção contra brute-force', ok: true },
-                  { label: 'CSP Headers', desc: 'Content Security Policy ativo', ok: true },
-                  { label: 'Input Validation', desc: 'Prevenção XXE e injection', ok: true },
-                  { label: 'Bcrypt', desc: 'Hash com 12 salt rounds', ok: true },
-                ].map(item => (
-                  <div key={item.label} className="flex items-center gap-3 rounded-lg bg-muted/30 border border-border/50 px-3 py-2.5">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                    <div>
-                      <p className="text-xs font-medium text-foreground">{item.label}</p>
-                      <p className="text-[10px] text-muted-foreground">{item.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
         </div>
       )}
 

@@ -71,9 +71,8 @@ interface Squad {
 }
 
 const DATA_SOURCES = [
-  { id: "jira", name: "Jira", icon: ExternalLink, implemented: true },
+  { id: "ibm-rtc", name: "IBM RTC", icon: Server, implemented: true },
   { id: "azure", name: "Azure DevOps", icon: Cloud, implemented: false },
-  { id: "ibm-rtc", name: "IBM RTC", icon: Server, implemented: false },
   { id: "gitlab", name: "GitLab Issues", icon: GitBranch, implemented: false },
   { id: "csv", name: "Manual/CSV", icon: Upload, implemented: true },
 ]
@@ -100,9 +99,8 @@ export default function OnboardingPage() {
 
   // Step 2 - Data Sources
   const [dataSources, setDataSources] = useState<Record<string, DataSourceConfig>>({
-    jira: { enabled: false },
-    azure: { enabled: false },
     "ibm-rtc": { enabled: false },
+    azure: { enabled: false },
     gitlab: { enabled: false },
     csv: { enabled: true },
   })
@@ -217,17 +215,17 @@ export default function OnboardingPage() {
 
       if (!resp.ok) throw new Error('Erro ao salvar perfil')
 
-      // If Jira is configured, save Jira settings separately
-      if (dataSources.jira?.enabled && dataSources.jira.url) {
-        await fetch(`${API_URL}/api/jira/settings`, {
+      // If IBM RTC is configured, save RTC settings separately
+      if (dataSources["ibm-rtc"]?.enabled && dataSources["ibm-rtc"].url) {
+        await fetch(`${API_URL}/api/rtc/settings`, {
           method: 'POST',
           headers: authHeaders(),
           credentials: 'include',
           body: JSON.stringify({
-            url: dataSources.jira.url,
-            email: dataSources.jira.email,
-            token: dataSources.jira.token,
-            projects: dataSources.jira.projects,
+            url: dataSources["ibm-rtc"].url,
+            username: dataSources["ibm-rtc"].email,
+            password: dataSources["ibm-rtc"].token,
+            projectArea: dataSources["ibm-rtc"].projects,
           }),
         })
       }
@@ -255,12 +253,12 @@ export default function OnboardingPage() {
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-1">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/10">
-            <Building2 className="h-5 w-5 text-blue-500" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 border border-emerald-500/10">
+            <Building2 className="h-5 w-5 text-emerald-500" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground">Setup Inicial</h1>
-            <p className="text-sm text-muted-foreground">Configure o VulnControl para sua empresa</p>
+            <p className="text-sm text-muted-foreground">Configure o EpicVuln para sua empresa</p>
           </div>
         </div>
       </div>
@@ -275,9 +273,9 @@ export default function OnboardingPage() {
                   className={cn(
                     "flex h-10 w-10 items-center justify-center rounded-full border-2 text-sm font-semibold transition-all",
                     currentStep > step.number
-                      ? "bg-blue-500 border-blue-500 text-white"
+                      ? "bg-emerald-500 border-emerald-500 text-white"
                       : currentStep === step.number
-                        ? "border-blue-500 text-blue-500 bg-blue-500/10"
+                        ? "border-emerald-500 text-emerald-500 bg-emerald-500/10"
                         : "border-muted-foreground/30 text-muted-foreground/50"
                   )}
                 >
@@ -300,7 +298,7 @@ export default function OnboardingPage() {
                 <div
                   className={cn(
                     "h-0.5 w-12 sm:w-20 mx-2 mt-[-1.25rem] transition-all",
-                    currentStep > step.number ? "bg-blue-500" : "bg-muted-foreground/20"
+                    currentStep > step.number ? "bg-emerald-500" : "bg-muted-foreground/20"
                   )}
                 />
               )}
@@ -312,7 +310,7 @@ export default function OnboardingPage() {
       {/* Progress bar */}
       <div className="w-full h-1 bg-muted rounded-full mb-8 overflow-hidden">
         <div
-          className="h-full bg-blue-500 rounded-full transition-all duration-500"
+          className="h-full bg-emerald-500 rounded-full transition-all duration-500"
           style={{ width: `${(currentStep / STEPS.length) * 100}%` }}
         />
       </div>
@@ -371,7 +369,7 @@ export default function OnboardingPage() {
           <CardHeader>
             <CardTitle>Fontes de Dados</CardTitle>
             <CardDescription>
-              Selecione e configure as fontes de onde o VulnControl importara vulnerabilidades.
+              Selecione e configure as fontes de onde o EpicVuln importara vulnerabilidades.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -385,16 +383,16 @@ export default function OnboardingPage() {
                     className={cn(
                       "flex items-center justify-between p-4 rounded-lg border cursor-pointer transition-all",
                       isEnabled
-                        ? "border-blue-500/50 bg-blue-500/5"
+                        ? "border-emerald-500/50 bg-emerald-500/5"
                         : "border-border hover:border-muted-foreground/30"
                     )}
                   >
                     <div className="flex items-center gap-3">
                       <div className={cn(
                         "flex h-10 w-10 items-center justify-center rounded-lg",
-                        isEnabled ? "bg-blue-500/10" : "bg-muted"
+                        isEnabled ? "bg-emerald-500/10" : "bg-muted"
                       )}>
-                        <source.icon className={cn("h-5 w-5", isEnabled ? "text-blue-500" : "text-muted-foreground")} />
+                        <source.icon className={cn("h-5 w-5", isEnabled ? "text-emerald-500" : "text-muted-foreground")} />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
@@ -414,49 +412,49 @@ export default function OnboardingPage() {
                     </div>
                     <div className={cn(
                       "h-5 w-5 rounded-full border-2 flex items-center justify-center transition-all",
-                      isEnabled ? "border-blue-500 bg-blue-500" : "border-muted-foreground/30"
+                      isEnabled ? "border-emerald-500 bg-emerald-500" : "border-muted-foreground/30"
                     )}>
                       {isEnabled && <Check className="h-3 w-3 text-white" />}
                     </div>
                   </div>
 
                   {/* Config fields */}
-                  {isEnabled && source.id === "jira" && (
+                  {isEnabled && source.id === "ibm-rtc" && (
                     <div className="mt-3 ml-4 p-4 rounded-lg border border-dashed space-y-3">
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1">
-                          <Label className="text-xs">URL do Jira</Label>
+                          <Label className="text-xs">URL do IBM RTC</Label>
                           <Input
-                            placeholder="https://company.atlassian.net"
+                            placeholder="https://rtc.company.com/ccm"
                             value={config?.url || ""}
-                            onChange={e => updateDataSource("jira", "url", e.target.value)}
+                            onChange={e => updateDataSource("ibm-rtc", "url", e.target.value)}
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-xs">Email</Label>
+                          <Label className="text-xs">Username</Label>
                           <Input
                             placeholder="user@company.com"
                             value={config?.email || ""}
-                            onChange={e => updateDataSource("jira", "email", e.target.value)}
+                            onChange={e => updateDataSource("ibm-rtc", "email", e.target.value)}
                           />
                         </div>
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1">
-                          <Label className="text-xs">API Token</Label>
+                          <Label className="text-xs">Password</Label>
                           <Input
                             type="password"
-                            placeholder="Token de acesso"
+                            placeholder="Senha de acesso"
                             value={config?.token || ""}
-                            onChange={e => updateDataSource("jira", "token", e.target.value)}
+                            onChange={e => updateDataSource("ibm-rtc", "token", e.target.value)}
                           />
                         </div>
                         <div className="space-y-1">
-                          <Label className="text-xs">Projetos (separados por virgula)</Label>
+                          <Label className="text-xs">Project Area</Label>
                           <Input
-                            placeholder="PROJ1, PROJ2"
+                            placeholder="ProjectArea1"
                             value={config?.projects || ""}
-                            onChange={e => updateDataSource("jira", "projects", e.target.value)}
+                            onChange={e => updateDataSource("ibm-rtc", "projects", e.target.value)}
                           />
                         </div>
                       </div>
@@ -643,7 +641,7 @@ export default function OnboardingPage() {
             {/* Company summary */}
             <div className="space-y-2">
               <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-blue-500" />
+                <Building2 className="h-4 w-4 text-emerald-500" />
                 Empresa
               </h3>
               <div className="rounded-lg border p-4 space-y-1">
@@ -658,7 +656,7 @@ export default function OnboardingPage() {
             {/* Data sources summary */}
             <div className="space-y-2">
               <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <ExternalLink className="h-4 w-4 text-blue-500" />
+                <ExternalLink className="h-4 w-4 text-emerald-500" />
                 Fontes de Dados
               </h3>
               <div className="rounded-lg border p-4">
@@ -671,9 +669,9 @@ export default function OnboardingPage() {
                     </Badge>
                   ))}
                 </div>
-                {dataSources.jira?.enabled && dataSources.jira.url && (
+                {dataSources["ibm-rtc"]?.enabled && dataSources["ibm-rtc"].url && (
                   <p className="text-xs text-muted-foreground mt-2">
-                    Jira: {dataSources.jira.url} ({dataSources.jira.projects || "sem projetos"})
+                    IBM RTC: {dataSources["ibm-rtc"].url} ({dataSources["ibm-rtc"].projects || "sem project area"})
                   </p>
                 )}
               </div>
@@ -682,7 +680,7 @@ export default function OnboardingPage() {
             {/* Squads summary */}
             <div className="space-y-2">
               <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-blue-500" />
+                <Building2 className="h-4 w-4 text-emerald-500" />
                 Squads ({squads.filter(s => s.name).length})
               </h3>
               <div className="rounded-lg border p-4">
@@ -729,7 +727,7 @@ export default function OnboardingPage() {
           <Button
             onClick={handleSubmit}
             disabled={saving}
-            className="bg-blue-600 hover:bg-blue-700"
+            className="bg-emerald-600 hover:bg-emerald-700"
           >
             {saving ? (
               <>

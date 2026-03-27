@@ -1,7 +1,6 @@
 import { z } from 'zod';
 
 const criticidadeEnum = z.enum([
-  'EXTREMA',
   'CRITICA',
   'ALTA',
   'MEDIA',
@@ -62,7 +61,7 @@ export const createVulnerabilitySchema = z.object({
   tags: z.array(z.string()).optional().default([]),
   reincidencia: z.number().int().min(0).optional().default(0),
   sla: z.string().datetime({ offset: true }).optional().or(z.string().date().optional()),
-  jiraKey: z.string().optional(),
+  jiraKey: z.string().optional(), // DB column - stores RTC work item ID
 });
 
 export const updateVulnerabilitySchema = createVulnerabilitySchema.partial();

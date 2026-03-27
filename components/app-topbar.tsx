@@ -72,7 +72,7 @@ export function AppTopbar() {
             dropdownOpen ? "bg-muted" : "hover:bg-muted/60"
           )}
         >
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-[11px] font-bold text-white shadow-sm">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-[11px] font-bold text-white shadow-sm">
             {initials}
           </div>
           <div className="hidden sm:flex flex-col items-start">
@@ -92,7 +92,7 @@ export function AppTopbar() {
             {/* User info header */}
             <div className="px-4 py-3.5 bg-muted/30 border-b border-border/50">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-sm font-bold text-white">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-sm font-bold text-white">
                   {initials}
                 </div>
                 <div className="min-w-0">

@@ -10,7 +10,7 @@ router.use(authenticate);
 
 router.get('/', controller.findAll.bind(controller));
 router.post('/', controller.create.bind(controller));
-router.post('/import', controller.importJira.bind(controller));
+router.post('/import', controller.importData.bind(controller));
 router.post('/import-xml', controller.importXml.bind(controller));
 router.delete('/all', requireRoles(['ADMIN', 'SEGURANCA']), controller.deleteAll.bind(controller));
 router.get('/:id', controller.findOne.bind(controller));

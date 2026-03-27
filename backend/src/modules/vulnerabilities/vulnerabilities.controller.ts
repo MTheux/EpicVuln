@@ -43,7 +43,7 @@ export class VulnerabilitiesController {
     }
   }
 
-  async importJira(req: AuthRequest, res: Response) {
+  async importData(req: AuthRequest, res: Response) {
     try {
       if (!req.user) {
         res.status(401).json({ error: 'Unauthorized' });
@@ -56,10 +56,10 @@ export class VulnerabilitiesController {
         return;
       }
 
-      const result = await this.service.importJiraJson(payload, req.user.id, req.organizationId);
+      const result = await this.service.importJsonData(payload, req.user.id, req.organizationId);
       res.status(200).json(result);
     } catch (error: any) {
-      console.error("Erro na importação de JSON do Jira:", error);
+      console.error("Erro na importação de JSON:", error);
       res.status(500).json({ error: 'Erro ao importar dados' });
     }
   }
@@ -126,7 +126,7 @@ export class VulnerabilitiesController {
       }
 
       if (rawItems.length === 0) {
-        res.status(400).json({ error: 'Formato XML não reconhecido ou vazio. Use XML Jira RSS ou formato <Epics><Epic>.' });
+        res.status(400).json({ error: 'Formato XML não reconhecido ou vazio. Use XML RSS ou formato <Epics><Epic>.' });
         return;
       }
 
@@ -157,7 +157,7 @@ export class VulnerabilitiesController {
           criador: getText(getFieldIgnoringCase(epic, 'Relator') || getFieldIgnoringCase(epic, 'Creator')),
         }));
       } else {
-        // Parse formato Jira RSS
+        // Parse formato RSS
         const getCustomField = (item: any, fieldName: string): string => {
           const fieldsObj = getFieldIgnoringCase(item, 'customfields');
           const fields = getFieldIgnoringCase(fieldsObj, 'customfield');
@@ -209,7 +209,7 @@ export class VulnerabilitiesController {
       }
 
       console.log(`[Import] Sucesso: ${items.length} itens mapeados.`);
-      const result = await this.service.importJiraJson(items, req.user.id, req.organizationId);
+      const result = await this.service.importJsonData(items, req.user.id, req.organizationId);
       res.status(200).json(result);
 
     } catch (error: any) {

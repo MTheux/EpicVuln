@@ -56,7 +56,7 @@ export class VulnerabilitiesService {
   async create(data: any, userId: string, organizationId?: string) {
     const mapCriticidade = (val?: string) => {
       if (!val) return 'ALTA';
-      const m: any = { 'Extrema': 'EXTREMA', 'Crítica': 'CRITICA', 'Alta': 'ALTA', 'Média': 'MEDIA', 'Baixa': 'BAIXA', 'Informativa': 'INFORMATIVA' };
+      const m: any = { 'Extrema': 'CRITICA', 'Crítica': 'CRITICA', 'Alta': 'ALTA', 'Média': 'MEDIA', 'Baixa': 'BAIXA', 'Informativa': 'INFORMATIVA' };
       return m[val] || 'ALTA';
     };
     const mapStatus = (val?: string) => {
@@ -242,14 +242,14 @@ export class VulnerabilitiesService {
     };
   }
 
-  async importJiraJson(payload: any[], userId: string, organizationId?: string) {
+  async importJsonData(payload: any[], userId: string, organizationId?: string) {
     let imported = 0;
     let errors = [];
 
     // Mapeamentos para o Prisma
     const mapCriticidade = (prioridade: string) => {
-      const mapeamento: Record<string, 'EXTREMA' | 'CRITICA' | 'ALTA' | 'MEDIA' | 'BAIXA' | 'INFORMATIVA'> = {
-        'Highest': 'EXTREMA',
+      const mapeamento: Record<string, 'CRITICA' | 'ALTA' | 'MEDIA' | 'BAIXA' | 'INFORMATIVA'> = {
+        'Highest': 'CRITICA',
         'High': 'ALTA',
         'Medium': 'MEDIA',
         'Low': 'BAIXA',
@@ -258,7 +258,7 @@ export class VulnerabilitiesService {
       return mapeamento[prioridade] || 'MEDIA';
     };
 
-    // Mapeia status combinando o campo customizado (Corrigida/Não Corrigida) + workflow do Jira
+    // Mapeia status combinando o campo customizado (Corrigida/Não Corrigida) + workflow
     const mapStatus = (statusCorrecao: string, statusWorkflow?: string) => {
       const norm = (s: string) => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
       const sc = norm(statusCorrecao || '');
@@ -267,7 +267,7 @@ export class VulnerabilitiesService {
       // Campo customizado "Corrigida" = concluído
       if (sc.includes('corrigida') && !sc.includes('nao corrigida')) return 'CONCLUIDO';
 
-      // Workflow do Jira
+      // Workflow status mapping
       if (sw.includes('concluido') || sw.includes('concluida')) return 'CONCLUIDO';
       if (sw.includes('validacoes') || sw.includes('validacao') || sw.includes('seguranca')) return 'EM_RETESTE';
       if (sw.includes('backlog andamento') || sw.includes('andamento')) return 'EM_CORRECAO';
@@ -309,7 +309,7 @@ export class VulnerabilitiesService {
           continue;
         }
 
-        // Evitar duplicidade baseada no jiraKey
+        // Evitar duplicidade baseada na key
         const existing = await prisma.vulnerability.findFirst({
           where: { jiraKey }
         });
@@ -318,13 +318,13 @@ export class VulnerabilitiesService {
         const cweMatch = (item.resumo || '').match(/\[CWE-(\d+)\]/);
         const cwe = cweMatch ? `CWE-${cweMatch[1]}` : undefined;
 
-        // Calcular dias em aberto baseado na data de criação do Jira
-        const dataCriacaoJira = item.dataCriacao ? new Date(item.dataCriacao) : new Date();
+        // Calcular dias em aberto baseado na data de criação
+        const dataCriacaoOrigem = item.dataCriacao ? new Date(item.dataCriacao) : new Date();
         const now = new Date();
         let diasEmAberto = 0;
         
-        if (!isNaN(dataCriacaoJira.getTime())) {
-          diasEmAberto = Math.floor((now.getTime() - dataCriacaoJira.getTime()) / (1000 * 60 * 60 * 24));
+        if (!isNaN(dataCriacaoOrigem.getTime())) {
+          diasEmAberto = Math.floor((now.getTime() - dataCriacaoOrigem.getTime()) / (1000 * 60 * 60 * 24));
         }
         
         // Garantir que diasEmAberto não seja NaN nem negativo para o banco
@@ -340,7 +340,7 @@ export class VulnerabilitiesService {
         const data: any = {
           jiraKey: item.key,
           titulo: item.resumo || 'Sem Título',
-          descricaoExecutiva: item.resumo || item.impacto || item.descricao || 'Importado via Jira',
+          descricaoExecutiva: item.resumo || item.impacto || item.descricao || 'Importado via JSON',
           descricaoTecnica: item.descricao || 'Nenhuma descrição detalhada disponível.',
           criticidade: mapCriticidade(item.prioridade),
           status: mapStatus(item.statusCorrecao || item.status || '', item.statusWorkflow || ''),
@@ -363,7 +363,7 @@ export class VulnerabilitiesService {
         if (cwe) data.cwe = cwe;
         if (item.categorias) data.tags = [item.categorias];
 
-        // Tratamento de Datas — usar datas do Jira, não a data de import
+        // Tratamento de Datas — usar datas da origem, não a data de import
         if (item.dataCriacao) {
           const d = new Date(item.dataCriacao);
           if (!isNaN(d.getTime())) data.dataCriacao = d;
@@ -395,7 +395,7 @@ export class VulnerabilitiesService {
             }
           });
         } else {
-          // Usar jiraKey como codigoInterno (mais útil que VULN-timestamp)
+          // Usar key como codigoInterno (mais útil que VULN-timestamp)
           data.codigoInterno = item.key;
           data.createdById = userId;
           if (organizationId) data.organizationId = organizationId;

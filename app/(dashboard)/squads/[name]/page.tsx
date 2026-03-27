@@ -51,8 +51,7 @@ const getApiUrl = () => {
 const API_URL = getApiUrl()
 
 const SEVERITY_COLORS: Record<string, string> = {
-  EXTREMA: "#ef4444",
-  CRITICA: "#f97316",
+  CRITICA: "#ef4444",
   ALTA: "#eab308",
   MEDIA: "#3b82f6",
   BAIXA: "#22c55e",
@@ -60,7 +59,6 @@ const SEVERITY_COLORS: Record<string, string> = {
 }
 
 const SEVERITY_LABELS: Record<string, string> = {
-  EXTREMA: "Extrema",
   CRITICA: "Critica",
   ALTA: "Alta",
   MEDIA: "Media",
@@ -83,8 +81,7 @@ const STATUS_LABELS: Record<string, string> = {
 const OPEN_STATUSES = ['NOVO', 'ABERTO', 'EM_BACKLOG', 'EM_CORRECAO', 'EM_RETESTE']
 
 const CRITICIDADE_BADGE: Record<string, string> = {
-  EXTREMA: "bg-red-600 text-white",
-  CRITICA: "bg-red-500 text-white",
+  CRITICA: "bg-red-600 text-white",
   ALTA: "bg-orange-500 text-white",
   MEDIA: "bg-amber-500 text-black",
   BAIXA: "bg-green-500 text-white",
@@ -135,7 +132,7 @@ interface SquadDetail {
   total: number
   openCount: number
   closedCount: number
-  extrema: number
+  extrema: number // kept for API compat, always 0
   critica: number
   alta: number
   media: number
@@ -172,8 +169,8 @@ export default function SquadDetailPage() {
         credentials: 'include',
       })
       if (res.status === 401) {
-        localStorage.removeItem('vulncontrol_user')
-        document.cookie = 'vulncontrol_token=; path=/; max-age=0'
+        localStorage.removeItem('epicvuln_user')
+        document.cookie = 'epicvuln_token=; path=/; max-age=0'
         window.location.href = '/login'
         return
       }
@@ -264,7 +261,7 @@ export default function SquadDetailPage() {
         <Card className="bg-card border-border">
           <CardContent className="pt-4 pb-4 text-center">
             <p className="text-xs text-muted-foreground">Ext + Crit</p>
-            <p className="text-2xl font-bold text-red-400">{data.extrema + data.critica}</p>
+            <p className="text-2xl font-bold text-red-400">{data.critica}</p>
           </CardContent>
         </Card>
         <Card className="bg-card border-border">
@@ -343,7 +340,7 @@ export default function SquadDetailPage() {
         <Card className="bg-card border-border shadow-sm">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-blue-500" />
+              <Users className="h-5 w-5 text-emerald-500" />
               <CardTitle className="text-base">Desenvolvedores da Squad</CardTitle>
             </div>
             <CardDescription>Falhas atreladas a cada responsavel — clique para expandir</CardDescription>
@@ -363,8 +360,8 @@ export default function SquadDetailPage() {
                       onClick={() => toggleDev(dev.name)}
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-500/10 shrink-0">
-                          <User className="h-4 w-4 text-blue-500" />
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500/10 shrink-0">
+                          <User className="h-4 w-4 text-emerald-500" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">

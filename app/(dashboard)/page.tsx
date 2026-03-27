@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import {
   Shield,
@@ -27,7 +27,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { StatCard } from "@/components/stat-card"
-import { RiskGauge } from "@/components/risk-gauge"
 import { authHeaders } from "@/lib/auth"
 import { SeverityBadge } from "@/components/severity-badge"
 import { StatusBadge } from "@/components/status-badge"
@@ -93,90 +92,23 @@ function classifyOwasp(v: any): string {
 }
 
 export default function DashboardPage() {
-  const { vulnerabilidades, syncJira, clearAll, fetchVulnerabilidades, isLoading } = useVulnStore()
+  const { vulnerabilidades, syncRtc, clearAll, fetchVulnerabilidades, isLoading } = useVulnStore()
   const { getSlaForSeverity } = useSlaConfig()
   const [syncing, setSyncing] = useState(false)
   const [clearing, setClearing] = useState(false)
 
-  // Real Risk Score data
-  const [riskPortfolio, setRiskPortfolio] = useState<{
-    score: number; trend: number; assetCount: number; vulnCount: number;
-    byCategory: { type: string; count: number; avgRisk: number }[];
-    bySeverity: { severity: string; count: number; avgRisk: number }[];
-  } | null>(null)
-  const [riskTrends, setRiskTrends] = useState<{ month: string; score: number }[]>([])
-  const [riskLoading, setRiskLoading] = useState(true)
-
-  const getApiUrl = useCallback(() => {
-    if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL
-    if (typeof window !== 'undefined') return `http://${window.location.hostname}:9001`
-    return 'http://localhost:9001'
-  }, [])
 
   useEffect(() => { fetchVulnerabilidades() }, [])
-
-  useEffect(() => {
-    const fetchRiskData = async () => {
-      setRiskLoading(true)
-      try {
-        const [portfolioRes, trendsRes] = await Promise.all([
-          fetch(`${getApiUrl()}/api/risk/portfolio`, { headers: authHeaders(), credentials: 'include' }),
-          fetch(`${getApiUrl()}/api/risk/trends`, { headers: authHeaders(), credentials: 'include' }),
-        ])
-        if (portfolioRes.ok) {
-          const raw = await portfolioRes.json()
-          // Backend returns Record objects, frontend needs arrays
-          const byCategoryArr = raw.byCategory
-            ? (Array.isArray(raw.byCategory)
-              ? raw.byCategory
-              : Object.entries(raw.byCategory).map(([type, val]: [string, any]) => ({
-                  type,
-                  count: val.count || 0,
-                  avgRisk: val.avgRisk || 0,
-                })))
-            : []
-          const bySeverityArr = raw.bySeverity
-            ? (Array.isArray(raw.bySeverity)
-              ? raw.bySeverity
-              : Object.entries(raw.bySeverity).map(([severity, val]: [string, any]) => ({
-                  severity,
-                  count: val.count || 0,
-                  avgRisk: val.avgRisk || 0,
-                })))
-            : []
-          setRiskPortfolio({
-            score: raw.score ?? 0,
-            trend: raw.trend ?? 0,
-            assetCount: raw.totalAssets ?? raw.assetCount ?? 0,
-            vulnCount: raw.totalOpenVulns ?? raw.vulnCount ?? 0,
-            byCategory: byCategoryArr,
-            bySeverity: bySeverityArr,
-          })
-        }
-        if (trendsRes.ok) {
-          const data = await trendsRes.json()
-          setRiskTrends(Array.isArray(data) ? data.slice(-6) : [])
-        }
-      } catch {
-        // silently fail - risk section will show placeholder
-      } finally {
-        setRiskLoading(false)
-      }
-    }
-    fetchRiskData()
-  }, [getApiUrl])
 
   const hoje = new Date()
   const ativas = vulnerabilidades.filter(v => v.status !== 'Concluída' && v.status !== 'Fechada' && v.status !== 'Mitigada' && v.status !== 'Risco Aceito')
   const corrigidas = vulnerabilidades.filter(v => v.status === 'Concluída' || v.status === 'Fechada' || v.status === 'Mitigada')
   const naoCorrigidas = ativas.length
   const totalCorrigidas = corrigidas.length
-  const extremas = vulnerabilidades.filter(v => v.criticidade === 'Extrema').length
   const criticas = vulnerabilidades.filter(v => v.criticidade === 'Crítica').length
   const vencidas = ativas.filter(v => v.sla && new Date(v.sla) < hoje).length
 
   const criticidadeData = [
-    { name: 'Extrema', value: vulnerabilidades.filter(v => v.criticidade === 'Extrema').length },
     { name: 'Crítica', value: vulnerabilidades.filter(v => v.criticidade === 'Crítica').length },
     { name: 'Alta', value: vulnerabilidades.filter(v => v.criticidade === 'Alta').length },
     { name: 'Média', value: vulnerabilidades.filter(v => v.criticidade === 'Média').length },
@@ -189,7 +121,7 @@ export default function DashboardPage() {
     const s = v.squad || 'Sem Squad'
     if (!squadMap[s]) squadMap[s] = { vulnerabilidades: 0, criticas: 0, vencidas: 0 }
     squadMap[s].vulnerabilidades++
-    if (v.criticidade === 'Crítica' || v.criticidade === 'Extrema') squadMap[s].criticas++
+    if (v.criticidade === 'Crítica') squadMap[s].criticas++
     if (v.sla && new Date(v.sla) < hoje) squadMap[s].vencidas++
   }
   const squadsData = Object.entries(squadMap).map(([nome, stats]) => ({ nome, ...stats })).sort((a, b) => b.vulnerabilidades - a.vulnerabilidades).slice(0, 6)
@@ -205,8 +137,6 @@ export default function DashboardPage() {
 
   const recentOpen = [...ativas].sort((a, b) => new Date(b.ultimaAtualizacao || b.dataAbertura || 0).getTime() - new Date(a.ultimaAtualizacao || a.dataAbertura || 0).getTime()).slice(0, 5)
   const recentFixed = [...corrigidas].sort((a, b) => new Date(b.ultimaAtualizacao || b.dataAbertura || 0).getTime() - new Date(a.ultimaAtualizacao || a.dataAbertura || 0).getTime()).slice(0, 5)
-  const criticalVulns = vulnerabilidades.filter(v => v.criticidade === 'Extrema' || v.criticidade === 'Crítica').sort((a, b) => (b.diasEmAberto || 0) - (a.diasEmAberto || 0)).slice(0, 5)
-
   const upcomingSla = ativas.filter(v => v.sla).map(v => {
     const slaDate = new Date(v.sla!)
     const diasRestantes = Math.ceil((slaDate.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24))
@@ -273,13 +203,7 @@ export default function DashboardPage() {
     return { nome, falha: sorted[0][0], quantidade: sorted[0][1] }
   }).filter(s => s.quantidade > 0).sort((a, b) => b.quantidade - a.quantidade).slice(0, 6)
 
-  let securityScore = Math.max(0, 100 - extremas * 15 - criticas * 8 - vencidas * 10 - Math.max(0, (naoCorrigidas - extremas - criticas)) * 2)
-  let scoreColorClass = 'text-green-500', scoreBgClass = 'bg-green-500/10', scoreBorderClass = 'border-green-500/20', scoreLabel = 'Excelente'
-  if (securityScore < 50) { scoreColorClass = 'text-red-500'; scoreBgClass = 'bg-red-500/10'; scoreBorderClass = 'border-red-500/20'; scoreLabel = 'Crítico' }
-  else if (securityScore < 75) { scoreColorClass = 'text-amber-500'; scoreBgClass = 'bg-amber-500/10'; scoreBorderClass = 'border-amber-500/20'; scoreLabel = 'Atenção' }
-  else if (securityScore < 90) { scoreColorClass = 'text-blue-500'; scoreBgClass = 'bg-blue-500/10'; scoreBorderClass = 'border-blue-500/20'; scoreLabel = 'Saudável' }
-
-  const handleSync = async () => { setSyncing(true); try { await syncJira(); toast.success("Sincronização com Jira concluída", { description: "Todas as vulnerabilidades foram atualizadas." }) } catch (e: any) { toast.error("Erro na sincronização", { description: e.message }) } finally { setSyncing(false) } }
+  const handleSync = async () => { setSyncing(true); try { await syncRtc(); toast.success("Sincronização com IBM RTC concluída", { description: "Todas as vulnerabilidades foram atualizadas." }) } catch (e: any) { toast.error("Erro na sincronização", { description: e.message }) } finally { setSyncing(false) } }
   const handleExport = () => {
     const headers = ['ID', 'Titulo', 'Criticidade', 'Status', 'Squad', 'Alvo', 'Responsavel', 'Data Criacao', 'Dias Aberto', 'SLA']
     const rows = vulnerabilidades.map(v => [
@@ -299,7 +223,7 @@ export default function DashboardPage() {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `vulncontrol_dashboard_${new Date().toISOString().split('T')[0]}.csv`
+    a.download = `epicvuln_dashboard_${new Date().toISOString().split('T')[0]}.csv`
     a.click()
     URL.revokeObjectURL(url)
     toast.success('Exportado!', { description: `${vulnerabilidades.length} vulnerabilidades exportadas para CSV.` })
@@ -315,16 +239,16 @@ export default function DashboardPage() {
             <p className="mt-1 text-sm text-muted-foreground">Visão centralizada das falhas, criticidade e acompanhamento por squad.</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing}><RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />Sincronizar Jira</Button>
+            <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing}><RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />Sincronizar RTC</Button>
             <Link href="/vulnerabilidades/nova"><Button size="sm"><Plus className="mr-2 h-4 w-4" />Nova Vulnerabilidade</Button></Link>
           </div>
         </div>
         <div className="flex flex-col items-center justify-center py-32 text-center">
           <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-muted"><Database className="h-12 w-12 text-muted-foreground" /></div>
           <h2 className="mb-2 text-xl font-semibold text-foreground">Nenhuma vulnerabilidade encontrada</h2>
-          <p className="mb-8 max-w-md text-sm text-muted-foreground">O banco de dados está vazio. Sincronize com o Jira para importar vulnerabilidades, ou adicione manualmente.</p>
+          <p className="mb-8 max-w-md text-sm text-muted-foreground">O banco de dados está vazio. Sincronize com o IBM RTC para importar vulnerabilidades, ou adicione manualmente.</p>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={handleSync} disabled={syncing}><RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />Sincronizar Jira</Button>
+            <Button variant="outline" onClick={handleSync} disabled={syncing}><RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />Sincronizar RTC</Button>
             <Link href="/vulnerabilidades/nova"><Button><Plus className="mr-2 h-4 w-4" />Adicionar Vulnerabilidade</Button></Link>
           </div>
         </div>
@@ -337,13 +261,13 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between animate-in fade-in slide-in-from-left-4 duration-700">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-foreground mb-2">VulnControl <span className="text-blue-600">Intelligence</span></h1>
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground mb-2">EpicVuln <span className="text-emerald-600">Intelligence</span></h1>
           <p className="text-sm font-medium text-muted-foreground max-w-2xl leading-relaxed">Plataforma corporativa de gestão de vulnerabilidades. Análise preditiva, status de remediação e conformidade em tempo real.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing} className="bg-card border-border hover:bg-muted text-muted-foreground shadow-sm"><RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />Sincronizar Jira</Button>
+          <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing} className="bg-card border-border hover:bg-muted text-muted-foreground shadow-sm"><RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />Sincronizar RTC</Button>
           <Button variant="outline" size="sm" onClick={handleExport} className="bg-card border-border hover:bg-muted text-muted-foreground shadow-sm"><Download className="mr-2 h-4 w-4" />Exportar CSV</Button>
-          <Link href="/vulnerabilidades/nova"><Button size="sm" className="bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20"><Plus className="mr-2 h-4 w-4" />Nova Vulnerabilidade</Button></Link>
+          <Link href="/vulnerabilidades/nova"><Button size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20"><Plus className="mr-2 h-4 w-4" />Nova Vulnerabilidade</Button></Link>
           <AlertDialog>
             <AlertDialogTrigger asChild><Button variant="outline" size="sm" disabled={clearing} className="bg-card border-red-500/20 text-red-500 hover:bg-red-500/10 shadow-sm"><Trash2 className="mr-2 h-4 w-4" />{clearing ? 'Limpando...' : 'Limpar Dados'}</Button></AlertDialogTrigger>
             <AlertDialogContent>
@@ -354,142 +278,23 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Real Risk Score Section */}
-      {!riskLoading && riskPortfolio && (
-        <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-700">
-          <Card className="bg-card border-border shadow-sm overflow-hidden">
-            <CardContent className="p-6">
-              <div className="flex flex-col lg:flex-row gap-6">
-                {/* Portfolio Risk Gauge */}
-                <div className="flex flex-col items-center justify-center lg:min-w-[160px] shrink-0">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Risco do Portfólio</p>
-                  <RiskGauge score={riskPortfolio.score} size={140} />
-                  {riskPortfolio.trend != null && riskPortfolio.trend !== 0 && (
-                    <p className={`text-xs mt-2 font-medium ${riskPortfolio.trend > 0 ? 'text-red-400' : 'text-green-400'}`}>
-                      {riskPortfolio.trend > 0 ? '+' : ''}{(riskPortfolio.trend || 0).toFixed(1)}% vs mês anterior
-                    </p>
-                  )}
-                </div>
-
-                {/* Trend Sparkline */}
-                <div className="flex flex-col justify-center min-w-[180px]">
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Tendência (6 meses)</p>
-                  {riskTrends.length > 1 ? (() => {
-                    const w = 180, h = 60
-                    const scores = riskTrends.map(t => t.score)
-                    const minS = Math.max(0, Math.min(...scores) - 5)
-                    const maxS = Math.min(100, Math.max(...scores) + 5)
-                    const range = maxS - minS || 1
-                    const points = scores.map((s, i) =>
-                      `${(i / (scores.length - 1)) * w},${h - ((s - minS) / range) * h}`
-                    ).join(' ')
-                    const lastScore = scores[scores.length - 1]
-                    const color = lastScore <= 25 ? '#22c55e' : lastScore <= 50 ? '#eab308' : lastScore <= 75 ? '#f97316' : '#ef4444'
-                    return (
-                      <div>
-                        <svg width={w} height={h} className="overflow-visible">
-                          <polyline
-                            points={points}
-                            fill="none"
-                            stroke={color}
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-                          {scores.map((s, i) => (
-                            <circle
-                              key={i}
-                              cx={(i / (scores.length - 1)) * w}
-                              cy={h - ((s - minS) / range) * h}
-                              r="3"
-                              fill={color}
-                            />
-                          ))}
-                        </svg>
-                        <div className="flex justify-between mt-1">
-                          {riskTrends.map((t, i) => (
-                            <span key={i} className="text-[9px] text-muted-foreground">
-                              {t.month.split('-')[1]}/{t.month.split('-')[0]?.slice(2)}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )
-                  })() : (
-                    <p className="text-xs text-muted-foreground">Dados insuficientes</p>
-                  )}
-                </div>
-
-                {/* Quick Stats */}
-                <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="rounded-lg border border-border bg-muted/30 p-4 flex flex-col items-center justify-center">
-                    <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Ativos em Risco</span>
-                    <span className="text-2xl font-black text-foreground mt-1">{riskPortfolio.assetCount}</span>
-                  </div>
-                  <div className="rounded-lg border border-border bg-muted/30 p-4 flex flex-col items-center justify-center">
-                    <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Vulns Críticas</span>
-                    <span className="text-2xl font-black text-red-400 mt-1">
-                      {riskPortfolio.bySeverity?.find(s => s.severity === 'Crítica' || s.severity === 'Extrema')?.count || criticas + extremas}
-                    </span>
-                  </div>
-                  <div className="rounded-lg border border-border bg-muted/30 p-4 flex flex-col items-center justify-center">
-                    <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Média Dias Aberto</span>
-                    <span className="text-2xl font-black text-amber-400 mt-1">
-                      {ativas.length > 0 ? Math.round(ativas.reduce((sum, v) => sum + (v.diasEmAberto || 0), 0) / ativas.length) : 0}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Risk by Category */}
-                {riskPortfolio.byCategory && riskPortfolio.byCategory.length > 0 && (
-                  <div className="lg:min-w-[220px] shrink-0">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Risco por Categoria</p>
-                    <div className="space-y-2.5">
-                      {riskPortfolio.byCategory.slice(0, 5).map((cat) => {
-                        const barColor = cat.avgRisk <= 25 ? 'bg-green-500' : cat.avgRisk <= 50 ? 'bg-yellow-500' : cat.avgRisk <= 75 ? 'bg-orange-500' : 'bg-red-500'
-                        return (
-                          <div key={cat.type}>
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-xs text-foreground">{cat.type}</span>
-                              <span className="text-xs font-semibold text-muted-foreground">{Math.round(cat.avgRisk)}</span>
-                            </div>
-                            <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                              <div
-                                className={`h-full rounded-full ${barColor}`}
-                                style={{ width: `${Math.min(cat.avgRisk, 100)}%`, transition: 'width 0.6s ease-in-out' }}
-                              />
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
       {/* Stats Cards */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <StatCard title="Não Corrigidas" value={naoCorrigidas} icon={XCircle} variant="warning" />
         <StatCard title="Corrigidas" value={totalCorrigidas} icon={CheckCircle2} variant="success" />
-        <StatCard title="Extremas" value={extremas} icon={Zap} variant="extreme" />
         <StatCard title="Críticas" value={criticas} icon={AlertTriangle} variant="critical" />
         <StatCard title="SLA Vencidos" value={vencidas} icon={Clock} variant="warning" />
       </div>
 
       {/* Alertas Urgentes */}
-      {(extremas > 0 || vencidas > 0 || criticas > 0) && (
+      {(vencidas > 0 || criticas > 0) && (
         <div className="mb-6">
           <Card className="bg-card border-red-500/20 shadow-red-500/5 shadow-lg overflow-hidden">
             <CardContent className="p-0">
               <div className="flex flex-col lg:flex-row">
                 <div className="flex items-center gap-3 bg-red-500/10 px-6 py-4 lg:w-56 shrink-0"><Flame className="h-6 w-6 text-red-500 animate-pulse" /><div><h3 className="text-sm font-bold text-red-500">Alertas Urgentes</h3><p className="text-[10px] text-muted-foreground">Requer ação imediata</p></div></div>
                 <div className="flex-1 flex items-center gap-6 px-6 py-4 flex-wrap">
-                  {extremas > 0 && (<div className="flex items-center gap-2"><div className="flex h-8 w-8 items-center justify-center rounded-md bg-red-600/20"><span className="text-sm font-black text-red-500">{extremas}</span></div><div><p className="text-xs font-semibold text-red-500">Extrema{extremas > 1 ? 's' : ''}</p><p className="text-[10px] text-muted-foreground">SLA: Imediato</p></div></div>)}
-                  {criticas > 0 && (<div className="flex items-center gap-2"><div className="flex h-8 w-8 items-center justify-center rounded-md bg-orange-500/20"><span className="text-sm font-black text-orange-500">{criticas}</span></div><div><p className="text-xs font-semibold text-orange-500">Crítica{criticas > 1 ? 's' : ''}</p><p className="text-[10px] text-muted-foreground">SLA: 30 dias</p></div></div>)}
+                  {criticas > 0 && (<div className="flex items-center gap-2"><div className="flex h-8 w-8 items-center justify-center rounded-md bg-red-600/20"><span className="text-sm font-black text-red-500">{criticas}</span></div><div><p className="text-xs font-semibold text-red-500">Crítica{criticas > 1 ? 's' : ''}</p><p className="text-[10px] text-muted-foreground">SLA: Imediato</p></div></div>)}
                   {vencidas > 0 && (<div className="flex items-center gap-2"><div className="flex h-8 w-8 items-center justify-center rounded-md bg-amber-500/20"><span className="text-sm font-black text-amber-500">{vencidas}</span></div><div><p className="text-xs font-semibold text-amber-500">SLA{vencidas > 1 ? 's' : ''} Vencido{vencidas > 1 ? 's' : ''}</p><p className="text-[10px] text-muted-foreground">Prazo expirado</p></div></div>)}
                 </div>
                 <div className="flex items-center px-6 py-4 shrink-0"><Link href="/notificacoes"><Button variant="outline" size="sm" className="border-red-500/20 text-red-500 hover:bg-red-500/10">Ver Painel<ArrowRight className="ml-2 h-4 w-4" /></Button></Link></div>
@@ -541,8 +346,8 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Top Falhas + Saúde */}
-      <div className="grid gap-6 lg:grid-cols-2 mb-6">
+      {/* Top Falhas OWASP */}
+      <div className="mb-6">
         <Card className="bg-card border-border shadow-sm transition-all hover:shadow-md">
           <CardHeader><div className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-primary" /><CardTitle className="text-base">Top 5 Falhas OWASP</CardTitle></div><CardDescription>Categorias OWASP mais reportadas globalmente</CardDescription></CardHeader>
           <CardContent>
@@ -556,27 +361,12 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
-
-        <Card className="bg-card border-border shadow-sm transition-all hover:shadow-md">
-          <CardHeader><div className="flex items-center gap-2"><Shield className="h-5 w-5 text-primary" /><CardTitle className="text-base">Saúde de Segurança</CardTitle></div><CardDescription>Índice Credsystem vs. Mercado Bancário</CardDescription></CardHeader>
-          <CardContent className="flex flex-col items-center justify-center py-6">
-            <div className="relative mb-4 flex h-32 w-32 items-center justify-center">
-              <svg className="h-full w-full rotate-[-90deg]"><circle cx="64" cy="64" r="58" fill="none" stroke="currentColor" strokeWidth="8" className="text-muted/30" /><circle cx="64" cy="64" r="58" fill="none" stroke="currentColor" strokeWidth="8" strokeDasharray={`${(securityScore / 100) * 364.4} 364.4`} strokeLinecap="round" className={`${scoreColorClass} transition-all duration-1000 ease-in-out drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]`} /></svg>
-              <div className="absolute flex flex-col items-center text-center"><span className="text-3xl font-black text-foreground">{securityScore}</span><span className="text-[10px] uppercase font-bold text-muted-foreground">Pontos</span></div>
-            </div>
-            <div className={`w-full rounded-lg border ${scoreBorderClass} ${scoreBgClass} p-3 text-center`}><p className={`text-sm font-bold ${scoreColorClass}`}>{scoreLabel}</p><p className="mt-1 text-[10px] text-muted-foreground">Benchmark Bancário: <span className="font-semibold text-foreground">82 pts</span></p></div>
-            <div className="mt-4 grid w-full grid-cols-2 gap-2">
-              <div className="flex flex-col items-center rounded-md bg-muted p-2"><span className="text-xs text-muted-foreground">SLA Compliance</span><span className="text-sm font-bold text-foreground">{naoCorrigidas > 0 ? `${(((naoCorrigidas - vencidas) / naoCorrigidas) * 100).toFixed(0)}%` : '100%'}</span></div>
-              <div className="flex flex-col items-center rounded-md bg-muted p-2"><span className="text-xs text-muted-foreground">Risco Residual</span><span className="text-sm font-bold text-foreground">{extremas > 0 ? 'Extremo' : criticas > 0 ? 'Crítico' : 'Baixo'}</span></div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Taxa de Correção por Squad + Status do SLA */}
       <div className="grid gap-6 lg:grid-cols-2 mb-6">
         <Card className="bg-card border-border shadow-sm transition-all hover:shadow-md">
-          <CardHeader><div className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-blue-500" /><CardTitle className="text-base">Correção por Squad</CardTitle></div><CardDescription>Quanto cada squad ja corrigiu do total de falhas</CardDescription></CardHeader>
+          <CardHeader><div className="flex items-center gap-2"><TrendingUp className="h-5 w-5 text-emerald-500" /><CardTitle className="text-base">Correção por Squad</CardTitle></div><CardDescription>Quanto cada squad ja corrigiu do total de falhas</CardDescription></CardHeader>
           <CardContent>
             <div className="space-y-4">
               {(() => {
@@ -656,10 +446,10 @@ export default function DashboardPage() {
               </div>
               {/* Por criticidade */}
               <div className="w-full mt-4 space-y-2">
-                {['Extrema', 'Crítica', 'Alta', 'Média', 'Baixa'].map(crit => {
+                {['Crítica', 'Alta', 'Média', 'Baixa'].map(crit => {
                   const vencidasCrit = ativas.filter(v => v.criticidade === crit && v.sla && new Date(v.sla) < hoje).length
                   if (vencidasCrit === 0) return null
-                  const colors: Record<string, string> = { 'Extrema': 'text-red-600', 'Crítica': 'text-red-500', 'Alta': 'text-orange-500', 'Média': 'text-amber-500', 'Baixa': 'text-green-500' }
+                  const colors: Record<string, string> = { 'Crítica': 'text-red-500', 'Alta': 'text-orange-500', 'Média': 'text-amber-500', 'Baixa': 'text-green-500' }
                   return (
                     <div key={crit} className="flex items-center justify-between text-sm px-1">
                       <span className="text-muted-foreground">{crit}</span>
@@ -673,22 +463,8 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Extremas/Críticas + Corrigidas Recentes */}
-      <div className="grid gap-6 lg:grid-cols-2 mb-6">
-        <Card className="bg-card border-border shadow-sm transition-all hover:shadow-md">
-          <CardHeader><div className="flex items-center gap-2"><AlertTriangle className="h-5 w-5 text-red-500" /><CardTitle className="text-base">Extremas/Críticas Mais Antigas</CardTitle></div><CardDescription>Vulnerabilidades de alta severidade com maior tempo em aberto</CardDescription></CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {criticalVulns.length === 0 ? (<p className="text-sm text-muted-foreground">Nenhuma vulnerabilidade crítica.</p>) : criticalVulns.map((vuln) => (
-                <Link key={vuln.id} href={`/vulnerabilidades/${vuln.id}`} className="flex items-center justify-between rounded-lg border border-border p-3 transition-colors hover:bg-accent">
-                  <div className="min-w-0 flex-1"><p className="truncate text-sm font-medium text-foreground">{vuln.titulo}</p><p className="text-xs text-muted-foreground">{vuln.squad}</p></div>
-                  <div className="ml-3 flex items-center gap-2"><SeverityBadge severity={vuln.criticidade} showIcon /><span className="text-xs text-muted-foreground">{vuln.diasEmAberto}d</span></div>
-                </Link>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
+      {/* Corrigidas Recentes */}
+      <div className="mb-6">
         <Card className="bg-card border-border shadow-sm transition-all hover:shadow-md">
           <CardHeader><div className="flex items-center gap-2"><CheckCircle2 className="h-5 w-5 text-green-500" /><CardTitle className="text-base">Vulnerabilidades Corrigidas Recentes</CardTitle></div><CardDescription>Últimas vulnerabilidades corrigidas pelas squads</CardDescription></CardHeader>
           <CardContent>

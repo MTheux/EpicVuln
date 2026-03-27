@@ -18,8 +18,8 @@ router.post('/logout', (req: Request, res: Response) => {
     path: '/',
   };
 
-  res.cookie('vulncontrol_token', '', { ...clearOptions, httpOnly: true });
-  res.cookie('vulncontrol_session', '', { ...clearOptions, httpOnly: false });
+  res.cookie('epicvuln_token', '', { ...clearOptions, httpOnly: true });
+  res.cookie('epicvuln_session', '', { ...clearOptions, httpOnly: false });
   res.json({ success: true });
 });
 

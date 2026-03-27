@@ -72,7 +72,6 @@ const statusOptions: Status[] = [
 
 const criticidadeOptions = [
   'Todas',
-  'Extrema',
   'Crítica',
   'Alta',
   'Média',
@@ -90,7 +89,7 @@ const responsaveis = [
 ]
 
 export default function VulnerabilidadesPage() {
-  const { vulnerabilidades, fetchVulnerabilidades, syncJira, updateStatus, updateResponsavel, sendNotification, deleteVulnerabilidade, importData, error } = useVulnStore()
+  const { vulnerabilidades, fetchVulnerabilidades, syncRtc, updateStatus, updateResponsavel, sendNotification, deleteVulnerabilidade, importData, error } = useVulnStore()
   const [syncing, setSyncing] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [showVencidas, setShowVencidas] = useState(false)
@@ -127,7 +126,7 @@ export default function VulnerabilidadesPage() {
         const matches =
           vuln.titulo.toLowerCase().includes(search) ||
           vuln.id.toLowerCase().includes(search) ||
-          vuln.jiraKey?.toLowerCase().includes(search) ||
+          (vuln as any).rtcWorkItemId?.toLowerCase().includes(search) ||
           vuln.squad.toLowerCase().includes(search) ||
           vuln.sistema.toLowerCase().includes(search) ||
           vuln.ativo.toLowerCase().includes(search)
@@ -176,21 +175,24 @@ export default function VulnerabilidadesPage() {
     return ['Todos', 'Sem Responsável', ...resps.sort()]
   }, [vulnerabilidades])
 
-  const handleSync = () => {
+  const handleSync = async () => {
     setSyncing(true)
-    setTimeout(() => {
-      syncJira()
-      setSyncing(false)
-      toast.success("Sincronização com Jira concluída", {
-        description: `${vulnerabilidades.filter(v => v.jiraKey).length} issues atualizadas.`
+    try {
+      await syncRtc()
+      toast.success("Sincronização com IBM RTC concluída", {
+        description: "Work items atualizados com sucesso."
       })
-    }, 1500)
+    } catch (err: any) {
+      toast.error("Erro na sincronização", { description: err.message })
+    } finally {
+      setSyncing(false)
+    }
   }
 
 
   const handleImportSubmit = async () => {
     if (!importJson.trim()) {
-      toast.error('JSON vazio', { description: 'Cole o JSON do Jira antes de importar.' })
+      toast.error('JSON vazio', { description: 'Cole o JSON antes de importar.' })
       return
     }
 
@@ -200,7 +202,7 @@ export default function VulnerabilidadesPage() {
       try {
         parsedData = JSON.parse(importJson);
       } catch (parseError) {
-        // Fallback: Tenta consertar URLs não quotadas (como do Jira) linha a linha de forma segura
+        // Fallback: Tenta consertar URLs não quotadas linha a linha de forma segura
         try {
           let lines = importJson.split('\n');
           for (let i = 0; i < lines.length; i++) {
@@ -237,13 +239,6 @@ export default function VulnerabilidadesPage() {
     } finally {
       setIsImporting(false)
     }
-  }
-
-  const handleOpenJira = (jiraKey: string) => {
-    window.open(`https://credsystem.atlassian.net/browse/${jiraKey}`, '_blank')
-    toast.success("Abrindo Jira", {
-      description: `Ticket ${jiraKey} aberto em nova aba.`
-    })
   }
 
   const handleNotify = (vulnId: string) => {
@@ -324,7 +319,7 @@ export default function VulnerabilidadesPage() {
             disabled={syncing}
           >
             <RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
-            Sincronizar Jira
+            Sincronizar RTC
           </Button>
           <Button variant="outline" size="sm" onClick={() => setImportDialogOpen(true)}>
             <Upload className="mr-2 h-4 w-4" />
@@ -451,7 +446,7 @@ export default function VulnerabilidadesPage() {
               const url = URL.createObjectURL(blob)
               const a = document.createElement('a')
               a.href = url
-              a.download = `vulncontrol_export_${new Date().toISOString().split('T')[0]}.csv`
+              a.download = `epicvuln_export_${new Date().toISOString().split('T')[0]}.csv`
               a.click()
               URL.revokeObjectURL(url)
               toast.success('Exportado!', { description: `${filteredVulnerabilidades.length} vulnerabilidades exportadas para CSV.` })
@@ -534,7 +529,7 @@ export default function VulnerabilidadesPage() {
                       </Link>
                     </TableCell>
                     <TableCell>
-                      <SeverityBadge severity={vuln.criticidade} showIcon={vuln.criticidade === 'Extrema'} />
+                      <SeverityBadge severity={vuln.criticidade} showIcon={vuln.criticidade === 'Crítica'} />
                     </TableCell>
                     <TableCell>
                       <StatusBadge status={vuln.status} />
@@ -550,7 +545,7 @@ export default function VulnerabilidadesPage() {
                     </TableCell>
                     <TableCell className="text-center">
                       {(() => {
-                        const baseScoreMap: Record<string, number> = { Extrema: 95, Crítica: 80, Alta: 60, Média: 40, Baixa: 20, Informativa: 5 }
+                        const baseScoreMap: Record<string, number> = { Crítica: 95, Alta: 60, Média: 40, Baixa: 20, Informativa: 5 }
                         const base = baseScoreMap[vuln.criticidade] || 40
                         const ageFactor = 1 + Math.min((vuln.diasEmAberto || 0) / 90, 1) * 0.5
                         const risk = Math.min(Math.round(base * ageFactor), 100)
@@ -653,9 +648,9 @@ export default function VulnerabilidadesPage() {
       <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>Importar Dados Jira (JSON)</DialogTitle>
+            <DialogTitle>Importar Dados (JSON)</DialogTitle>
             <DialogDescription>
-              Cole o array JSON exportado diretamente do Jira abaixo. O sistema mapeará os campos para o formato interno.
+              Cole o array JSON abaixo. O sistema mapeará os campos para o formato interno.
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 relative">

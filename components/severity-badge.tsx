@@ -1,15 +1,10 @@
 import { cn } from "@/lib/utils"
 
 const severityConfig: Record<string, { bg: string; text: string; border: string }> = {
-  'Extrema': {
+  'Crítica': {
     bg: 'bg-red-50 dark:bg-red-950/30',
     text: 'text-red-700 dark:text-red-400',
-    border: 'border-red-200 dark:border-red-800 animate-pulse'
-  },
-  'Crítica': {
-    bg: 'bg-orange-50 dark:bg-orange-950/30',
-    text: 'text-orange-700 dark:text-orange-400',
-    border: 'border-orange-200 dark:border-orange-800'
+    border: 'border-red-200 dark:border-red-800'
   },
   'Alta': {
     bg: 'bg-amber-50 dark:bg-amber-950/30',
@@ -52,7 +47,7 @@ export function SeverityBadge({ severity, className, showIcon = false }: Severit
       config.border,
       className
     )}>
-      {showIcon && severity === 'Extrema' && (
+      {showIcon && severity === 'Crítica' && (
         <span className="relative flex h-2 w-2">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
           <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />

@@ -3,7 +3,7 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Credsystem VulnControl - Theme System */
+/* EpicVuln - Theme System */
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.2 0.01 260);

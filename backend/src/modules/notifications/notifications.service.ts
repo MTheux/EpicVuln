@@ -23,9 +23,9 @@ export class NotificationsService {
     body: string;
     userId: string;
   }) {
-    const recipient = `po-${squad.toLowerCase().replace(/\s+/g, '')}@credsystem.com`;
+    const recipient = `po-${squad.toLowerCase().replace(/\s+/g, '')}@unisys.com`;
     const email = manualNotificationEmail(squad, motivo, body);
-    const subject = `[VulnControl] Notificacao — ${motivo}`;
+    const subject = `[EpicVuln] Notificacao — ${motivo}`;
 
     let status = 'sent';
     let error: string | undefined;
@@ -161,11 +161,11 @@ export class NotificationsService {
         distinct: ['recipient'],
       }),
 
-      // criticasSemRetorno: vulns with EXTREMA/CRITICA in open statuses
+      // criticasSemRetorno: vulns with CRITICA in open statuses
       // that have NO VulnerabilityHistory with eventType NOTIFICACAO_ENVIADA in last 7 days
       prisma.vulnerability.count({
         where: {
-          criticidade: { in: ['EXTREMA', 'CRITICA'] },
+          criticidade: { in: ['CRITICA'] },
           status: { in: [...OPEN_STATUSES] },
           NOT: {
             history: {

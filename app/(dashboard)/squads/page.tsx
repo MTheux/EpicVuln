@@ -47,7 +47,7 @@ interface SquadScorecard {
   total: number
   openCount: number
   closedCount: number
-  extrema: number
+  extrema: number // kept for API compat, always 0
   critica: number
   alta: number
   media: number
@@ -90,8 +90,8 @@ export default function SquadsPage() {
     try {
       const res = await fetch(`${API_URL}/api/analytics/ssdlc`, { headers: authHeaders(), credentials: 'include' })
       if (res.status === 401) {
-        localStorage.removeItem('vulncontrol_user')
-        document.cookie = 'vulncontrol_token=; path=/; max-age=0'
+        localStorage.removeItem('epicvuln_user')
+        document.cookie = 'epicvuln_token=; path=/; max-age=0'
         window.location.href = '/login'
         return
       }
@@ -177,8 +177,8 @@ export default function SquadsPage() {
         <Card className="bg-card border-border shadow-sm">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
-                <Target className="h-5 w-5 text-blue-500" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
+                <Target className="h-5 w-5 text-emerald-500" />
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Total Vulnerabilidades</p>
@@ -237,7 +237,7 @@ export default function SquadsPage() {
         <Card className="bg-card border-border shadow-sm">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-blue-500" />
+              <TrendingUp className="h-5 w-5 text-emerald-500" />
               <CardTitle className="text-base">Corrigidas vs Não Corrigidas por Squad</CardTitle>
             </div>
             <CardDescription>Comparativo de resolução entre squads</CardDescription>
@@ -322,7 +322,7 @@ export default function SquadsPage() {
       <Card className="bg-card border-border shadow-sm">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-blue-500" />
+            <Shield className="h-5 w-5 text-emerald-500" />
             <CardTitle className="text-base">Detalhamento por Squad</CardTitle>
           </div>
           <CardDescription>Visão completa: total de falhas, corrigidas, SLA estourado e % de correção</CardDescription>
@@ -337,7 +337,7 @@ export default function SquadsPage() {
                   <th className="text-center py-3 px-3 font-medium">Total</th>
                   <th className="text-center py-3 px-3 font-medium">Corrigidas</th>
                   <th className="text-center py-3 px-3 font-medium">Não Corrigidas</th>
-                  <th className="text-center py-3 px-3 font-medium">Extremas/Críticas</th>
+                  <th className="text-center py-3 px-3 font-medium">Críticas</th>
                   <th className="text-center py-3 px-3 font-medium">SLA Estourado</th>
                   <th className="text-center py-3 px-3 font-medium">% Correção</th>
                   <th className="text-center py-3 px-3 font-medium">Situação</th>
@@ -360,8 +360,8 @@ export default function SquadsPage() {
                       <td className="py-3 px-3 text-center text-green-500 font-semibold">{squad.closedCount}</td>
                       <td className="py-3 px-3 text-center text-amber-500 font-semibold">{squad.openCount}</td>
                       <td className="py-3 px-3 text-center">
-                        {(squad.extrema + squad.critica) > 0 ? (
-                          <span className="text-red-500 font-bold">{squad.extrema + squad.critica}</span>
+                        {squad.critica > 0 ? (
+                          <span className="text-red-500 font-bold">{squad.critica}</span>
                         ) : (
                           <span className="text-muted-foreground">0</span>
                         )}

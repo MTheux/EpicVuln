@@ -47,11 +47,11 @@ export const env = {
   SMTP_PASS: getEnv('SMTP_PASS', ''),
   SMTP_FROM: getEnv('SMTP_FROM', 'noreply@vulnmanager.com'),
 
-  // Jira
-  JIRA_INSTANCE_URL: getEnv('JIRA_INSTANCE_URL', ''),
-  JIRA_EMAIL: getEnv('JIRA_EMAIL', ''),
-  JIRA_API_TOKEN: getEnv('JIRA_API_TOKEN', ''),
-  JIRA_PROJECT_KEY: getEnv('JIRA_PROJECT_KEY', ''),
+  // IBM RTC (env vars kept for backward compatibility)
+  RTC_INSTANCE_URL: getEnv('RTC_INSTANCE_URL', ''),
+  RTC_USERNAME: getEnv('RTC_USERNAME', ''),
+  RTC_PASSWORD: getEnv('RTC_PASSWORD', ''),
+  RTC_PROJECT_AREA: getEnv('RTC_PROJECT_AREA', ''),
 
   // Upload
   UPLOAD_DIR: getEnv('UPLOAD_DIR', 'uploads'),

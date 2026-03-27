@@ -1,4 +1,4 @@
-import type { Vulnerabilidade, Squad, Notificacao, RegraNotificacao, IntegracaoJira, HistoricoItem } from './types'
+import type { Vulnerabilidade, Squad, Notificacao, RegraNotificacao, IntegracaoRtc, HistoricoItem } from './types'
 
 const historicoPadrao: HistoricoItem[] = [
   { data: '2025-01-15', tipo: 'criacao', descricao: 'Vulnerabilidade criada', usuario: 'Sistema' },
@@ -9,11 +9,11 @@ const historicoPadrao: HistoricoItem[] = [
 export const vulnerabilidades: Vulnerabilidade[] = [
   {
     id: 'VULN-001',
-    jiraKey: 'SEC-1234',
+    rtcWorkItemId: 'WI-1234',
     titulo: 'SQL Injection no endpoint de autenticação',
     descricaoExecutiva: 'Falha crítica que permite injeção de comandos SQL através do campo de login, possibilitando acesso não autorizado ao banco de dados.',
     descricaoTecnica: 'O parâmetro username no endpoint /api/auth/login não possui sanitização adequada. Payloads como `\' OR 1=1--` permitem bypass de autenticação.',
-    criticidade: 'Extrema',
+    criticidade: 'Crítica',
     scoreCvss: 9.8,
     vetorCvss: 'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H',
     cwe: 'CWE-89',
@@ -44,7 +44,7 @@ export const vulnerabilidades: Vulnerabilidade[] = [
   },
   {
     id: 'VULN-002',
-    jiraKey: 'SEC-1235',
+    rtcWorkItemId: 'WI-1235',
     titulo: 'Broken Access Control no painel de administração',
     descricaoExecutiva: 'Usuários com perfil comum conseguem acessar funcionalidades administrativas através de manipulação de parâmetros.',
     descricaoTecnica: 'O endpoint /api/admin/users não valida adequadamente as permissões do usuário logado, permitindo IDOR.',
@@ -78,7 +78,7 @@ export const vulnerabilidades: Vulnerabilidade[] = [
   },
   {
     id: 'VULN-003',
-    jiraKey: 'SEC-1236',
+    rtcWorkItemId: 'WI-1236',
     titulo: 'XSS Stored no módulo de comentários',
     descricaoExecutiva: 'Scripts maliciosos podem ser armazenados e executados no contexto de outros usuários.',
     descricaoTecnica: 'O campo de comentários não sanitiza tags HTML, permitindo injeção de scripts JavaScript que são persistidos no banco.',
@@ -139,10 +139,10 @@ export const vulnerabilidades: Vulnerabilidade[] = [
   },
   {
     id: 'VULN-005',
-    jiraKey: 'SEC-1238',
+    rtcWorkItemId: 'WI-1238',
     titulo: 'Certificado SSL próximo do vencimento',
     descricaoExecutiva: 'O certificado SSL do ambiente de produção expira em 15 dias.',
-    descricaoTecnica: 'Certificado wildcard *.credsystem.com.br vence em 2025-03-28.',
+    descricaoTecnica: 'Certificado wildcard *.unisys.com vence em 2025-03-28.',
     criticidade: 'Média',
     scoreCvss: 5.3,
     cwe: 'CWE-295',
@@ -196,7 +196,7 @@ export const vulnerabilidades: Vulnerabilidade[] = [
   },
   {
     id: 'VULN-007',
-    jiraKey: 'SEC-1240',
+    rtcWorkItemId: 'WI-1240',
     titulo: 'Rate limiting ausente em API pública',
     descricaoExecutiva: 'API pública não possui limitação de requisições, permitindo ataques de força bruta.',
     descricaoTecnica: 'O endpoint /api/public/search permite requisições ilimitadas sem throttling.',
@@ -253,7 +253,7 @@ export const vulnerabilidades: Vulnerabilidade[] = [
   },
   {
     id: 'VULN-009',
-    jiraKey: 'SEC-1242',
+    rtcWorkItemId: 'WI-1242',
     titulo: 'Autenticação fraca em API interna',
     descricaoExecutiva: 'API interna utiliza autenticação básica sem criptografia adequada.',
     descricaoTecnica: 'Serviço interno usa Basic Auth sobre HTTP, expondo credenciais em texto plano.',
@@ -288,7 +288,7 @@ export const vulnerabilidades: Vulnerabilidade[] = [
     titulo: 'SSRF no serviço de preview',
     descricaoExecutiva: 'Serviço de preview de URLs permite requisições para hosts internos.',
     descricaoTecnica: 'O endpoint /api/preview aceita URLs arbitrárias sem validação de destino.',
-    criticidade: 'Extrema',
+    criticidade: 'Crítica',
     scoreCvss: 9.1,
     vetorCvss: 'CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:L/A:L',
     cwe: 'CWE-918',
@@ -331,7 +331,7 @@ export const notificacoes: Notificacao[] = [
   {
     id: 'NOT-001',
     tipo: 'critica',
-    titulo: 'Vulnerabilidade extrema identificada',
+    titulo: 'Vulnerabilidade crítica identificada',
     descricao: 'SQL Injection no endpoint de autenticação requer ação imediata.',
     dataEnvio: '2025-03-12T10:30:00',
     squad: 'API Core',
@@ -366,24 +366,24 @@ export const notificacoes: Notificacao[] = [
 ]
 
 export const regrasNotificacao: RegraNotificacao[] = [
-  { id: 'REGRA-001', nome: 'Críticas imediatas', condicao: 'Criticidade Extrema ou Crítica', ativa: true, canal: 'email' },
+  { id: 'REGRA-001', nome: 'Críticas imediatas', condicao: 'Criticidade Crítica', ativa: true, canal: 'email' },
   { id: 'REGRA-002', nome: 'Vencidas > 7 dias', condicao: 'SLA vencido há mais de 7 dias', ativa: true, canal: 'email' },
   { id: 'REGRA-003', nome: 'Próximo vencimento', condicao: 'SLA vence em menos de 3 dias', ativa: true, canal: 'email' },
   { id: 'REGRA-004', nome: 'Resumo semanal', condicao: 'Segunda-feira às 07:00', ativa: true, canal: 'email' },
   { id: 'REGRA-005', nome: 'Sem responsável > 48h', condicao: 'Vulnerabilidade sem responsável há 48h', ativa: false, canal: 'email' },
 ]
 
-export const integracaoJira: IntegracaoJira = {
+export const integracaoRtc: IntegracaoRtc = {
   status: 'conectado',
-  urlInstancia: 'https://credsystem.atlassian.net',
+  urlInstancia: 'https://rtc.example.com',
   projetosMonitorados: ['SEC', 'VULN', 'APPSEC'],
   ultimaSincronizacao: '2025-03-12T14:30:00',
-  issuesImportadas: 156
+  workItemsImportados: 156
 }
 
 export const estatisticas = {
   totalAbertas: 47,
-  extremas: 2,
+  criticas_total: 2,
   criticas: 8,
   vencidas: 12,
   mediadiasAberto: 28,

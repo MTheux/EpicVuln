@@ -35,7 +35,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
   // Load from localStorage on mount
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("vulncontrol_preferences")
+      const saved = localStorage.getItem("epicvuln_preferences")
       if (saved) {
         setPreferences({ ...defaults, ...JSON.parse(saved) })
       }
@@ -65,7 +65,7 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
     setPreferences(prev => {
       const next = { ...prev, [key]: value }
       try {
-        localStorage.setItem("vulncontrol_preferences", JSON.stringify(next))
+        localStorage.setItem("epicvuln_preferences", JSON.stringify(next))
       } catch {}
       return next
     })

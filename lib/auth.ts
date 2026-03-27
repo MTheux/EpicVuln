@@ -20,7 +20,7 @@ export function authHeaders(): HeadersInit {
 export function getUser(): { id: string; email: string; name: string; role: string; organizationId?: string } | null {
   if (typeof window === 'undefined') return null
   try {
-    const raw = localStorage.getItem('vulncontrol_user')
+    const raw = localStorage.getItem('epicvuln_user')
     return raw ? JSON.parse(raw) : null
   } catch {
     return null
@@ -29,12 +29,12 @@ export function getUser(): { id: string; email: string; name: string; role: stri
 
 export function logout() {
   // Clear ALL local state FIRST (before any async calls)
-  document.cookie = 'vulncontrol_session=; path=/; max-age=0'
-  document.cookie = 'vulncontrol_token=; path=/; max-age=0'
+  document.cookie = 'epicvuln_session=; path=/; max-age=0'
+  document.cookie = 'epicvuln_token=; path=/; max-age=0'
   // Also try clearing with domain variants
-  document.cookie = 'vulncontrol_session=; path=/; max-age=0; domain=localhost'
-  document.cookie = 'vulncontrol_token=; path=/; max-age=0; domain=localhost'
-  localStorage.removeItem('vulncontrol_user')
+  document.cookie = 'epicvuln_session=; path=/; max-age=0; domain=localhost'
+  document.cookie = 'epicvuln_token=; path=/; max-age=0; domain=localhost'
+  localStorage.removeItem('epicvuln_user')
 
   // Call backend to clear HttpOnly cookie (fire and forget)
   fetch(`${getApiUrl()}/api/auth/logout`, {

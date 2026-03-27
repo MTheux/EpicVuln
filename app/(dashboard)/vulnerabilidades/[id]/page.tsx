@@ -61,7 +61,7 @@ interface PageProps {
 export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
   const { id } = use(params)
   const router = useRouter()
-  const { getById, fetchVulnerabilidades, isLoading, syncJira, sendNotification, deleteVulnerabilidade, uploadEvidence } = useVulnStore()
+  const { getById, fetchVulnerabilidades, isLoading, syncRtc, sendNotification, deleteVulnerabilidade, uploadEvidence } = useVulnStore()
   const vuln = getById(id)
   const [novoComentario, setNovoComentario] = useState("")
   const [commentType, setCommentType] = useState("observacao")
@@ -305,19 +305,18 @@ export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
     notFound()
   }
 
-  const handleOpenJira = () => {
-    if (vuln.jiraKey) {
-      window.open(`https://credsystem.atlassian.net/browse/${vuln.jiraKey}`, '_blank')
-      toast.success("Abrindo Jira", {
-        description: `Ticket ${vuln.jiraKey} aberto em nova aba.`
+  const handleOpenRtc = () => {
+    if (vuln.rtcWorkItemId) {
+      toast.success("Work Item RTC", {
+        description: `Work Item ${vuln.rtcWorkItemId}`
       })
     }
   }
 
   const handleSync = () => {
-    syncJira()
+    syncRtc()
     toast.success("Sincronização iniciada", {
-      description: "Os dados do Jira serão atualizados em instantes."
+      description: "Os dados do IBM RTC serão atualizados em instantes."
     })
   }
 
@@ -351,7 +350,7 @@ export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
     CRITICIDADE_ALTERADA: { icon: <AlertTriangle className="h-4 w-4" />,   color: 'text-orange-500',  bgColor: 'bg-orange-500/15',  label: 'Criticidade' },
     RESPONSAVEL_ALTERADO: { icon: <UserCheck className="h-4 w-4" />,       color: 'text-purple-500',  bgColor: 'bg-purple-500/15',  label: 'Responsável' },
     SLA_ALTERADO:         { icon: <Clock className="h-4 w-4" />,           color: 'text-yellow-500',  bgColor: 'bg-yellow-500/15',  label: 'SLA' },
-    SYNC_JIRA:            { icon: <ExternalLink className="h-4 w-4" />,    color: 'text-cyan-500',    bgColor: 'bg-cyan-500/15',    label: 'Jira' },
+    SYNC_RTC:             { icon: <ExternalLink className="h-4 w-4" />,    color: 'text-cyan-500',    bgColor: 'bg-cyan-500/15',    label: 'RTC' },
     EVIDENCIA_ADICIONADA: { icon: <Paperclip className="h-4 w-4" />,       color: 'text-gray-400',    bgColor: 'bg-gray-500/15',    label: 'Evidência' },
     NOTIFICACAO_ENVIADA:  { icon: <Bell className="h-4 w-4" />,            color: 'text-pink-500',    bgColor: 'bg-pink-500/15',    label: 'Notificação' },
     REABERTURA:           { icon: <RotateCcw className="h-4 w-4" />,       color: 'text-red-500',     bgColor: 'bg-red-500/15',     label: 'Reabertura' },
@@ -368,8 +367,8 @@ export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
     responsavel: 'RESPONSAVEL_ALTERADO',
     notificacao: 'NOTIFICACAO_ENVIADA',
     comentario: 'COMENTARIO',
-    sync_jira: 'SYNC_JIRA',
-    sincronizacao: 'SYNC_JIRA',
+    sync_rtc: 'SYNC_RTC',
+    sincronizacao: 'SYNC_RTC',
   }
 
   const getTimelineConfig = (eventType: string) => {
@@ -439,15 +438,15 @@ export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              {vuln.jiraKey ? (
-                <Badge variant="outline" className="cursor-pointer font-mono" onClick={handleOpenJira}>
+              {vuln.rtcWorkItemId ? (
+                <Badge variant="outline" className="cursor-pointer font-mono" onClick={handleOpenRtc}>
                   <Link2 className="mr-1 h-3 w-3" />
-                  {vuln.jiraKey}
+                  {vuln.rtcWorkItemId}
                 </Badge>
               ) : (
                 <span className="font-mono text-sm text-muted-foreground">{vuln.id}</span>
               )}
-              <SeverityBadge severity={vuln.criticidade} showIcon={vuln.criticidade === 'Extrema'} />
+              <SeverityBadge severity={vuln.criticidade} showIcon={vuln.criticidade === 'Crítica'} />
               <StatusBadge status={vuln.status} />
             </div>
             <h1 className="text-2xl font-bold text-foreground">{vuln.titulo}</h1>
@@ -478,10 +477,10 @@ export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            {vuln.jiraKey && (
-              <Button variant="outline" size="sm" onClick={handleOpenJira}>
+            {vuln.rtcWorkItemId && (
+              <Button variant="outline" size="sm" onClick={handleOpenRtc}>
                 <ExternalLink className="mr-2 h-4 w-4" />
-                Abrir no Jira
+                Abrir no RTC
               </Button>
             )}
             <Button variant="outline" size="sm" onClick={handleSync}>
@@ -544,10 +543,6 @@ export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
                   </div>
                 )}
                 <div>
-                  <h4 className="mb-1 text-xs font-medium text-muted-foreground">Ambiente</h4>
-                  <p className="text-sm font-medium text-foreground">{vuln.ambiente}</p>
-                </div>
-                <div>
                   <h4 className="mb-1 text-xs font-medium text-muted-foreground">Squad Responsável</h4>
                   <p className="text-sm font-medium text-foreground">{vuln.squad}</p>
                 </div>
@@ -590,168 +585,11 @@ export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
                   <h4 className="mb-1 text-xs font-medium text-muted-foreground">Complexidade de Correção</h4>
                   <Badge variant="outline">{vuln.complexidadeCorrecao || 'Média'}</Badge>
                 </div>
-                {/* Ativo Vinculado */}
-                <div className="sm:col-span-2 lg:col-span-3 pt-2 border-t border-border">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                      <Server className="h-3.5 w-3.5" />
-                      Ativo Vinculado
-                    </h4>
-                    <div className="flex items-center gap-1">
-                      {(vuln as any).asset && (
-                        <Button variant="ghost" size="sm" className="h-7 text-xs text-red-400 hover:text-red-500" onClick={handleUnlinkAsset} disabled={linkingAsset}>
-                          Desvincular
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 text-xs text-muted-foreground hover:text-foreground"
-                        onClick={() => { setShowAssetSelector(!showAssetSelector); setSelectedAssetType(null); setNewAssetName('') }}
-                      >
-                        {(vuln as any).asset ? 'Trocar' : 'Vincular'}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Seletor: cards de tipo */}
-                  {showAssetSelector && !selectedAssetType && (
-                    <div className="mb-3 space-y-2">
-                      <p className="text-xs text-muted-foreground mb-2">Selecione o tipo do ativo:</p>
-                      <div className="grid grid-cols-2 gap-2">
-                        {[
-                          { key: 'API', label: 'API', icon: '🔌', desc: 'REST, GraphQL, WebSocket', color: 'hover:border-blue-500/40 hover:bg-blue-500/5' },
-                          { key: 'WEB_APP', label: 'Aplicação Web', icon: '🌐', desc: 'Sites, portais, SPAs', color: 'hover:border-purple-500/40 hover:bg-purple-500/5' },
-                          { key: 'MOBILE', label: 'Mobile', icon: '📱', desc: 'APK, iOS, apps nativos', color: 'hover:border-cyan-500/40 hover:bg-cyan-500/5' },
-                          { key: 'INFRA', label: 'Infraestrutura', icon: '🖥️', desc: 'Servidores, cloud, rede', color: 'hover:border-slate-500/40 hover:bg-slate-500/5' },
-                        ].map(cat => {
-                          const typeMap: Record<string, string[]> = {
-                            'API': ['API'],
-                            'WEB_APP': ['Web App'],
-                            'MOBILE': ['Mobile'],
-                            'INFRA': ['Infra', 'Cloud Service', 'Database', 'IoT'],
-                          }
-                          const existing = assets.filter(a => typeMap[cat.key]?.includes(a.type))
-                          return (
-                            <button
-                              key={cat.key}
-                              onClick={() => setSelectedAssetType(cat.key)}
-                              className={`flex flex-col items-start gap-1 rounded-lg border border-border bg-card p-3 text-left transition-all cursor-pointer ${cat.color}`}
-                            >
-                              <div className="flex items-center gap-2 w-full">
-                                <span className="text-lg">{cat.icon}</span>
-                                <span className="text-sm font-medium text-foreground">{cat.label}</span>
-                                {existing.length > 0 && (
-                                  <span className="ml-auto text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{existing.length} cadastrado{existing.length > 1 ? 's' : ''}</span>
-                                )}
-                              </div>
-                              <span className="text-[11px] text-muted-foreground">{cat.desc}</span>
-                            </button>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Passo 2: tipo selecionado — mostrar existentes + criar novo */}
-                  {showAssetSelector && selectedAssetType && (
-                    <div className="mb-3 space-y-3">
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => setSelectedAssetType(null)} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
-                          <ArrowLeft className="h-3 w-3" /> Voltar
-                        </button>
-                        <span className="text-xs font-medium text-foreground">
-                          {selectedAssetType === 'API' && '🔌 API'}
-                          {selectedAssetType === 'WEB_APP' && '🌐 Aplicação Web'}
-                          {selectedAssetType === 'MOBILE' && '📱 Mobile'}
-                          {selectedAssetType === 'INFRA' && '🖥️ Infraestrutura'}
-                        </span>
-                      </div>
-
-                      {/* Ativos existentes dessa categoria */}
-                      {(() => {
-                        const typeMap: Record<string, string[]> = {
-                          'API': ['API'],
-                          'WEB_APP': ['Web App'],
-                          'MOBILE': ['Mobile'],
-                          'INFRA': ['Infra', 'Cloud Service', 'Database', 'IoT'],
-                        }
-                        const existing = assets.filter(a => typeMap[selectedAssetType]?.includes(a.type))
-                        return existing.length > 0 ? (
-                          <div className="space-y-1">
-                            <p className="text-[11px] text-muted-foreground">Ativos existentes:</p>
-                            {existing.map(a => (
-                              <button
-                                key={a.id}
-                                onClick={() => handleSelectExistingAsset(a.id)}
-                                disabled={linkingAsset}
-                                className="flex items-center gap-2 w-full rounded-md border border-border bg-muted/20 px-3 py-2 text-left hover:border-primary/40 hover:bg-muted/50 transition-all disabled:opacity-50"
-                              >
-                                <Server className="h-4 w-4 text-cyan-500 shrink-0" />
-                                <span className="text-sm font-medium text-foreground">{a.name}</span>
-                                {a.squad && <span className="text-[10px] text-muted-foreground ml-auto">{a.squad}</span>}
-                              </button>
-                            ))}
-                          </div>
-                        ) : null
-                      })()}
-
-                      {/* Criar novo ativo */}
-                      <div className="space-y-2">
-                        <p className="text-[11px] text-muted-foreground">Ou crie um novo:</p>
-                        <div className="flex gap-2">
-                          <Input
-                            placeholder="Nome do ativo (ex: API Pagamentos)"
-                            value={newAssetName}
-                            onChange={(e) => setNewAssetName(e.target.value)}
-                            className="h-9 text-sm flex-1"
-                            onKeyDown={(e) => { if (e.key === 'Enter' && newAssetName.trim()) handleCreateAndLink() }}
-                          />
-                          <Button
-                            size="sm"
-                            className="h-9"
-                            onClick={handleCreateAndLink}
-                            disabled={linkingAsset || !newAssetName.trim()}
-                          >
-                            {linkingAsset ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Criar e Vincular'}
-                          </Button>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground">O ativo será criado automaticamente na Gestão de Ativos.</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Card do ativo vinculado */}
-                  {!showAssetSelector && (vuln as any).asset ? (
-                    <Link href={`/ativos/${(vuln as any).asset.id}`}>
-                      <div className="inline-flex items-center gap-2.5 rounded-lg border border-border bg-muted/30 px-3 py-2 hover:border-primary/40 hover:bg-muted/60 transition-all cursor-pointer group">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-md bg-cyan-500/15">
-                          <Server className="h-4 w-4 text-cyan-500" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{(vuln as any).asset.name}</p>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] text-muted-foreground">{(vuln as any).asset.type}</span>
-                            {(vuln as any).asset.businessCriticality && (
-                              <>
-                                <span className="text-[10px] text-muted-foreground/40">•</span>
-                                <span className="text-[10px] text-muted-foreground">{(vuln as any).asset.businessCriticality}</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                        <ExternalLink className="h-3.5 w-3.5 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                      </div>
-                    </Link>
-                  ) : !showAssetSelector ? (
-                    <p className="text-sm text-muted-foreground italic">Nenhum ativo vinculado a esta vulnerabilidade.</p>
-                  ) : null}
-                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Timeline / Histórico (Unificado com Jira) */}
+          {/* Timeline / Histórico */}
           <Card className="bg-card">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -761,7 +599,7 @@ export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
                 </div>
                 {detailLoading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
               </div>
-              <CardDescription>Eventos, comentários e ações sincronizadas do Jira</CardDescription>
+              <CardDescription>Eventos, comentários e ações sincronizadas do IBM RTC</CardDescription>
               {/* Filter buttons */}
               <div className="flex flex-wrap gap-2 pt-3">
                 {[
@@ -978,50 +816,6 @@ export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
                 ) : null
               })()}
 
-              {/* Real Risk Score */}
-              {riskData && (
-                <>
-                  <div className="rounded-lg border border-border bg-muted/20 p-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Real Risk Score</span>
-                      {(() => {
-                        const s = riskData.riskScore
-                        const color = s <= 25 ? 'text-green-400' : s <= 50 ? 'text-yellow-400' : s <= 75 ? 'text-orange-400' : 'text-red-400'
-                        const bgColor = s <= 25 ? 'bg-green-500/20' : s <= 50 ? 'bg-yellow-500/20' : s <= 75 ? 'bg-orange-500/20' : 'bg-red-500/20'
-                        const label = s <= 25 ? 'Baixo' : s <= 50 ? 'Médio' : s <= 75 ? 'Alto' : 'Crítico'
-                        return (
-                          <span className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-bold ${color} ${bgColor}`}>
-                            {Math.round(s)} - {label}
-                          </span>
-                        )
-                      })()}
-                    </div>
-                    {/* Factor breakdown */}
-                    <div className="grid grid-cols-2 gap-2 mt-2">
-                      {[
-                        { label: 'Base', value: riskData.factors.baseScore },
-                        { label: 'Idade', value: riskData.factors.ageFactor },
-                        { label: 'Ambiente', value: riskData.factors.environmentFactor },
-                        { label: 'Reincidência', value: riskData.factors.recurrenceFactor },
-                      ].map((f) => (
-                        <div key={f.label} className="text-center">
-                          <p className="text-[10px] text-muted-foreground">{f.label}</p>
-                          <p className="text-xs font-bold text-foreground">{typeof f.value === 'number' ? f.value.toFixed(2) : '—'}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <Separator />
-                </>
-              )}
-              {riskLoading && (
-                <>
-                  <div className="rounded-lg border border-border bg-muted/20 p-3 flex items-center justify-center">
-                    <span className="text-xs text-muted-foreground animate-pulse">Calculando risco...</span>
-                  </div>
-                  <Separator />
-                </>
-              )}
 
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Status</span>
@@ -1049,23 +843,84 @@ export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
                 <span className="text-sm text-muted-foreground">Última Atualização</span>
                 <span className="text-sm text-foreground">{vuln.ultimaAtualizacao ? new Date(vuln.ultimaAtualizacao).toLocaleDateString('pt-BR') : '—'}</span>
               </div>
+
+              <Separator />
+
+              {/* Timeline Visual de Ciclo de Vida */}
+              {(() => {
+                const criacao = vuln.dataCriacao ? new Date(vuln.dataCriacao) : null
+                const deteccao = (vuln as any).dataDeteccao ? new Date((vuln as any).dataDeteccao) : criacao
+                const slaDate = vuln.sla ? new Date(vuln.sla) : null
+                const now = new Date()
+                const fechamento = ['CONCLUIDO', 'FECHADO', 'RISCO_ACEITO'].includes(vuln.status)
+                  ? new Date(vuln.ultimaAtualizacao) : null
+
+                const events = [
+                  { label: 'Criação', date: criacao, icon: <CirclePlus className="h-3 w-3" />, color: 'bg-emerald-500', textColor: 'text-emerald-500' },
+                  deteccao && deteccao.getTime() !== criacao?.getTime()
+                    ? { label: 'Detecção', date: deteccao, icon: <Shield className="h-3 w-3" />, color: 'bg-blue-500', textColor: 'text-blue-400' }
+                    : null,
+                  slaDate
+                    ? { label: 'SLA', date: slaDate, icon: <Clock className="h-3 w-3" />, color: slaDate < now ? 'bg-red-500' : 'bg-yellow-500', textColor: slaDate < now ? 'text-red-500' : 'text-yellow-500' }
+                    : null,
+                  !fechamento
+                    ? { label: 'Hoje', date: now, icon: <Calendar className="h-3 w-3" />, color: 'bg-foreground', textColor: 'text-foreground' }
+                    : null,
+                  fechamento
+                    ? { label: 'Fechamento', date: fechamento, icon: <CheckCircle2 className="h-3 w-3" />, color: 'bg-emerald-500', textColor: 'text-emerald-500' }
+                    : null,
+                ].filter(Boolean) as { label: string; date: Date; icon: React.ReactNode; color: string; textColor: string }[]
+
+                const sorted = events.sort((a, b) => a.date.getTime() - b.date.getTime())
+
+                if (sorted.length < 2) return null
+
+                const totalSpan = sorted[sorted.length - 1].date.getTime() - sorted[0].date.getTime()
+
+                return (
+                  <div className="space-y-2">
+                    <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ciclo de Vida</span>
+                    <div className="relative pt-2 pb-1">
+                      {/* Line */}
+                      <div className="absolute top-[18px] left-3 right-3 h-0.5 bg-border" />
+
+                      {/* Events */}
+                      <div className="relative flex justify-between">
+                        {sorted.map((evt, i) => {
+                          return (
+                            <div key={i} className="flex flex-col items-center" style={{ zIndex: 10 }}>
+                              <div className={`flex h-6 w-6 items-center justify-center rounded-full ${evt.color} text-white shadow-sm`}>
+                                {evt.icon}
+                              </div>
+                              <span className={`text-[9px] font-bold mt-1 ${evt.textColor}`}>{evt.label}</span>
+                              <span className="text-[8px] text-muted-foreground">
+                                {evt.date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                              </span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()}
             </CardContent>
           </Card>
 
-          {/* Jira Panel */}
-          {vuln.jiraKey && (
+          {/* RTC Panel */}
+          {vuln.rtcWorkItemId && (
             <Card className="bg-card">
               <CardHeader>
                 <div className="flex items-center gap-2">
-                  <Link2 className="h-5 w-5 text-blue-400" />
-                  <CardTitle className="text-base">Rastreamento Jira</CardTitle>
+                  <Link2 className="h-5 w-5 text-emerald-400" />
+                  <CardTitle className="text-base">Rastreamento IBM RTC</CardTitle>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <h4 className="mb-1 text-xs font-medium text-muted-foreground">Ticket</h4>
-                  <Badge variant="outline" className="cursor-pointer font-mono" onClick={handleOpenJira}>
-                    {vuln.jiraKey}
+                  <h4 className="mb-1 text-xs font-medium text-muted-foreground">Work Item</h4>
+                  <Badge variant="outline" className="cursor-pointer font-mono" onClick={handleOpenRtc}>
+                    {vuln.rtcWorkItemId}
                   </Badge>
                 </div>
                 <div>
@@ -1076,9 +931,9 @@ export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
                   <h4 className="mb-1 text-xs font-medium text-muted-foreground">Responsável</h4>
                   <p className="text-sm text-foreground">{vuln.responsavel || 'Não atribuído'}</p>
                 </div>
-                <Button variant="outline" size="sm" className="w-full" onClick={handleOpenJira}>
+                <Button variant="outline" size="sm" className="w-full" onClick={handleOpenRtc}>
                   <ExternalLink className="mr-2 h-4 w-4" />
-                  Abrir no Jira
+                  Abrir no RTC
                 </Button>
               </CardContent>
             </Card>

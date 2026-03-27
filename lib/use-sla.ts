@@ -9,15 +9,15 @@ const getApiUrl = () => {
 }
 
 const DEFAULT_SLA: Record<string, number> = {
-  EXTREMA: 0, CRITICA: 30, ALTA: 90, MEDIA: 180, BAIXA: 270, INFORMATIVA: 365
+  CRITICA: 0, ALTA: 90, MEDIA: 180, BAIXA: 270, INFORMATIVA: 365
 }
 
 // Map display names to enum keys
 const DISPLAY_TO_KEY: Record<string, string> = {
-  'Extrema': 'EXTREMA', 'Crítica': 'CRITICA', 'Critica': 'CRITICA',
+  'Crítica': 'CRITICA', 'Critica': 'CRITICA',
   'Alta': 'ALTA', 'Média': 'MEDIA', 'Media': 'MEDIA',
   'Baixa': 'BAIXA', 'Informativa': 'INFORMATIVA',
-  'EXTREMA': 'EXTREMA', 'CRITICA': 'CRITICA', 'ALTA': 'ALTA',
+  'CRITICA': 'CRITICA', 'ALTA': 'ALTA',
   'MEDIA': 'MEDIA', 'BAIXA': 'BAIXA', 'INFORMATIVA': 'INFORMATIVA',
 }
 

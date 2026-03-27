@@ -55,7 +55,7 @@ export class AssetsService {
 
     const mapped = assets.map(a => {
       const openVulns = a.vulnerabilities.filter(v => !CLOSED_STATUSES.includes(v.status));
-      const criticalVulns = a.vulnerabilities.filter(v => ['EXTREMA', 'CRITICA'].includes(v.criticidade) && !CLOSED_STATUSES.includes(v.status));
+      const criticalVulns = a.vulnerabilities.filter(v => ['CRITICA'].includes(v.criticidade) && !CLOSED_STATUSES.includes(v.status));
       return {
         ...a,
         vulnerabilityCount: a.vulnerabilities.length,
@@ -86,7 +86,7 @@ export class AssetsService {
     if (!asset) return null;
 
     const openVulns = asset.vulnerabilities.filter(v => !CLOSED_STATUSES.includes(v.status));
-    const criticalVulns = asset.vulnerabilities.filter(v => ['EXTREMA', 'CRITICA'].includes(v.criticidade) && !CLOSED_STATUSES.includes(v.status));
+    const criticalVulns = asset.vulnerabilities.filter(v => ['CRITICA'].includes(v.criticidade) && !CLOSED_STATUSES.includes(v.status));
 
     return {
       ...asset,
@@ -141,7 +141,7 @@ export class AssetsService {
           status: 'ACTIVE',
           vulnerabilities: {
             some: {
-              criticidade: { in: ['EXTREMA', 'CRITICA'] },
+              criticidade: { in: ['CRITICA'] },
               status: { notIn: CLOSED_STATUSES },
             },
           },

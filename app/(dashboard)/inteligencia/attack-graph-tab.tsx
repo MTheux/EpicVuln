@@ -78,8 +78,7 @@ interface AttackScenario {
 // --- Color helpers ---
 const getCriticidadeColor = (crit: string | null): string => {
   switch (crit) {
-    case "EXTREMA": return "#ef4444"
-    case "CRITICA": return "#f97316"
+    case "CRITICA": return "#ef4444"
     case "ALTA": return "#eab308"
     case "MEDIA": return "#3b82f6"
     default: return "#8b5cf6"
@@ -477,7 +476,6 @@ export default function AttackGraphTab() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas</SelectItem>
-            <SelectItem value="EXTREMA">Extrema</SelectItem>
             <SelectItem value="CRITICA">Critica</SelectItem>
             <SelectItem value="ALTA">Alta</SelectItem>
             <SelectItem value="MEDIA">Media</SelectItem>

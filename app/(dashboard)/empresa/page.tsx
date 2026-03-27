@@ -174,7 +174,7 @@ export default function EmpresaPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
       </div>
     )
   }
@@ -184,7 +184,7 @@ export default function EmpresaPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
             <Building2 className="h-5 w-5 text-white" />
           </div>
           <div>
@@ -192,7 +192,7 @@ export default function EmpresaPage() {
             <p className="text-sm text-muted-foreground">Gerencie informações, squads e integrações</p>
           </div>
         </div>
-        <Button onClick={handleSave} disabled={saving} className="bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/20">
+        <Button onClick={handleSave} disabled={saving} className="bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20">
           {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
           Salvar Alterações
         </Button>
@@ -204,10 +204,10 @@ export default function EmpresaPage() {
 
           {/* Company Identity */}
           <Card className="bg-card border-border overflow-hidden">
-            <div className="h-1 bg-gradient-to-r from-blue-500 to-cyan-500" />
+            <div className="h-1 bg-gradient-to-r from-emerald-500 to-cyan-500" />
             <CardContent className="p-6">
               <h3 className="text-lg font-bold text-foreground mb-6 flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-blue-500" />
+                <Building2 className="h-5 w-5 text-emerald-500" />
                 Identidade
               </h3>
 
@@ -221,7 +221,7 @@ export default function EmpresaPage() {
                         <Input
                           value={name}
                           onChange={e => setName(e.target.value)}
-                          placeholder="Ex: CredSystem"
+                          placeholder="Ex: Unisys"
                           className="bg-background"
                           autoFocus
                         />
@@ -231,11 +231,11 @@ export default function EmpresaPage() {
                       </div>
                     ) : (
                       <div
-                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border cursor-pointer hover:border-blue-500/30 transition-colors group"
+                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border cursor-pointer hover:border-emerald-500/30 transition-colors group"
                         onClick={() => setEditingName(true)}
                       >
                         <span className="text-foreground font-medium">{name || 'Não configurado'}</span>
-                        <Pencil className="h-3.5 w-3.5 text-muted-foreground group-hover:text-blue-500 transition-colors" />
+                        <Pencil className="h-3.5 w-3.5 text-muted-foreground group-hover:text-emerald-500 transition-colors" />
                       </div>
                     )}
                   </div>
@@ -252,7 +252,7 @@ export default function EmpresaPage() {
                         className={cn(
                           "px-3 py-1.5 rounded-lg text-xs font-medium border transition-all",
                           sector === s
-                            ? "bg-blue-500/10 text-blue-500 border-blue-500/30"
+                            ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/30"
                             : "bg-muted/50 text-muted-foreground border-border hover:border-muted-foreground/30"
                         )}
                       >
@@ -272,7 +272,7 @@ export default function EmpresaPage() {
                           value={description}
                           onChange={e => setDescription(e.target.value)}
                           placeholder="Descreva o negócio da empresa, principais serviços, etc."
-                          className="w-full min-h-[80px] p-3 rounded-lg bg-background border border-border text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                          className="w-full min-h-[80px] p-3 rounded-lg bg-background border border-border text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                           autoFocus
                         />
                         <Button size="icon" variant="ghost" onClick={() => setEditingDesc(false)} className="mt-1">
@@ -281,11 +281,11 @@ export default function EmpresaPage() {
                       </div>
                     ) : (
                       <div
-                        className="p-3 rounded-lg bg-muted/50 border border-border cursor-pointer hover:border-blue-500/30 transition-colors group min-h-[60px]"
+                        className="p-3 rounded-lg bg-muted/50 border border-border cursor-pointer hover:border-emerald-500/30 transition-colors group min-h-[60px]"
                         onClick={() => setEditingDesc(true)}
                       >
                         <p className="text-sm text-muted-foreground">{description || 'Clique para adicionar uma descrição...'}</p>
-                        <Pencil className="h-3.5 w-3.5 text-muted-foreground group-hover:text-blue-500 transition-colors mt-1" />
+                        <Pencil className="h-3.5 w-3.5 text-muted-foreground group-hover:text-emerald-500 transition-colors mt-1" />
                       </div>
                     )}
                   </div>
@@ -430,9 +430,8 @@ export default function EmpresaPage() {
 
               <div className="grid gap-3 sm:grid-cols-2">
                 {[
-                  { type: 'jira', label: 'Jira', desc: 'Atlassian Jira', icon: '🔵', color: 'blue' },
-                  { type: 'azure', label: 'Azure DevOps', desc: 'Microsoft Azure', icon: '🟦', color: 'cyan' },
                   { type: 'rtc', label: 'IBM RTC', desc: 'Rational Team Concert', icon: '🟣', color: 'purple' },
+                  { type: 'azure', label: 'Azure DevOps', desc: 'Microsoft Azure', icon: '🟦', color: 'cyan' },
                   { type: 'gitlab', label: 'GitLab', desc: 'GitLab Issues', icon: '🟠', color: 'orange' },
                   { type: 'manual', label: 'Manual / CSV', desc: 'Import manual', icon: '📄', color: 'gray' },
                 ].map(source => {
@@ -498,7 +497,7 @@ export default function EmpresaPage() {
               </h3>
               <div className="space-y-3">
                 {[
-                  { label: 'Vulnerabilidades', value: stats.totalVulns, icon: Shield, color: 'text-blue-500' },
+                  { label: 'Vulnerabilidades', value: stats.totalVulns, icon: Shield, color: 'text-emerald-500' },
                   { label: 'Abertas', value: stats.openVulns, icon: AlertTriangle, color: 'text-red-500' },
                   { label: 'Ativos', value: stats.totalAssets, icon: Server, color: 'text-emerald-500' },
                   { label: 'Usuários', value: stats.totalUsers, icon: Users, color: 'text-purple-500' },
@@ -518,28 +517,28 @@ export default function EmpresaPage() {
 
           {/* Quick Actions */}
           <Card className="bg-card border-border overflow-hidden">
-            <div className="h-1 bg-gradient-to-r from-blue-500 to-purple-500" />
+            <div className="h-1 bg-gradient-to-r from-emerald-500 to-purple-500" />
             <CardContent className="p-6">
               <h3 className="text-sm font-bold text-foreground mb-4">Ações Rápidas</h3>
               <div className="space-y-2">
                 {[
                   { label: 'Configurações', desc: 'SLA, tema, segurança', href: '/configuracoes', icon: Database },
-                  { label: 'Integrações', desc: 'Jira, RTC, Azure DevOps', href: '/configuracoes', icon: Globe },
+                  { label: 'Integrações', desc: 'IBM RTC, Azure DevOps', href: '/configuracoes', icon: Globe },
                   { label: 'Métricas DORA', desc: 'Performance das squads', href: '/metricas', icon: BarChart3 },
                 ].map(action => (
                   <button
                     key={action.label}
                     onClick={() => router.push(action.href)}
-                    className="w-full flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border hover:border-blue-500/20 transition-all group text-left"
+                    className="w-full flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border hover:border-emerald-500/20 transition-all group text-left"
                   >
                     <div className="flex items-center gap-3">
-                      <action.icon className="h-4 w-4 text-muted-foreground group-hover:text-blue-500 transition-colors" />
+                      <action.icon className="h-4 w-4 text-muted-foreground group-hover:text-emerald-500 transition-colors" />
                       <div>
                         <p className="text-sm font-medium text-foreground">{action.label}</p>
                         <p className="text-[10px] text-muted-foreground">{action.desc}</p>
                       </div>
                     </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-blue-500 transition-colors" />
+                    <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-emerald-500 transition-colors" />
                   </button>
                 ))}
               </div>

@@ -34,8 +34,8 @@ export async function authenticateToken(
   // Read token from HttpOnly cookie first, then fall back to Authorization header
   let token: string | undefined;
 
-  if (req.cookies && req.cookies.vulncontrol_token) {
-    token = req.cookies.vulncontrol_token;
+  if (req.cookies && req.cookies.epicvuln_token) {
+    token = req.cookies.epicvuln_token;
   } else {
     const authHeader = req.headers.authorization;
     token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined;

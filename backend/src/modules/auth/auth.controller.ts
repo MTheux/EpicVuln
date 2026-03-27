@@ -28,13 +28,13 @@ export class AuthController {
       };
 
       // HttpOnly cookie with the JWT token (not accessible from JS)
-      res.cookie('vulncontrol_token', result.token, {
+      res.cookie('epicvuln_token', result.token, {
         ...cookieOptions,
         httpOnly: true,
       });
 
       // Non-HttpOnly session flag (for middleware/JS to check auth state)
-      res.cookie('vulncontrol_session', '1', {
+      res.cookie('epicvuln_session', '1', {
         ...cookieOptions,
         httpOnly: false,
       });

@@ -5,30 +5,30 @@ import { prisma } from './app';
 import { startScheduler } from './services/sla-scheduler.service';
 import bcrypt from 'bcryptjs';
 
-async function ensureTestUser() {
+async function ensureAdminUser() {
   try {
-    const existing = await prisma.user.findUnique({ where: { email: 'teste@gmail.com.br' } });
-    if (!existing) {
-      await prisma.user.create({
-        data: {
-          email: 'teste@gmail.com.br',
-          password: await bcrypt.hash('teste@123', 10),
-          name: 'Usuário Teste',
-          role: 'ADMIN',
-          active: true,
-        }
-      });
-      console.log('Test user created: teste@gmail.com.br');
-    }
+    const hash = await bcrypt.hash('admin@123', 10);
+    await prisma.user.upsert({
+      where: { email: 'admin@unisys.com' },
+      update: { password: hash, role: 'ADMIN', active: true },
+      create: {
+        email: 'admin@unisys.com',
+        password: hash,
+        name: 'Administrador',
+        role: 'ADMIN',
+        active: true,
+      }
+    });
+    console.log('Admin user ready: admin@unisys.com');
   } catch (err) {
-    console.error('Failed to ensure test user:', err);
+    console.error('Failed to ensure admin user:', err);
   }
 }
 
 const PORT = process.env.PORT || 9001;
 
 app.listen(PORT, async () => {
-    console.log(`🚀 Server is running on port ${PORT} - [Scorecard Refined v2]`);
-    await ensureTestUser();
+    console.log(`🚀 Server is running on port ${PORT} - [EpicVuln v2]`);
+    await ensureAdminUser();
     startScheduler();
 });

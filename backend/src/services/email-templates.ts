@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// Email HTML templates — CredSystem VulnControl
+// Email HTML templates — EpicVuln
 // Dark theme with purple accent (#7c3aed)
 // ---------------------------------------------------------------------------
 
@@ -10,7 +10,7 @@ export interface VulnSummary {
   sla: string;
   diasEmAberto: number;
   squad: string;
-  jiraKey?: string;
+  rtcWorkItemId?: string;
 }
 
 export interface SquadSummary {
@@ -56,7 +56,7 @@ function vulnTable(vulns: VulnSummary[]): string {
         <td style="padding:8px 12px;border-bottom:1px solid #2d2d44;text-align:center;">${v.sla}</td>
         <td style="padding:8px 12px;border-bottom:1px solid #2d2d44;text-align:center;">${v.diasEmAberto}d</td>
         <td style="padding:8px 12px;border-bottom:1px solid #2d2d44;">${v.squad}</td>
-        <td style="padding:8px 12px;border-bottom:1px solid #2d2d44;">${v.jiraKey ?? '-'}</td>
+        <td style="padding:8px 12px;border-bottom:1px solid #2d2d44;">${v.rtcWorkItemId ?? '-'}</td>
       </tr>`,
     )
     .join('');
@@ -71,7 +71,7 @@ function vulnTable(vulns: VulnSummary[]): string {
           <th style="padding:10px 12px;text-align:center;color:#a5b4fc;font-size:12px;text-transform:uppercase;">SLA</th>
           <th style="padding:10px 12px;text-align:center;color:#a5b4fc;font-size:12px;text-transform:uppercase;">Dias Aberto</th>
           <th style="padding:10px 12px;text-align:left;color:#a5b4fc;font-size:12px;text-transform:uppercase;">Squad</th>
-          <th style="padding:10px 12px;text-align:left;color:#a5b4fc;font-size:12px;text-transform:uppercase;">Jira</th>
+          <th style="padding:10px 12px;text-align:left;color:#a5b4fc;font-size:12px;text-transform:uppercase;">RTC</th>
         </tr>
       </thead>
       <tbody style="color:#e2e8f0;font-size:13px;">
@@ -102,7 +102,7 @@ export function baseLayout(content: string): string {
         <!-- Header -->
         <tr>
           <td style="background:linear-gradient(135deg,#7c3aed,#4f46e5);padding:24px 32px;">
-            <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">CredSystem VulnControl</h1>
+            <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;">EpicVuln</h1>
           </td>
         </tr>
         <!-- Body -->
@@ -114,7 +114,7 @@ export function baseLayout(content: string): string {
         <!-- Footer -->
         <tr>
           <td style="padding:16px 32px;background:#12122480;border-top:1px solid #2d2d44;text-align:center;color:#6b7280;font-size:11px;">
-            Este e-mail foi enviado automaticamente pelo CredSystem VulnControl. Nao responda a esta mensagem.
+            Este e-mail foi enviado automaticamente pelo EpicVuln. Nao responda a esta mensagem.
           </td>
         </tr>
       </table>

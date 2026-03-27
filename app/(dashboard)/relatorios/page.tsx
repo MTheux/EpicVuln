@@ -8,7 +8,6 @@ import {
   CreditCard,
   Lock,
   Globe,
-  Timer,
   ClipboardList,
   Search,
   FileSpreadsheet,
@@ -53,8 +52,8 @@ const sections: { title: string; cards: HubCard[] }[] = [
       },
       {
         icon: TrendingUp,
-        iconColor: "text-blue-400",
-        iconBg: "bg-blue-500/15",
+        iconColor: "text-emerald-400",
+        iconBg: "bg-emerald-500/15",
         title: "Tendencia ao Longo do Tempo",
         description: "Evolucao de vulnerabilidades abertas vs corrigidas nos ultimos 12 meses",
         action: "navigate",
@@ -111,15 +110,6 @@ const sections: { title: string; cards: HubCard[] }[] = [
   {
     title: "Metricas & Operacional",
     cards: [
-      {
-        icon: Timer,
-        iconColor: "text-orange-400",
-        iconBg: "bg-orange-500/15",
-        title: "Metricas DORA de Seguranca",
-        description: "MTTR, taxa de reincidencia, taxa de correcao e SLA compliance",
-        action: "navigate",
-        href: "/metricas",
-      },
       {
         icon: ClipboardList,
         iconColor: "text-indigo-400",
@@ -181,7 +171,7 @@ export default function RelatoriosPage() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `vulncontrol-relatorio-${new Date().toISOString().split("T")[0]}.${format === "excel" ? "xlsx" : "pdf"}`
+      a.download = `epicvuln-relatorio-${new Date().toISOString().split("T")[0]}.${format === "excel" ? "xlsx" : "pdf"}`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -207,7 +197,7 @@ export default function RelatoriosPage() {
       const rows: string[][] = []
       rows.push(["Metrica", "Valor"])
       rows.push(["Total Abertas", String(data.resumo?.totalAberto ?? "")])
-      rows.push(["Extrema + Critica", String(data.resumo?.totalExtremaCritica ?? "")])
+      rows.push(["Criticas", String(data.resumo?.totalExtremaCritica ?? "")])
       rows.push(["SLA Vencido", String(data.resumo?.totalSlaVencido ?? "")])
       rows.push(["Novas (30d)", String(data.resumo?.novasUltimos30d ?? "")])
       rows.push(["Fechadas (30d)", String(data.resumo?.fechadasUltimos30d ?? "")])
@@ -235,7 +225,7 @@ export default function RelatoriosPage() {
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `vulncontrol-export-${new Date().toISOString().split("T")[0]}.csv`
+      a.download = `epicvuln-export-${new Date().toISOString().split("T")[0]}.csv`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
@@ -305,7 +295,7 @@ export default function RelatoriosPage() {
               return (
                 <Card
                   key={card.title}
-                  className="bg-card border-border cursor-pointer transition-all duration-200 hover:shadow-md hover:border-blue-500/30 group"
+                  className="bg-card border-border cursor-pointer transition-all duration-200 hover:shadow-md hover:border-emerald-500/30 group"
                   onClick={() => !isLoading && handleCardClick(card)}
                 >
                   <CardContent className="p-5">
@@ -318,7 +308,7 @@ export default function RelatoriosPage() {
                         )}
                       </div>
                       <div className="min-w-0">
-                        <h3 className="text-sm font-semibold text-foreground group-hover:text-blue-400 transition-colors">
+                        <h3 className="text-sm font-semibold text-foreground group-hover:text-emerald-400 transition-colors">
                           {card.title}
                         </h3>
                         <p className="text-xs text-muted-foreground mt-1 leading-relaxed">

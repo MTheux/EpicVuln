@@ -9,8 +9,8 @@ import './globals.css'
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: 'Credsystem VulnControl | Gestão de Vulnerabilidades',
-  description: 'Plataforma centralizada para gestão corporativa de vulnerabilidades com integração Jira, acompanhamento de SLA, backlog e inteligência de segurança.',
+  title: 'EpicVuln | Gestão de Vulnerabilidades',
+  description: 'Plataforma centralizada para gestão corporativa de vulnerabilidades com integração IBM RTC, acompanhamento de SLA, backlog e inteligência de segurança.',
   generator: 'v0.app',
   icons: {
     icon: [

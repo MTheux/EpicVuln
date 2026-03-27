@@ -6,14 +6,12 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
   Shield,
-  Server,
   Brain,
   AlertTriangle,
   FileText,
   Users,
   ChevronRight,
   Kanban,
-  BarChart3,
   Settings,
   Building2
 } from "lucide-react"
@@ -24,9 +22,7 @@ const menuItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/vulnerabilidades", label: "Vulnerabilidades", icon: Shield },
   { href: "/kanban", label: "Kanban", icon: Kanban },
-  { href: "/ativos", label: "Ativos", icon: Server },
   { href: "/squads", label: "Squad Scorecard", icon: Users },
-  { href: "/metricas", label: "Métricas DORA", icon: BarChart3 },
   { href: "/inteligencia", label: "Inteligência", icon: Brain },
   { href: "/notificacoes", label: "Alertas", icon: AlertTriangle },
   { href: "/relatorios", label: "Relatórios", icon: FileText },
@@ -52,33 +48,17 @@ export function AppSidebar() {
   }, [pathname])
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950">
+    <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col bg-gradient-to-b from-gray-900 via-gray-900 to-gray-950">
       {/* Logo */}
       <div className="flex h-16 items-center gap-3 px-5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 shadow-lg shadow-blue-500/25">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-lg shadow-emerald-500/25">
           <Shield className="h-5 w-5 text-white" />
         </div>
         <div className="flex flex-col">
-          <span className="text-[15px] font-bold tracking-tight text-white">VulnControl</span>
-          <span className="text-[10px] uppercase tracking-[0.15em] text-slate-400 font-medium">Security Platform</span>
+          <span className="text-[15px] font-bold tracking-tight text-white">EpicVuln</span>
+          <span className="text-[10px] uppercase tracking-[0.15em] text-slate-400 font-medium">Vulnerability Management</span>
         </div>
       </div>
-
-      {/* Company badge - clickable */}
-      {company?.name && (
-        <Link href="/empresa" className="block mx-4 mt-3 mb-1 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-white/[0.12] transition-all cursor-pointer group">
-          <div className="flex items-center gap-2">
-            <Building2 className="h-3.5 w-3.5 text-slate-500 group-hover:text-blue-400 shrink-0 transition-colors" />
-            <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-semibold text-slate-300 truncate">{company.name}</p>
-              {company.sector && (
-                <p className="text-[9px] text-slate-500 uppercase tracking-wider">{company.sector}</p>
-              )}
-            </div>
-            <ChevronRight className="h-3 w-3 text-slate-600 group-hover:text-blue-400 shrink-0 transition-colors" />
-          </div>
-        </Link>
-      )}
 
       {/* Section Label */}
       <div className="px-5 mb-2 mt-4">
@@ -98,21 +78,21 @@ export function AppSidebar() {
               className={cn(
                 "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition-all duration-200",
                 isActive
-                  ? "bg-blue-500/15 text-blue-400 shadow-sm shadow-blue-500/5"
+                  ? "bg-emerald-500/15 text-emerald-400 shadow-sm shadow-emerald-500/5"
                   : "text-slate-400 hover:bg-white/5 hover:text-white"
               )}
             >
               <div className={cn(
                 "flex h-8 w-8 items-center justify-center rounded-lg transition-colors",
                 isActive
-                  ? "bg-blue-500/20 text-blue-400"
+                  ? "bg-emerald-500/20 text-emerald-400"
                   : "bg-white/5 text-slate-500 group-hover:bg-white/10 group-hover:text-slate-300"
               )}>
                 <item.icon className="h-4 w-4" />
               </div>
               <span className="flex-1">{item.label}</span>
               {isActive && (
-                <ChevronRight className="h-3.5 w-3.5 text-blue-400/60" />
+                <ChevronRight className="h-3.5 w-3.5 text-emerald-400/60" />
               )}
             </Link>
           )
@@ -131,7 +111,7 @@ export function AppSidebar() {
             className={cn(
               "flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200",
               pathname === "/configuracoes"
-                ? "bg-blue-500/20 text-blue-400"
+                ? "bg-emerald-500/20 text-emerald-400"
                 : "text-slate-500 hover:bg-white/10 hover:text-slate-300"
             )}
             title="Configurações"

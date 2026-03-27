@@ -6,32 +6,32 @@ const prisma = new PrismaClient();
 
 async function main() {
   const users = [
-    { email: 'admin@credsystem.com.br', name: 'Administrador', role: 'ADMIN' as const },
-    { email: 'security@credsystem.com.br', name: 'Analista AppSec', role: 'SEGURANCA' as const },
-    { email: 'gestor@credsystem.com.br', name: 'Gestor de Seguranca', role: 'GESTOR' as const },
-    { email: 'squad@credsystem.com.br', name: 'Dev Squad Backend', role: 'SQUAD' as const },
-    { email: 'leitor@credsystem.com.br', name: 'Auditor Externo', role: 'LEITURA' as const },
+    { email: 'admin@unisys.com', name: 'Administrador', role: 'ADMIN' as const },
+    { email: 'security@unisys.com', name: 'Analista AppSec', role: 'SEGURANCA' as const },
+    { email: 'gestor@unisys.com', name: 'Gestor de Seguranca', role: 'GESTOR' as const },
+    { email: 'squad@unisys.com', name: 'Dev Squad Backend', role: 'SQUAD' as const },
+    { email: 'leitor@unisys.com', name: 'Auditor Externo', role: 'LEITURA' as const },
   ];
 
-  // Create test user with fixed password
-  const testPassword = await bcrypt.hash('teste@123', 12);
-  const testUser = await prisma.user.upsert({
-    where: { email: 'teste@gmail.com.br' },
-    update: { password: testPassword, active: true },
+  // Create admin user with fixed password
+  const adminPassword = await bcrypt.hash('admin@123', 12);
+  const adminUser = await prisma.user.upsert({
+    where: { email: 'admin@unisys.com' },
+    update: { password: adminPassword, active: true },
     create: {
-      email: 'teste@gmail.com.br',
-      name: 'Usuário Teste',
+      email: 'admin@unisys.com',
+      name: 'Administrador',
       role: 'ADMIN',
-      password: testPassword,
+      password: adminPassword,
       active: true,
     },
   });
-  console.log(`[TEST] ${testUser.email} => Senha: teste@123`);
+  console.log(`[ADMIN] ${adminUser.email} => Senha: admin@123`);
 
   // Em producao, use SEED_ADMIN_PASSWORD env var. Em dev, gera senhas aleatorias.
   const envPassword = process.env.SEED_ADMIN_PASSWORD;
 
-  console.log('\n=== VulnControl Seed - Credenciais Iniciais ===\n');
+  console.log('\n=== EpicVuln Seed - Credenciais Iniciais ===\n');
 
   for (const u of users) {
     const password = envPassword || crypto.randomBytes(16).toString('hex');

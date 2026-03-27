@@ -33,15 +33,13 @@ interface Vulnerability {
   dataCriacao: string
   sistema: string
   responsavel: string | null
-  jiraKey?: string
-  jiraUrl?: string
+  rtcWorkItemId?: string
 }
 
 const OPEN_STATUSES = ['NOVO', 'ABERTO', 'EM_BACKLOG', 'EM_CORRECAO', 'EM_RETESTE']
 
 const SEVERITY_CONFIG: Record<string, { color: string; bg: string; border: string; dot: string; label: string }> = {
-  'EXTREMA': { color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', dot: 'bg-red-500', label: 'Extrema' },
-  'CRITICA': { color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20', dot: 'bg-orange-500', label: 'Critica' },
+  'CRITICA': { color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/20', dot: 'bg-red-500', label: 'Critica' },
   'ALTA': { color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', dot: 'bg-amber-500', label: 'Alta' },
   'MEDIA': { color: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20', dot: 'bg-blue-500', label: 'Media' },
   'BAIXA': { color: 'text-green-400', bg: 'bg-green-500/10', border: 'border-green-500/20', dot: 'bg-green-500', label: 'Baixa' },
@@ -85,7 +83,6 @@ export default function AlertasPage() {
     return true
   })
 
-  const extremas = filtered.filter(v => v.criticidade === 'EXTREMA').sort((a, b) => b.diasEmAberto - a.diasEmAberto)
   const criticas = filtered.filter(v => v.criticidade === 'CRITICA').sort((a, b) => b.diasEmAberto - a.diasEmAberto)
   const slaVencidos = filtered.filter(v => v.sla && new Date(v.sla) < now).sort((a, b) => {
     const aD = a.sla ? now.getTime() - new Date(a.sla).getTime() : 0
@@ -98,7 +95,7 @@ export default function AlertasPage() {
   const hasFilters = filterSquad || filterSearch
 
   // Determine threat level
-  const threatLevel = extremas.length > 0 ? 'critical' : criticas.length > 3 ? 'high' : slaVencidos.length > 0 ? 'medium' : 'low'
+  const threatLevel = criticas.length > 0 ? 'critical' : slaVencidos.length > 0 ? 'medium' : 'low'
   const threatConfig = {
     critical: { label: 'CRITICO', color: 'text-red-400', bg: 'bg-red-500/10', border: 'border-red-500/30', pulse: true },
     high: { label: 'ALTO', color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/30', pulse: true },
@@ -107,9 +104,8 @@ export default function AlertasPage() {
   }[threatLevel]
 
   const sections = [
-    { id: 'all', label: 'Todos', count: extremas.length + criticas.length + slaVencidos.length },
-    { id: 'extremas', label: 'Extremas', count: extremas.length, color: 'text-red-400' },
-    { id: 'criticas', label: 'Criticas', count: criticas.length, color: 'text-orange-400' },
+    { id: 'all', label: 'Todos', count: criticas.length + slaVencidos.length },
+    { id: 'criticas', label: 'Criticas', count: criticas.length, color: 'text-red-400' },
     { id: 'sla', label: 'SLA Vencido', count: slaVencidos.length, color: 'text-amber-400' },
     { id: 'altas', label: 'Altas', count: altas.length, color: 'text-yellow-400' },
   ]
@@ -132,9 +128,9 @@ export default function AlertasPage() {
             <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-red-500/20 to-orange-500/20 flex items-center justify-center border border-red-500/20">
               <BellRing className="h-6 w-6 text-red-400" />
             </div>
-            {(extremas.length > 0 || slaVencidos.length > 0) && (
+            {(criticas.length > 0 || slaVencidos.length > 0) && (
               <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 flex items-center justify-center animate-pulse">
-                <span className="text-[8px] font-bold text-white">{extremas.length + slaVencidos.length}</span>
+                <span className="text-[8px] font-bold text-white">{criticas.length + slaVencidos.length}</span>
               </div>
             )}
           </div>
@@ -169,8 +165,8 @@ export default function AlertasPage() {
                 </span>
               </div>
               <p className="text-sm text-muted-foreground mt-1">
-                {extremas.length > 0
-                  ? `${extremas.length} vulnerabilidade${extremas.length > 1 ? 's' : ''} extrema${extremas.length > 1 ? 's' : ''} requer${extremas.length > 1 ? 'em' : ''} ação imediata`
+                {criticas.length > 0
+                  ? `${criticas.length} vulnerabilidade${criticas.length > 1 ? 's' : ''} crítica${criticas.length > 1 ? 's' : ''} requer${criticas.length > 1 ? 'em' : ''} ação imediata`
                   : slaVencidos.length > 0
                   ? `${slaVencidos.length} SLA${slaVencidos.length > 1 ? 's' : ''} vencido${slaVencidos.length > 1 ? 's' : ''} — prazo de correção expirado`
                   : 'Nenhuma ameaça crítica detectada no momento'
@@ -182,8 +178,7 @@ export default function AlertasPage() {
           <div className="flex items-center gap-6">
             {[
               { label: 'Abertas', value: totalOpen, icon: Eye, color: 'text-foreground' },
-              { label: 'Extremas', value: extremas.length, icon: Flame, color: 'text-red-400' },
-              { label: 'Criticas', value: criticas.length, icon: AlertTriangle, color: 'text-orange-400' },
+              { label: 'Criticas', value: criticas.length, icon: AlertTriangle, color: 'text-red-400' },
               { label: 'SLA Vencido', value: slaVencidos.length, icon: Timer, color: 'text-amber-400' },
             ].map(s => (
               <div key={s.label} className="text-center">
@@ -236,7 +231,7 @@ export default function AlertasPage() {
           <select
             value={filterSquad}
             onChange={e => setFilterSquad(e.target.value)}
-            className="h-8 rounded-lg border border-border bg-card px-3 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+            className="h-8 rounded-lg border border-border bg-card px-3 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
           >
             <option value="">Todas Squads</option>
             {squads.map(s => <option key={s} value={s}>{s}</option>)}
@@ -250,14 +245,14 @@ export default function AlertasPage() {
       </div>
 
       {/* Empty State */}
-      {extremas.length === 0 && criticas.length === 0 && slaVencidos.length === 0 && altas.length === 0 && (
+      {criticas.length === 0 && slaVencidos.length === 0 && altas.length === 0 && (
         <div className="flex flex-col items-center justify-center py-24 text-center">
           <div className="h-20 w-20 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-5">
             <Shield className="h-10 w-10 text-emerald-400" />
           </div>
           <h3 className="text-xl font-bold text-foreground mb-2">Tudo sob controle!</h3>
           <p className="text-sm text-muted-foreground max-w-md">
-            Nenhuma vulnerabilidade extrema, critica ou SLA vencido detectado
+            Nenhuma vulnerabilidade critica ou SLA vencido detectado
             {filterSquad ? ` para ${filterSquad}` : ''}.
           </p>
         </div>
@@ -265,20 +260,6 @@ export default function AlertasPage() {
 
       {/* Alert Sections */}
       <div className="space-y-4">
-        {/* EXTREMAS */}
-        {(activeSection === 'all' || activeSection === 'extremas') && extremas.length > 0 && (
-          <AlertSection
-            title="Vulnerabilidades Extremas"
-            subtitle="Correção imediata obrigatória — risco máximo"
-            icon={Flame}
-            color="red"
-            count={extremas.length}
-            items={extremas}
-            now={now}
-            defaultExpanded
-          />
-        )}
-
         {/* SLA VENCIDOS */}
         {(activeSection === 'all' || activeSection === 'sla') && slaVencidos.length > 0 && (
           <AlertSection
@@ -324,7 +305,7 @@ export default function AlertasPage() {
       </div>
 
       {/* Squad Summary */}
-      {(extremas.length > 0 || criticas.length > 0 || slaVencidos.length > 0) && !filterSquad && activeSection === 'all' && (
+      {(criticas.length > 0 || slaVencidos.length > 0) && !filterSquad && activeSection === 'all' && (
         <div className="rounded-2xl border border-border bg-card/50 overflow-hidden">
           <div className="px-5 py-4 border-b border-border bg-muted/30">
             <h3 className="text-sm font-bold text-foreground">Resumo por Squad</h3>
@@ -333,15 +314,14 @@ export default function AlertasPage() {
           <div className="divide-y divide-border">
             {squads.map(squad => {
               const sv = openVulns.filter(v => v.squad === squad)
-              const ext = sv.filter(v => v.criticidade === 'EXTREMA').length
               const crit = sv.filter(v => v.criticidade === 'CRITICA').length
               const sla = sv.filter(v => v.sla && new Date(v.sla) < now).length
-              if (ext + crit + sla === 0) return null
+              if (crit + sla === 0) return null
 
-              const total = ext + crit + sla
+              const total = crit + sla
               const maxBar = Math.max(...squads.map(s => {
                 const sq = openVulns.filter(v => v.squad === s)
-                return sq.filter(v => v.criticidade === 'EXTREMA').length + sq.filter(v => v.criticidade === 'CRITICA').length + sq.filter(v => v.sla && new Date(v.sla) < now).length
+                return sq.filter(v => v.criticidade === 'CRITICA').length + sq.filter(v => v.sla && new Date(v.sla) < now).length
               }))
 
               return (
@@ -356,14 +336,13 @@ export default function AlertasPage() {
                     </div>
                     <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                       <div
-                        className={cn("h-full rounded-full transition-all duration-500", ext > 0 ? 'bg-red-500' : crit > 0 ? 'bg-orange-500' : 'bg-amber-500')}
+                        className={cn("h-full rounded-full transition-all duration-500", crit > 0 ? 'bg-red-500' : 'bg-amber-500')}
                         style={{ width: `${Math.min(100, (total / Math.max(maxBar, 1)) * 100)}%` }}
                       />
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
-                    {ext > 0 && <span className="px-2 py-0.5 rounded-md bg-red-500/15 text-red-400 text-[10px] font-bold">{ext} ext</span>}
-                    {crit > 0 && <span className="px-2 py-0.5 rounded-md bg-orange-500/15 text-orange-400 text-[10px] font-bold">{crit} crit</span>}
+                    {crit > 0 && <span className="px-2 py-0.5 rounded-md bg-red-500/15 text-red-400 text-[10px] font-bold">{crit} crit</span>}
                     {sla > 0 && <span className="px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-400 text-[10px] font-bold">{sla} SLA</span>}
                   </div>
                 </div>
@@ -463,7 +442,7 @@ function AlertSection({ title, subtitle, icon: Icon, color, count, items, now, s
                       </span>
                     )}
                   </div>
-                  <p className="text-sm font-medium text-foreground truncate group-hover:text-blue-400 transition-colors">
+                  <p className="text-sm font-medium text-foreground truncate group-hover:text-emerald-400 transition-colors">
                     {vuln.titulo}
                   </p>
                   <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground">
@@ -484,18 +463,12 @@ function AlertSection({ title, subtitle, icon: Icon, color, count, items, now, s
                     <span className={cn("text-xl font-black", daysColor)}>{vuln.diasEmAberto}</span>
                     <span className="text-[9px] text-muted-foreground block uppercase">dias</span>
                   </div>
-                  {vuln.jiraKey && (
-                    <a
-                      href={vuln.jiraUrl || `https://jira.atlassian.net/browse/${vuln.jiraKey}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={e => e.stopPropagation()}
-                      className="text-[10px] font-mono text-blue-400/70 hover:text-blue-400 transition-colors"
-                    >
-                      {vuln.jiraKey}
-                    </a>
+                  {vuln.rtcWorkItemId && (
+                    <span className="text-[10px] font-mono text-emerald-400/70">
+                      {vuln.rtcWorkItemId}
+                    </span>
                   )}
-                  <ArrowRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all" />
+                  <ArrowRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
                 </div>
               </Link>
             )

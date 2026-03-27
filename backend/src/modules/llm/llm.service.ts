@@ -111,7 +111,7 @@ export class LlmService {
 
   async generateAnalysis() {
     if (this.cache && (Date.now() - this.cache.timestamp) < this.CACHE_TTL) {
-      console.log('VulnControl AI: Retornando resultado do cache.');
+      console.log('EpicVuln AI: Retornando resultado do cache.');
       return { ...this.cache.data, _cached: true, _cachedAt: new Date(this.cache.timestamp).toISOString() };
     }
 
@@ -182,7 +182,7 @@ export class LlmService {
 
     if (activeCount === 0) {
       return {
-        resumoExecutivo: "O ambiente da CredSystem esta impecavel. Nenhuma vulnerabilidade pendente localizada.",
+        resumoExecutivo: `O ambiente da ${companyProfile?.name || 'empresa'} esta impecavel. Nenhuma vulnerabilidade pendente localizada.`,
         fortaleza: "Operacao livre de gaps listados no banco de dados. Equipe atuou em 100% das falhas.",
         fraqueza: "Nenhum vetor de vulnerabilidade aberto no momento.",
         acao: "Manter governanca e rotina atual de monitoramento diario.",
@@ -193,7 +193,7 @@ export class LlmService {
       };
     }
 
-    const severityOrder: Record<string, number> = { 'EXTREMA': 0, 'CRITICA': 1, 'ALTA': 2, 'MEDIA': 3, 'BAIXA': 4 };
+    const severityOrder: Record<string, number> = { 'CRITICA': 0, 'ALTA': 1, 'MEDIA': 2, 'BAIXA': 3 };
     const sortedVulns = vulnerabilidades.sort((a, b) => {
       const orderA = severityOrder[a.criticidade.toUpperCase()] ?? 99;
       const orderB = severityOrder[b.criticidade.toUpperCase()] ?? 99;
@@ -221,7 +221,7 @@ export class LlmService {
       const s = v.squad || 'Sem Squad';
       if (!squadPerformance[s]) squadPerformance[s] = { total: 0, criticas: 0, corrigidas: 0, reincidentes: 0, diasTotal: 0 };
       squadPerformance[s].total++;
-      if (['EXTREMA', 'CRITICA'].includes(v.criticidade.toUpperCase())) squadPerformance[s].criticas++;
+      if (['CRITICA'].includes(v.criticidade.toUpperCase())) squadPerformance[s].criticas++;
       if (v.reincidencia > 0) squadPerformance[s].reincidentes++;
       squadPerformance[s].diasTotal += v.diasEmAberto || 0;
     }
@@ -276,7 +276,6 @@ export class LlmService {
       owaspDistribution: owaspCounts,
       slaBreachCount: slaBreach.length,
       slaBreachBySeverity: {
-        extrema: slaBreach.filter(v => v.criticidade.toUpperCase() === 'EXTREMA').length,
         critica: slaBreach.filter(v => v.criticidade.toUpperCase() === 'CRITICA').length,
         alta: slaBreach.filter(v => v.criticidade.toUpperCase() === 'ALTA').length,
       },
@@ -285,7 +284,7 @@ export class LlmService {
 
     const contextData = JSON.stringify(fullContext);
 
-    const systemPrompt = `Voce e o motor de inteligencia do VulnControl, atuando como CISO virtual e Head de Application Security.
+    const systemPrompt = `Voce e o motor de inteligencia do EpicVuln, atuando como CISO virtual e Head de Application Security.
 
 CONTEXTO DA EMPRESA:
 ${companyProfile ? `
@@ -305,7 +304,7 @@ ${doraData?.taxaCorrecao?.last30d ? `- Taxa de Correcao (30d): ${doraData.taxaCo
 ${doraData?.taxaCorrecao?.last90d ? `- Taxa de Correcao (90d): ${doraData.taxaCorrecao.last90d.rate}%` : ''}
 ${doraData?.slaCompliance ? `- SLA Compliance Global: ${doraData.slaCompliance.overall}%` : ''}
 ${doraData?.slaCompliance?.bySquad ? `- SLA por Squad: ${JSON.stringify(doraData.slaCompliance.bySquad)}` : ''}
-- SLA Vencidos: ${slaBreach.length} (Extremas: ${slaBreach.filter(v => v.criticidade.toUpperCase() === 'EXTREMA').length}, Criticas: ${slaBreach.filter(v => v.criticidade.toUpperCase() === 'CRITICA').length})
+- SLA Vencidos: ${slaBreach.length} (Criticas: ${slaBreach.filter(v => v.criticidade.toUpperCase() === 'CRITICA').length})
 
 PERFORMANCE POR SQUAD:
 ${Object.entries(squadPerformance).map(([squad, data]) => `- ${squad}: ${data.total} ativas, ${data.criticas} criticas, ${data.corrigidas} corrigidas, ${data.reincidentes} reincidentes, MTTR medio: ${data.total > 0 ? Math.round(data.diasTotal / data.total) : 0}d`).join('\n')}
@@ -364,18 +363,18 @@ REGRAS ABSOLUTAS:
 
     try {
       const cfg = loadLlmConfig();
-      console.log(`VulnControl AI: Iniciando analise com ${cfg.provider}/${cfg.model}...`);
+      console.log(`EpicVuln AI: Iniciando analise com ${cfg.provider}/${cfg.model}...`);
       let text = await this.callLLM(systemPrompt, `Dados completos de seguranca (${activeCount} vulnerabilidades ativas, ${assets.length} ativos, metricas DORA incluidas):\n${contextData}`);
       text = text.replace(/```json/g, '').replace(/```/g, '').trim();
 
       const parsed = JSON.parse(text);
-      console.log("VulnControl AI: Analise gerada com sucesso. Keys:", Object.keys(parsed));
+      console.log("EpicVuln AI: Analise gerada com sucesso. Keys:", Object.keys(parsed));
       this.cache = { data: parsed, timestamp: Date.now() };
       return { ...parsed, _cached: false, _provider: cfg.provider, _model: cfg.model };
     } catch (e: any) {
       console.error("LLM Error:", e.message);
       if (this.cache) {
-        console.log('VulnControl AI: Retornando cache antigo como fallback.');
+        console.log('EpicVuln AI: Retornando cache antigo como fallback.');
         return { ...this.cache.data, _cached: true, _stale: true, _error: e.message };
       }
       return {
@@ -389,14 +388,14 @@ REGRAS ABSOLUTAS:
 
   async generateAttackGraph() {
     if (this.attackGraphCache && (Date.now() - this.attackGraphCache.timestamp) < this.CACHE_TTL) {
-      console.log('VulnControl AI: Retornando attack graph do cache.');
+      console.log('EpicVuln AI: Retornando attack graph do cache.');
       return { ...this.attackGraphCache.data, _cached: true, _cachedAt: new Date(this.attackGraphCache.timestamp).toISOString() };
     }
 
     const vulnerabilidades = await prisma.vulnerability.findMany({
       where: {
         status: { notIn: ['CONCLUIDO', 'FECHADO', 'MITIGADO', 'RISCO_ACEITO'] },
-        criticidade: { in: ['EXTREMA', 'CRITICA', 'ALTA', 'MEDIA'] }
+        criticidade: { in: ['CRITICA', 'ALTA', 'MEDIA'] }
       },
       select: {
         codigoInterno: true,
@@ -466,7 +465,7 @@ REGRAS ABSOLUTAS:
       }))
     }));
 
-    const systemPrompt = `Voce e o motor de inteligencia do VulnControl, CISO virtual e especialista em Application Security.
+    const systemPrompt = `Voce e o motor de inteligencia do EpicVuln, CISO virtual e especialista em Application Security.
 
 CONTEXTO: ${companyProfileGraph?.name || 'Empresa'}. ${companyProfileGraph?.description || 'Organizacao com ativos digitais.'}. Setor: ${companyProfileGraph?.sector || 'Nao informado'}.
 ATIVOS CADASTRADOS: ${assetsForGraph.map(a => `${a.name} (${a.type}, ${a.businessCriticality})`).join(', ') || 'Nenhum'}
@@ -491,7 +490,7 @@ Formato JSON EXATO (devolva APENAS o JSON puro):
       "impactCategory": "Uma das 4 categorias",
       "description": "Resumo em 2 linhas",
       "nodes": [
-        { "id": "n1", "vulnKey": "VUL-XXX", "label": "Titulo curto", "type": "entry", "criticidade": "EXTREMA" },
+        { "id": "n1", "vulnKey": "VUL-XXX", "label": "Titulo curto", "type": "entry", "criticidade": "CRITICA" },
         { "id": "n2", "vulnKey": "VUL-YYY", "label": "Titulo curto", "type": "exploit", "criticidade": "ALTA" },
         { "id": "n3", "vulnKey": null, "label": "Categoria de Impacto", "type": "impact", "criticidade": null }
       ],
@@ -505,7 +504,7 @@ Formato JSON EXATO (devolva APENAS o JSON puro):
 }`;
 
     try {
-      console.log(`VulnControl AI: Gerando Attack Graph com ${config.provider}/${config.model}...`);
+      console.log(`EpicVuln AI: Gerando Attack Graph com ${config.provider}/${config.model}...`);
       let text = await this.callLLM(systemPrompt, `VULNERABILIDADES REAIS:\n${JSON.stringify(vulnData, null, 2)}`);
       text = text.replace(/```json/g, '').replace(/```/g, '').trim();
 

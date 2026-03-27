@@ -135,7 +135,6 @@ model Asset {
 // ============================================================
 
 enum Criticidade {
-  EXTREMA
   CRITICA
   ALTA
   MEDIA

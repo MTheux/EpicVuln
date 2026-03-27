@@ -47,14 +47,6 @@ import { authHeaders } from "@/lib/auth"
 import { cn } from "@/lib/utils"
 
 // ============ SVG Icons for integrations ============
-function JiraIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none">
-      <path d="M11.53 2c0 4.97-4.03 9-9 9h-.03c4.97 0 9 4.03 9 9v.03c0-4.97 4.03-9 9-9h.03c-4.97 0-9-4.03-9-9V2z" fill="#2684FF"/>
-    </svg>
-  )
-}
-
 function SlackIcon({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none">
@@ -100,19 +92,6 @@ const getApiUrl = () => {
 
 const API_URL = getApiUrl()
 
-const mapeamentoCampos = [
-  { jira: 'Summary', vulnControl: 'Título', icon: '📝' },
-  { jira: 'Description', vulnControl: 'Descrição', icon: '📄' },
-  { jira: 'Priority', vulnControl: 'Criticidade', icon: '🔴' },
-  { jira: 'Assignee', vulnControl: 'Responsável', icon: '👤' },
-  { jira: 'Team', vulnControl: 'Squad', icon: '👥' },
-  { jira: 'Due Date', vulnControl: 'SLA', icon: '📅' },
-  { jira: 'Issue Key', vulnControl: 'Jira Key', icon: '🔑' },
-  { jira: 'CVSS (Custom)', vulnControl: 'Score', icon: '📊' },
-  { jira: 'Asset (Custom)', vulnControl: 'Ativo/Alvo', icon: '🎯' },
-  { jira: 'Attachment', vulnControl: 'Evidência', icon: '📎' },
-]
-
 // ============ Integration Card ============
 interface IntegrationDef {
   id: string
@@ -124,26 +103,12 @@ interface IntegrationDef {
   configurable?: boolean
 }
 
-const integrations: IntegrationDef[] = [
-  // Chat & Alerts
-  { id: 'slack', name: 'Slack', description: 'Receba alertas de SLA, novas vulns e resumos semanais via webhook', icon: <SlackIcon className="h-6 w-6" />, category: 'chat', status: 'available', configurable: true },
-  { id: 'teams', name: 'Microsoft Teams', description: 'Notificações no Teams via webhook de canal', icon: <TeamsIcon className="h-6 w-6" />, category: 'chat', status: 'available', configurable: true },
-  { id: 'email', name: 'E-mail (SMTP)', description: 'Alertas e resumos diretamente no e-mail corporativo', icon: <Mail className="h-6 w-6 text-slate-600" />, category: 'email', status: 'coming_soon' },
-
-  // Issue Trackers
-  { id: 'jira', name: 'Atlassian Jira', description: 'Importação de vulnerabilidades via XML/JSON do Jira Cloud e Data Center', icon: <JiraIcon className="h-6 w-6" />, category: 'tracker', status: 'available', configurable: true },
-  { id: 'github', name: 'GitHub Issues', description: 'Crie issues no GitHub para acompanhar correções de vulnerabilidades', icon: <GitHubIcon className="h-6 w-6" />, category: 'tracker', status: 'coming_soon' },
-  { id: 'azure', name: 'Azure DevOps', description: 'Crie work items no Azure Boards para rastreamento de correções', icon: <div className="h-6 w-6 bg-[#0078D4] rounded text-white flex items-center justify-center text-[10px] font-bold">Az</div>, category: 'tracker', status: 'coming_soon' },
-
-  // Scanners
-  { id: 'defectdojo', name: 'DefectDojo', description: 'Importe findings diretamente do DefectDojo via API', icon: <DefectDojoIcon className="h-6 w-6" />, category: 'scanner', status: 'coming_soon' },
-  { id: 'burp', name: 'Burp Suite', description: 'Importe resultados de scan do Burp Suite Professional', icon: <Bug className="h-6 w-6 text-orange-500" />, category: 'scanner', status: 'coming_soon' },
-]
+const integrations: IntegrationDef[] = []
 
 function IntegrationCard({ integration, onConfigure }: { integration: IntegrationDef, onConfigure: (id: string) => void }) {
   const statusConfig = {
     connected: { label: 'Conectado', class: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20', dot: 'bg-emerald-500' },
-    available: { label: 'Disponível', class: 'bg-blue-500/10 text-blue-600 border-blue-500/20', dot: 'bg-blue-500' },
+    available: { label: 'Disponível', class: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20', dot: 'bg-emerald-500' },
     coming_soon: { label: 'Em breve', class: 'bg-slate-500/10 text-slate-500 border-slate-500/20', dot: 'bg-slate-400' },
   }
 
@@ -205,19 +170,6 @@ export function IntegrationsSettings() {
   const [dragOver, setDragOver] = useState(false)
   const [vulnCount, setVulnCount] = useState<number | null>(null)
 
-  // Jira config dialog
-  const [jiraDialogOpen, setJiraDialogOpen] = useState(false)
-  const [jiraConfig, setJiraConfig] = useState({ url: 'https://credsystem.atlassian.net', projects: 'SEC, VULN, APPSEC' })
-  const [jiraTab, setJiraTab] = useState<string>('import')
-
-  // Slack/Teams webhook dialog
-  const [webhookDialogOpen, setWebhookDialogOpen] = useState(false)
-  const [webhookTarget, setWebhookTarget] = useState<'slack' | 'teams'>('slack')
-  const [webhookUrl, setWebhookUrl] = useState('')
-  const [webhookTesting, setWebhookTesting] = useState(false)
-
-  // Saved webhook configs
-  const [savedWebhooks, setSavedWebhooks] = useState<Record<string, { url: string, enabled: boolean }>>({})
 
   // AI Config
   const [aiDialogOpen, setAiDialogOpen] = useState(false)
@@ -225,27 +177,6 @@ export function IntegrationsSettings() {
   const [aiProviders, setAiProviders] = useState<Record<string, { name: string, models: string[] }>>({})
   const [aiTesting, setAiTesting] = useState(false)
   const [aiSaving, setAiSaving] = useState(false)
-
-  // Load saved webhooks from localStorage
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('vulncontrol_webhooks')
-      if (saved) setSavedWebhooks(JSON.parse(saved))
-    } catch {}
-  }, [])
-
-  const saveWebhook = (target: string, url: string) => {
-    const updated = { ...savedWebhooks, [target]: { url, enabled: true } }
-    setSavedWebhooks(updated)
-    localStorage.setItem('vulncontrol_webhooks', JSON.stringify(updated))
-  }
-
-  const removeWebhook = (target: string) => {
-    const updated = { ...savedWebhooks }
-    delete updated[target]
-    setSavedWebhooks(updated)
-    localStorage.setItem('vulncontrol_webhooks', JSON.stringify(updated))
-  }
 
   // Load AI config and providers
   useEffect(() => {
@@ -366,66 +297,10 @@ export function IntegrationsSettings() {
   }
 
   const handleConfigure = (id: string) => {
-    if (id === 'jira') {
-      setJiraDialogOpen(true)
-    } else if (id === 'slack' || id === 'teams') {
-      setWebhookTarget(id)
-      setWebhookUrl(savedWebhooks[id]?.url || '')
-      setWebhookDialogOpen(true)
-    } else if (id === 'ai-config') {
+    if (id === 'ai-config') {
       setAiDialogOpen(true)
     }
   }
-
-  const testWebhook = async () => {
-    if (!webhookUrl.trim()) { toast.error('Cole a URL do webhook'); return }
-    setWebhookTesting(true)
-    try {
-      const payload = webhookTarget === 'slack'
-        ? { text: "✅ *VulnControl* — Teste de conexão com sucesso!\nSeu webhook está configurado corretamente." }
-        : { "@type": "MessageCard", "@context": "http://schema.org/extensions", "summary": "VulnControl Test", "themeColor": "0076D7", "title": "✅ VulnControl — Teste de Conexão", "text": "Seu webhook está configurado corretamente!" }
-
-      const resp = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-
-      if (resp.ok || resp.status === 200 || resp.status === 202 || resp.status === 1) {
-        saveWebhook(webhookTarget, webhookUrl)
-        toast.success(`${webhookTarget === 'slack' ? 'Slack' : 'Teams'} conectado!`, {
-          description: 'Mensagem de teste enviada com sucesso. Verifique o canal.'
-        })
-        setWebhookDialogOpen(false)
-      } else {
-        throw new Error(`Status ${resp.status}`)
-      }
-    } catch (err: any) {
-      // Some webhooks return opaque responses due to CORS but still work
-      if (err.message?.includes('opaque') || err.name === 'TypeError') {
-        saveWebhook(webhookTarget, webhookUrl)
-        toast.success(`Webhook salvo!`, {
-          description: 'URL salva. Verifique se a mensagem de teste chegou no canal.'
-        })
-        setWebhookDialogOpen(false)
-      } else {
-        toast.error('Erro ao testar webhook', { description: err.message })
-      }
-    } finally {
-      setWebhookTesting(false)
-    }
-  }
-
-  // Update integration statuses based on saved webhooks
-  const getIntegrationStatus = (integration: IntegrationDef): IntegrationDef['status'] => {
-    if (integration.id === 'slack' && savedWebhooks.slack?.enabled) return 'connected'
-    if (integration.id === 'teams' && savedWebhooks.teams?.enabled) return 'connected'
-    return integration.status
-  }
-
-  const chatIntegrations = integrations.filter(i => i.category === 'chat' || i.category === 'email')
-  const trackerIntegrations = integrations.filter(i => i.category === 'tracker')
-  const scannerIntegrations = integrations.filter(i => i.category === 'scanner')
 
   return (
     <div className="space-y-8">
@@ -433,60 +308,6 @@ export function IntegrationsSettings() {
       <div>
         <h2 className="text-lg font-semibold text-foreground">Integrações</h2>
         <p className="text-sm text-muted-foreground">Conecte ferramentas externas para automatizar seu fluxo de segurança</p>
-      </div>
-
-      {/* Chat & Alertas */}
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          <h3 className="text-sm font-semibold text-foreground">Chat & Alertas</h3>
-          <Separator className="flex-1" />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {chatIntegrations.map(i => (
-            <IntegrationCard
-              key={i.id}
-              integration={{ ...i, status: getIntegrationStatus(i) }}
-              onConfigure={handleConfigure}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Rastreadores de Issues */}
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <GitBranch className="h-4 w-4 text-muted-foreground" />
-          <h3 className="text-sm font-semibold text-foreground">Rastreadores de Issues</h3>
-          <Separator className="flex-1" />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {trackerIntegrations.map(i => (
-            <IntegrationCard
-              key={i.id}
-              integration={{ ...i, status: getIntegrationStatus(i) }}
-              onConfigure={handleConfigure}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Scanners de Segurança */}
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <Shield className="h-4 w-4 text-muted-foreground" />
-          <h3 className="text-sm font-semibold text-foreground">Scanners de Segurança</h3>
-          <Separator className="flex-1" />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {scannerIntegrations.map(i => (
-            <IntegrationCard
-              key={i.id}
-              integration={{ ...i, status: getIntegrationStatus(i) }}
-              onConfigure={handleConfigure}
-            />
-          ))}
-        </div>
       </div>
 
       {/* Inteligência Artificial */}
@@ -500,7 +321,7 @@ export function IntegrationsSettings() {
           {/* AI Provider Card - Dynamic */}
           <div className="group relative rounded-xl border bg-card p-5 transition-all duration-200 border-border hover:border-primary/30 hover:shadow-md hover:shadow-primary/5">
             <div className="flex items-start justify-between mb-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-purple-500/20 shrink-0">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500/20 to-emerald-500/20 border border-purple-500/20 shrink-0">
                 <Zap className="h-6 w-6 text-purple-500" />
               </div>
               <Badge variant="outline" className={cn("text-[10px] gap-1",
@@ -583,7 +404,7 @@ export function IntegrationsSettings() {
             aiConfig.provider === 'google' ? "border-emerald-500/30 bg-emerald-500/5" : "border-border/50 opacity-70"
           )}>
             <div className="flex items-start justify-between mb-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-500/10 border border-blue-500/20 shrink-0 text-lg font-bold text-blue-500">G</div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 shrink-0 text-lg font-bold text-emerald-500">G</div>
               {aiConfig.provider === 'google' && <Badge variant="outline" className="text-[10px] gap-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/20"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />Ativo</Badge>}
             </div>
             <h3 className="text-sm font-semibold text-foreground mb-1">Google Gemini</h3>
@@ -610,269 +431,15 @@ export function IntegrationsSettings() {
         </div>
       </div>
 
-      {/* ============ JIRA DIALOG ============ */}
-      <Dialog open={jiraDialogOpen} onOpenChange={setJiraDialogOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10">
-                <JiraIcon className="h-5 w-5" />
-              </div>
-              Atlassian Jira
-            </DialogTitle>
-            <DialogDescription>
-              Configure a importação manual de vulnerabilidades do Jira
-            </DialogDescription>
-          </DialogHeader>
-
-          <Tabs value={jiraTab} onValueChange={setJiraTab}>
-            <TabsList className="w-full bg-muted/50">
-              <TabsTrigger value="import" className="flex-1 text-xs gap-1.5">
-                <Upload className="h-3.5 w-3.5" />
-                Importar
-              </TabsTrigger>
-              <TabsTrigger value="config" className="flex-1 text-xs gap-1.5">
-                <Settings2 className="h-3.5 w-3.5" />
-                Configuração
-              </TabsTrigger>
-              <TabsTrigger value="mapping" className="flex-1 text-xs gap-1.5">
-                <ArrowRight className="h-3.5 w-3.5" />
-                Mapeamento
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Import Tab */}
-            <TabsContent value="import" className="space-y-4 mt-4">
-              {/* Stats */}
-              <div className="grid grid-cols-3 gap-3">
-                <div className="rounded-xl bg-muted/40 border border-border p-3 text-center">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Instância</p>
-                  <p className="text-sm font-semibold text-foreground">credsystem</p>
-                </div>
-                <div className="rounded-xl bg-muted/40 border border-border p-3 text-center">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Importadas</p>
-                  <p className="text-lg font-bold text-primary">{vulnCount ?? '—'}</p>
-                </div>
-                <div className="rounded-xl bg-muted/40 border border-border p-3 text-center">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Método</p>
-                  <p className="text-sm font-semibold text-foreground">Manual</p>
-                </div>
-              </div>
-
-              {/* How-to */}
-              <div className="flex items-start gap-3 rounded-xl bg-blue-500/5 border border-blue-500/10 p-3.5">
-                <Info className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
-                <div className="text-xs text-muted-foreground space-y-1">
-                  <p className="font-medium text-foreground">Como exportar do Jira:</p>
-                  <ol className="list-decimal list-inside space-y-0.5 ml-1">
-                    <li>Acesse o Jira → Filtro do projeto (SEC, VULN ou APPSEC)</li>
-                    <li>Clique em <strong>Exportar</strong> → <strong>XML (RSS)</strong></li>
-                    <li>Arraste o arquivo abaixo ou cole o conteúdo</li>
-                  </ol>
-                </div>
-              </div>
-
-              {/* Drop zone */}
-              <div
-                className={cn(
-                  "relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-all cursor-pointer",
-                  dragOver ? "border-primary bg-primary/5" : "border-border bg-muted/20 hover:border-primary/40",
-                  importing && "opacity-50 pointer-events-none"
-                )}
-                onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={handleFileDrop}
-                onClick={handleFileSelect}
-              >
-                {importing ? (
-                  <Loader2 className="h-8 w-8 text-primary animate-spin mb-2" />
-                ) : (
-                  <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                )}
-                <p className="text-sm font-medium text-foreground mb-1">
-                  {importing ? 'Processando...' : 'Arraste o arquivo aqui'}
-                </p>
-                <p className="text-xs text-muted-foreground">XML (Jira RSS) ou JSON</p>
-              </div>
-
-              {/* Paste area */}
-              <div className="space-y-2">
-                <Label className="text-xs font-medium">Ou cole o conteúdo:</Label>
-                <Textarea
-                  placeholder="Cole aqui o XML ou JSON exportado do Jira..."
-                  className="min-h-[120px] font-mono text-xs bg-muted/20"
-                  value={pastedContent}
-                  onChange={(e) => setPastedContent(e.target.value)}
-                  disabled={importing}
-                />
-                <Button className="w-full" onClick={() => importContent(pastedContent, 'colado')} disabled={importing || !pastedContent.trim()}>
-                  {importing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                  {importing ? 'Processando...' : 'Importar Dados'}
-                </Button>
-              </div>
-            </TabsContent>
-
-            {/* Config Tab */}
-            <TabsContent value="config" className="space-y-4 mt-4">
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <Label className="text-xs font-medium">URL da instância Jira</Label>
-                  <Input value={jiraConfig.url} onChange={e => setJiraConfig(p => ({ ...p, url: e.target.value }))} placeholder="https://sua-empresa.atlassian.net" />
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-xs font-medium">Projetos monitorados (separados por vírgula)</Label>
-                  <Input value={jiraConfig.projects} onChange={e => setJiraConfig(p => ({ ...p, projects: e.target.value }))} placeholder="SEC, VULN, APPSEC" />
-                </div>
-              </div>
-
-              <Separator />
-
-              <div>
-                <p className="text-xs font-medium text-foreground mb-2">Observação sobre SSO:</p>
-                <div className="flex items-start gap-3 rounded-xl bg-amber-500/5 border border-amber-500/10 p-3.5">
-                  <Info className="h-4 w-4 text-amber-500 mt-0.5 shrink-0" />
-                  <div className="text-xs text-muted-foreground space-y-1">
-                    <p>A integração via <strong>API token</strong> não é suportada quando o Jira usa SSO corporativo (SAML/OIDC). Por isso, o VulnControl usa <strong>importação manual</strong> via XML/JSON.</p>
-                    <p>Para integração automática, solicite um <strong>Service Account</strong> ao time de IAM da sua empresa.</p>
-                  </div>
-                </div>
-              </div>
-
-              <Button className="w-full" onClick={() => { toast.success("Configuração salva"); setJiraDialogOpen(false) }}>
-                Salvar Configuração
-              </Button>
-            </TabsContent>
-
-            {/* Mapping Tab */}
-            <TabsContent value="mapping" className="mt-4">
-              <p className="text-xs text-muted-foreground mb-3">Correspondência entre campos do Jira e do VulnControl</p>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {mapeamentoCampos.map((m) => (
-                  <div key={m.jira} className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 p-2.5">
-                    <span className="text-sm">{m.icon}</span>
-                    <div className="flex items-center gap-1.5 text-[11px] min-w-0">
-                      <span className="text-muted-foreground truncate">{m.jira}</span>
-                      <ArrowRight className="h-2.5 w-2.5 text-muted-foreground shrink-0" />
-                      <span className="font-semibold text-foreground truncate">{m.vulnControl}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </TabsContent>
-          </Tabs>
-        </DialogContent>
-      </Dialog>
-
-      {/* ============ WEBHOOK DIALOG (Slack/Teams) ============ */}
-      <Dialog open={webhookDialogOpen} onOpenChange={setWebhookDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted/50 border border-border/50">
-                {webhookTarget === 'slack' ? <SlackIcon className="h-5 w-5" /> : <TeamsIcon className="h-5 w-5" />}
-              </div>
-              {webhookTarget === 'slack' ? 'Slack' : 'Microsoft Teams'}
-            </DialogTitle>
-            <DialogDescription>
-              Configure um webhook para receber alertas no {webhookTarget === 'slack' ? 'Slack' : 'Teams'}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-2">
-            {/* Instructions */}
-            <div className="flex items-start gap-3 rounded-xl bg-blue-500/5 border border-blue-500/10 p-3.5">
-              <Info className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
-              <div className="text-xs text-muted-foreground space-y-1">
-                {webhookTarget === 'slack' ? (
-                  <>
-                    <p className="font-medium text-foreground">Como criar o Webhook no Slack:</p>
-                    <ol className="list-decimal list-inside space-y-0.5 ml-1">
-                      <li>Acesse <strong>api.slack.com/apps</strong> → Criar novo App</li>
-                      <li>Ative <strong>Incoming Webhooks</strong></li>
-                      <li>Selecione o canal desejado e copie a URL</li>
-                    </ol>
-                  </>
-                ) : (
-                  <>
-                    <p className="font-medium text-foreground">Como criar o Webhook no Teams:</p>
-                    <ol className="list-decimal list-inside space-y-0.5 ml-1">
-                      <li>No canal desejado, clique em <strong>...</strong> → <strong>Conectores</strong></li>
-                      <li>Busque <strong>Incoming Webhook</strong> → Configurar</li>
-                      <li>Nomeie e copie a URL gerada</li>
-                    </ol>
-                  </>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs font-medium">URL do Webhook</Label>
-              <Input
-                placeholder={webhookTarget === 'slack' ? 'https://hooks.slack.com/services/T.../B.../...' : 'https://outlook.office.com/webhook/...'}
-                value={webhookUrl}
-                onChange={e => setWebhookUrl(e.target.value)}
-              />
-            </div>
-
-            {/* Notification types */}
-            <div>
-              <Label className="text-xs font-medium mb-2 block">Alertas que serão enviados:</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { label: 'SLA vencendo', desc: '7 dias antes' },
-                  { label: 'SLA vencido', desc: 'Alerta imediato' },
-                  { label: 'Nova vulnerabilidade', desc: 'Crítica/Extrema' },
-                  { label: 'Resumo semanal', desc: 'Segunda-feira' },
-                ].map(a => (
-                  <div key={a.label} className="flex items-center gap-2 rounded-lg bg-muted/30 border border-border/50 px-3 py-2">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                    <div>
-                      <p className="text-[11px] font-medium text-foreground">{a.label}</p>
-                      <p className="text-[10px] text-muted-foreground">{a.desc}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Current status */}
-            {savedWebhooks[webhookTarget] && (
-              <div className="flex items-center justify-between rounded-xl bg-emerald-500/5 border border-emerald-500/10 p-3">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                  <span className="text-xs font-medium text-emerald-600">Webhook ativo</span>
-                </div>
-                <Button variant="ghost" size="sm" className="h-7 text-xs text-red-500 hover:text-red-600 hover:bg-red-500/10" onClick={() => {
-                  removeWebhook(webhookTarget)
-                  setWebhookUrl('')
-                  toast.success('Webhook removido')
-                }}>
-                  Desconectar
-                </Button>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setWebhookDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={testWebhook} disabled={webhookTesting || !webhookUrl.trim()}>
-              {webhookTesting ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="mr-2 h-4 w-4" />
-              )}
-              {webhookTesting ? 'Testando...' : 'Testar e Salvar'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* ============ IBM RTC ============ */}
+      <RtcIntegrationSection />
 
       {/* ============ AI CONFIG DIALOG ============ */}
       <Dialog open={aiDialogOpen} onOpenChange={setAiDialogOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500/20 to-blue-500/20">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500/20 to-emerald-500/20">
                 <Zap className="h-5 w-5 text-purple-500" />
               </div>
               Configurar Inteligência Artificial
@@ -982,6 +549,178 @@ export function IntegrationsSettings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </div>
+  )
+}
+
+// ============ IBM RTC Integration Section ============
+function RtcIntegrationSection() {
+  const [uploading, setUploading] = useState(false)
+  const [pdfResult, setPdfResult] = useState<any>(null)
+  const [dragOver, setDragOver] = useState(false)
+
+  const handlePdfUpload = async (file: File) => {
+    if (!file.name.toLowerCase().endsWith('.pdf')) {
+      toast.error('Apenas arquivos PDF sao aceitos')
+      return
+    }
+    setUploading(true)
+    setPdfResult(null)
+    try {
+      const formData = new FormData()
+      formData.append('pdf', file)
+
+      const resp = await fetch(`${API_URL}/api/rtc/import-pdf`, {
+        method: 'POST',
+        headers: { ...Object.fromEntries(Object.entries(authHeaders()).filter(([k]) => k !== 'Content-Type')) },
+        credentials: 'include',
+        body: formData,
+      })
+      const data = await resp.json()
+      if (!resp.ok) throw new Error(data.error || 'Erro ao importar PDF')
+
+      setPdfResult(data)
+      toast.success(`PDF importado!`, {
+        description: `${data.created} vulnerabilidades criadas, ${data.skipped} ja existentes`,
+      })
+
+      if (data.created > 0) {
+        setTimeout(() => window.location.reload(), 2500)
+      }
+    } catch (err: any) {
+      toast.error('Erro ao importar PDF', { description: err.message })
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setDragOver(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file) handlePdfUpload(file)
+  }
+
+  const handleFileSelect = () => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.pdf'
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0]
+      if (file) handlePdfUpload(file)
+    }
+    input.click()
+  }
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-4">
+        <Database className="h-4 w-4 text-muted-foreground" />
+        <h3 className="text-sm font-semibold text-foreground">IBM RTC — Importar Vulnerabilidades</h3>
+        <Separator className="flex-1" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Upload Zone */}
+        <div
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
+          onClick={handleFileSelect}
+          className={cn(
+            "relative rounded-xl border-2 border-dashed p-8 text-center cursor-pointer transition-all duration-200",
+            dragOver
+              ? "border-emerald-500 bg-emerald-500/5"
+              : "border-border hover:border-emerald-500/50 hover:bg-muted/30"
+          )}
+        >
+          {uploading ? (
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="h-10 w-10 text-emerald-500 animate-spin" />
+              <p className="text-sm font-medium text-foreground">Processando PDF...</p>
+              <p className="text-xs text-muted-foreground">Extraindo vulnerabilidades do Epic</p>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center gap-3">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
+                <FileText className="h-7 w-7 text-emerald-500" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-foreground">Arraste o PDF do RTC aqui</p>
+                <p className="text-xs text-muted-foreground mt-1">ou clique para selecionar arquivo</p>
+              </div>
+              <Badge variant="outline" className="text-[10px]">
+                Aceita PDF de Epics do IBM RTC/EWM
+              </Badge>
+            </div>
+          )}
+        </div>
+
+        {/* Info + Results */}
+        <div className="space-y-4">
+          <div className="rounded-xl border border-border bg-card p-4">
+            <h4 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+              <Info className="h-4 w-4 text-emerald-500" />
+              Como funciona
+            </h4>
+            <ul className="text-xs text-muted-foreground space-y-1.5">
+              <li>1. Abra o Epic no IBM RTC (EWM)</li>
+              <li>2. Imprima como PDF (Ctrl+P)</li>
+              <li>3. Arraste o PDF aqui</li>
+              <li>4. O sistema extrai automaticamente:</li>
+              <li className="ml-4">- Nome da vulnerabilidade</li>
+              <li className="ml-4">- Criticidade (Gravidade)</li>
+              <li className="ml-4">- Squad responsavel</li>
+              <li className="ml-4">- Data de criacao</li>
+              <li className="ml-4">- Criado por (responsavel)</li>
+              <li className="ml-4">- Descricao tecnica</li>
+            </ul>
+          </div>
+
+          {/* Results */}
+          {pdfResult && (
+            <div className={cn(
+              "rounded-xl border p-4",
+              pdfResult.created > 0
+                ? "border-emerald-500/30 bg-emerald-500/5"
+                : "border-amber-500/30 bg-amber-500/5"
+            )}>
+              <h4 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                {pdfResult.created > 0 ? (
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                ) : (
+                  <Info className="h-4 w-4 text-amber-500" />
+                )}
+                Resultado da Importacao
+              </h4>
+              <div className="grid grid-cols-3 gap-2 text-center mb-3">
+                <div className="rounded-lg bg-background p-2">
+                  <p className="text-lg font-bold text-emerald-500">{pdfResult.created}</p>
+                  <p className="text-[10px] text-muted-foreground">Criadas</p>
+                </div>
+                <div className="rounded-lg bg-background p-2">
+                  <p className="text-lg font-bold text-amber-500">{pdfResult.skipped}</p>
+                  <p className="text-[10px] text-muted-foreground">Duplicadas</p>
+                </div>
+                <div className="rounded-lg bg-background p-2">
+                  <p className="text-lg font-bold text-red-500">{pdfResult.errors?.length || 0}</p>
+                  <p className="text-[10px] text-muted-foreground">Erros</p>
+                </div>
+              </div>
+              {pdfResult.parsed?.length > 0 && (
+                <div className="space-y-1">
+                  {pdfResult.parsed.map((v: any, i: number) => (
+                    <div key={i} className="flex items-center justify-between text-xs rounded-lg bg-background px-2 py-1.5">
+                      <span className="font-medium text-foreground truncate flex-1">{v.titulo}</span>
+                      <Badge variant="outline" className="text-[9px] ml-2">{v.criticidade}</Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

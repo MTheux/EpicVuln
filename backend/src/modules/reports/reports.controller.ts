@@ -31,7 +31,7 @@ export class ReportsController {
     async downloadExcel(req: Request, res: Response) {
         try {
             const buffer = await this.service.generateExcel();
-            const filename = `vulncontrol-relatorio-${new Date().toISOString().split('T')[0]}.xlsx`;
+            const filename = `epicvuln-relatorio-${new Date().toISOString().split('T')[0]}.xlsx`;
             res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
             res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
             res.send(buffer);
@@ -44,7 +44,7 @@ export class ReportsController {
     async downloadPdf(req: Request, res: Response) {
         try {
             const buffer = await this.service.generatePdf();
-            const filename = `vulncontrol-relatorio-${new Date().toISOString().split('T')[0]}.pdf`;
+            const filename = `epicvuln-relatorio-${new Date().toISOString().split('T')[0]}.pdf`;
             res.setHeader('Content-Type', 'application/pdf');
             res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
             res.send(buffer);

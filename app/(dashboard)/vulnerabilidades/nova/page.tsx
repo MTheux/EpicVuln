@@ -21,9 +21,9 @@ import { useAssetStore } from "@/lib/asset-store"
 import { toast } from "sonner"
 import type { Criticidade, Status, OwaspCategory, Complexidade } from "@/lib/types"
 
-const criticidades: Criticidade[] = ['Extrema', 'Crítica', 'Alta', 'Média', 'Baixa', 'Informativa']
-const squads = ['AppMais', 'Acessos', 'Atendimento Digital', 'Autorizadores', 'Canais Clientes', 'Canais Lojistas', 'Cloud', 'Conta do Mais', 'Crédito', 'Desacoplamento', 'Field', 'Invillia', 'Jurídico', 'OpenFinance e Pix', 'Onplug', 'Prevenção a Fraude', 'Portal Credsystem', 'Time de Arquitetura (Aceleradora)', 'Sem dono', 'SFCWeb', 'SOC', 'Sustentação']
-const sistemas = ['App Pl', 'App Mais', 'Autorizadores', 'Cartão Mais Website', 'Cleo', 'Cyber', 'Credsystem Website', 'Credline Digital', 'Cloud', 'Impulse Up', 'Legal Manager', 'Odonto Website', 'Onplug', 'PontoTel', 'Portal do Cartão', 'Portal do Cartão Mobile', 'Portal Lojista', 'Privacidade Website', 'Portal SSO', 'RHSSO', 'Servidor', 'SFC Web', 'URA', 'Websystem', 'Workstation']
+const criticidades: Criticidade[] = ['Crítica', 'Alta', 'Média', 'Baixa', 'Informativa']
+const squads = ['AppMais', 'Acessos', 'Atendimento Digital', 'Autorizadores', 'Canais Clientes', 'Canais Lojistas', 'Cloud', 'Conta do Mais', 'Crédito', 'Desacoplamento', 'Field', 'Invillia', 'Jurídico', 'OpenFinance e Pix', 'Onplug', 'Prevenção a Fraude', 'Portal Unisys', 'Time de Arquitetura (Aceleradora)', 'Sem dono', 'SFCWeb', 'SOC', 'Sustentação']
+const sistemas = ['App Pl', 'App Mais', 'Autorizadores', 'Cartão Mais Website', 'Cleo', 'Cyber', 'Unisys Website', 'Credline Digital', 'Cloud', 'Impulse Up', 'Legal Manager', 'Odonto Website', 'Onplug', 'PontoTel', 'Portal do Cartão', 'Portal do Cartão Mobile', 'Portal Lojista', 'Privacidade Website', 'Portal SSO', 'RHSSO', 'Servidor', 'SFC Web', 'URA', 'Websystem', 'Workstation']
 const ambientes = ['Produção', 'Homologação', 'Desenvolvimento']
 const origens: ('Pentest' | 'DAST' | 'SAST' | 'SCA' | 'Bug Bounty' | 'Manual' | 'Monitoramento' | 'Code Review')[] = [
   'Pentest', 'DAST', 'SAST', 'SCA', 'Bug Bounty', 'Manual', 'Monitoramento', 'Code Review'
@@ -275,7 +275,7 @@ export default function NovaVulnerabilidadePage() {
             </div>
 
             <div>
-              <Label htmlFor="impacto">Impacto (Jira)</Label>
+              <Label htmlFor="impacto">Impacto</Label>
               <Textarea
                 id="impacto"
                 placeholder="Excesso de informações, XSS, etc..."

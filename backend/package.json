@@ -1,7 +1,7 @@
 {
-  "name": "credsystem-vulncontrol-backend",
+  "name": "epicvuln-backend",
   "version": "1.0.0",
-  "description": "Credsystem VulnControl - Corporate Vulnerability Management Platform",
+  "description": "EpicVuln - Vulnerability Management Platform",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
@@ -31,6 +31,7 @@
     "node-cron": "^4.2.1",
     "nodemailer": "^6.9.16",
     "openai": "^6.31.0",
+    "pdf-parse": "^1.1.1",
     "pdfkit": "^0.18.0",
     "uuid": "^11.1.0",
     "xlsx": "^0.18.5",

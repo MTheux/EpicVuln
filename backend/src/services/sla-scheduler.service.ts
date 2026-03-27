@@ -40,7 +40,7 @@ async function getOpenVulnsWithSla() {
       diasEmAberto: true,
       squad: true,
       gestor: true,
-      jiraKey: true,
+      jiraKey: true, // DB column name kept for compatibility
       responsavel: true,
     },
   });
@@ -63,7 +63,7 @@ function toVulnSummary(v: {
   sla: Date | null;
   diasEmAberto: number;
   squad: string;
-  jiraKey: string | null;
+  jiraKey: string | null; // DB column name kept for compatibility
 }): VulnSummary {
   return {
     titulo: v.titulo,
@@ -72,7 +72,7 @@ function toVulnSummary(v: {
     sla: v.sla ? v.sla.toISOString().slice(0, 10) : '-',
     diasEmAberto: v.diasEmAberto,
     squad: v.squad,
-    jiraKey: v.jiraKey ?? undefined,
+    rtcWorkItemId: v.jiraKey ?? undefined,
   };
 }
 
@@ -111,9 +111,9 @@ export async function checkSlaWarnings() {
 
   for (const [squad, items] of grouped) {
     const summaries = items.map(toVulnSummary);
-    const subject = `[VulnControl] Aviso de SLA — ${squad} (${items.length} vuln(s) expirando)`;
+    const subject = `[EpicVuln] Aviso de SLA — ${squad} (${items.length} vuln(s) expirando)`;
     const html = slaWarningEmail(squad, summaries);
-    const recipient = `po-${squad}@credsystem.com`;
+    const recipient = `po-${squad}@unisys.com`;
 
     try {
       await emailService.sendEmail(recipient, subject, html);
@@ -159,9 +159,9 @@ export async function checkSlaExpired() {
 
   for (const [squad, items] of grouped) {
     const summaries = items.map(toVulnSummary);
-    const subject = `[VulnControl] SLA Expirado — ${squad} (${items.length} vuln(s))`;
+    const subject = `[EpicVuln] SLA Expirado — ${squad} (${items.length} vuln(s))`;
     const html = slaExpiredEmail(squad, summaries);
-    const recipient = `po-${squad}@credsystem.com`;
+    const recipient = `po-${squad}@unisys.com`;
 
     try {
       await emailService.sendEmail(recipient, subject, html);
@@ -198,9 +198,9 @@ export async function checkEscalationToManager() {
   for (const [squad, items] of grouped) {
     const summaries = items.map(toVulnSummary);
     const gestor = items[0].gestor ?? squad;
-    const subject = `[VulnControl] Escalacao ao Gestor — ${squad} (${items.length} vuln(s) sem resolucao)`;
+    const subject = `[EpicVuln] Escalacao ao Gestor — ${squad} (${items.length} vuln(s) sem resolucao)`;
     const html = escalationToManagerEmail(gestor, squad, summaries);
-    const recipient = `gestor-${squad}@credsystem.com`;
+    const recipient = `gestor-${squad}@unisys.com`;
 
     try {
       await emailService.sendEmail(recipient, subject, html);
@@ -257,9 +257,9 @@ export async function checkEscalationToCLevel() {
     });
   }
 
-  const subject = `[VulnControl] Escalacao Executiva — ${filtered.length} vuln(s) sem resolucao ha 14+ dias`;
+  const subject = `[EpicVuln] Escalacao Executiva — ${filtered.length} vuln(s) sem resolucao ha 14+ dias`;
   const html = escalationToCLevelEmail(summaries, squadSummary);
-  const recipient = 'diretoria-seguranca@credsystem.com';
+  const recipient = 'diretoria-seguranca@unisys.com';
 
   try {
     await emailService.sendEmail(recipient, subject, html);
@@ -371,12 +371,12 @@ export async function sendWeeklyDigest() {
     stats.mediaResolucao = Math.round(totalDays / closedVulns.length);
   }
 
-  const subject = `[VulnControl] Resumo Semanal — ${totalOpen} abertas, ${expired} expiradas`;
+  const subject = `[EpicVuln] Resumo Semanal — ${totalOpen} abertas, ${expired} expiradas`;
   const html = weeklyDigestEmail(stats, topSquads);
 
   const recipients = [
-    'gestores@credsystem.com',
-    'diretoria-seguranca@credsystem.com',
+    'gestores@unisys.com',
+    'diretoria-seguranca@unisys.com',
   ];
 
   for (const recipient of recipients) {

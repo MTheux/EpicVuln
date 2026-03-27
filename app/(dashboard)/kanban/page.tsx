@@ -44,8 +44,8 @@ const COLUMNS: KanbanColumn[] = [
   },
   {
     id: 'aberta-backlog', title: 'Aberta / Backlog', statuses: ['Aberta', 'Em Backlog'], defaultStatus: 'ABERTO',
-    color: 'text-blue-400', gradient: 'from-blue-500/20 to-blue-500/5',
-    dotColor: 'bg-blue-400', icon: '📋',
+    color: 'text-emerald-400', gradient: 'from-emerald-500/20 to-emerald-500/5',
+    dotColor: 'bg-emerald-400', icon: '📋',
   },
   {
     id: 'em-correcao', title: 'Em Correção', statuses: ['Em Correção'], defaultStatus: 'EM_CORRECAO',
@@ -70,18 +70,18 @@ const COLUMNS: KanbanColumn[] = [
 ]
 
 const SEVERITY_BORDER: Record<string, string> = {
-  'Extrema': 'border-l-red-500', 'Critica': 'border-l-orange-500', 'Crítica': 'border-l-orange-500',
+  'Critica': 'border-l-red-500', 'Crítica': 'border-l-red-500',
   'Alta': 'border-l-yellow-500', 'Media': 'border-l-blue-500', 'Média': 'border-l-blue-500',
   'Baixa': 'border-l-green-500', 'Informativa': 'border-l-slate-400',
 }
 
 const SEVERITY_DOT: Record<string, string> = {
-  'Extrema': 'bg-red-500', 'Critica': 'bg-orange-500', 'Crítica': 'bg-orange-500',
+  'Critica': 'bg-red-500', 'Crítica': 'bg-red-500',
   'Alta': 'bg-yellow-500', 'Media': 'bg-blue-500', 'Média': 'bg-blue-500',
   'Baixa': 'bg-green-500', 'Informativa': 'bg-slate-400',
 }
 
-const CRITICIDADE_OPTIONS = ['Extrema', 'Crítica', 'Alta', 'Média', 'Baixa', 'Informativa']
+const CRITICIDADE_OPTIONS = ['Crítica', 'Alta', 'Média', 'Baixa', 'Informativa']
 
 function getApiUrl() {
   if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL
@@ -152,7 +152,7 @@ export default function KanbanPage() {
       map[col.id] = filtered
         .filter(v => col.statuses.includes(v.status))
         .sort((a, b) => {
-          const sevOrder: Record<string, number> = { 'Extrema': 0, 'Crítica': 1, 'Alta': 2, 'Média': 3, 'Baixa': 4, 'Informativa': 5 }
+          const sevOrder: Record<string, number> = { 'Crítica': 0, 'Alta': 1, 'Média': 2, 'Baixa': 3, 'Informativa': 4 }
           return (sevOrder[a.criticidade] ?? 9) - (sevOrder[b.criticidade] ?? 9)
         })
     }
@@ -223,14 +223,14 @@ export default function KanbanPage() {
     }
   }, [fetchVulnerabilidades])
 
-  const handleSyncJira = async () => {
+  const handleSyncRtc = async () => {
     setSyncing(true)
     try {
-      const res = await fetch(`${getApiUrl()}/api/jira/sync`, {
+      const res = await fetch(`${getApiUrl()}/api/rtc/sync`, {
         method: 'POST', headers: { ...authHeaders() }, credentials: 'include',
       })
       if (!res.ok) throw new Error('Erro na sincronizacao')
-      toast.success('Jira sincronizado!', { description: 'Vulnerabilidades atualizadas com status do Jira' })
+      toast.success('RTC sincronizado!', { description: 'Vulnerabilidades atualizadas com status do IBM RTC' })
       await fetchVulnerabilidades()
     } catch (err: any) {
       toast.error(err.message)
@@ -245,7 +245,7 @@ export default function KanbanPage() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight text-foreground">
-            Kanban <span className="text-blue-500">Board</span>
+            Kanban <span className="text-emerald-500">Board</span>
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Arraste as vulnerabilidades entre colunas para atualizar o fluxo de correcao
@@ -253,11 +253,11 @@ export default function KanbanPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button
-            variant="outline" size="sm" onClick={handleSyncJira} disabled={syncing}
+            variant="outline" size="sm" onClick={handleSyncRtc} disabled={syncing}
             className="bg-card border-border hover:bg-muted"
           >
             <RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
-            {syncing ? 'Sincronizando...' : 'Sync Jira'}
+            {syncing ? 'Sincronizando...' : 'Sync RTC'}
           </Button>
           <Button
             variant="outline" size="sm"
@@ -309,7 +309,7 @@ export default function KanbanPage() {
         <select
           value={filterSquad}
           onChange={e => setFilterSquad(e.target.value)}
-          className="h-8 rounded-lg border border-border bg-card px-3 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+          className="h-8 rounded-lg border border-border bg-card px-3 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
         >
           <option value="">Todas as Squads</option>
           {squads.map(s => <option key={s} value={s}>{s}</option>)}
@@ -318,7 +318,7 @@ export default function KanbanPage() {
         <select
           value={filterCriticidade}
           onChange={e => setFilterCriticidade(e.target.value)}
-          className="h-8 rounded-lg border border-border bg-card px-3 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+          className="h-8 rounded-lg border border-border bg-card px-3 text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
         >
           <option value="">Todas as Criticidades</option>
           {CRITICIDADE_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
@@ -356,7 +356,7 @@ export default function KanbanPage() {
                 key={column.id}
                 className={`flex flex-col min-w-0 rounded-xl border transition-all duration-200 ${
                   isDragOver
-                    ? 'border-blue-500/50 ring-2 ring-blue-500/20 scale-[1.01]'
+                    ? 'border-emerald-500/50 ring-2 ring-emerald-500/20 scale-[1.01]'
                     : 'border-border/50'
                 } bg-card/30 backdrop-blur-sm`}
                 onDragOver={e => handleDragOver(e, column.id)}
@@ -378,8 +378,8 @@ export default function KanbanPage() {
 
                 {/* Drop Zone Indicator */}
                 {isDragOver && (
-                  <div className="mx-2 mt-2 rounded-lg border-2 border-dashed border-blue-500/40 bg-blue-500/5 py-3 text-center">
-                    <span className="text-xs text-blue-400 font-medium">Solte aqui</span>
+                  <div className="mx-2 mt-2 rounded-lg border-2 border-dashed border-emerald-500/40 bg-emerald-500/5 py-3 text-center">
+                    <span className="text-xs text-emerald-400 font-medium">Solte aqui</span>
                   </div>
                 )}
 
@@ -439,7 +439,7 @@ function VulnCard({ vuln, compact, onDragStart, onClick }: VulnCardProps) {
         draggable
         onDragStart={e => onDragStart(e, vuln)}
         onClick={onClick}
-        className={`group rounded-lg border border-border/50 bg-card hover:bg-card/80 px-3 py-2 cursor-grab active:cursor-grabbing hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-150 border-l-[3px] ${borderColor}`}
+        className={`group rounded-lg border border-border/50 bg-card hover:bg-card/80 px-3 py-2 cursor-grab active:cursor-grabbing hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/5 transition-all duration-150 border-l-[3px] ${borderColor}`}
       >
         <div className="flex items-center gap-2">
           <div className={`h-1.5 w-1.5 rounded-full ${severityDot} shrink-0`} />
@@ -456,10 +456,10 @@ function VulnCard({ vuln, compact, onDragStart, onClick }: VulnCardProps) {
       draggable
       onDragStart={e => onDragStart(e, vuln)}
       onClick={onClick}
-      className={`group rounded-lg border border-border/50 bg-card hover:bg-card/80 p-3 cursor-grab active:cursor-grabbing hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-150 border-l-[3px] ${borderColor}`}
+      className={`group rounded-lg border border-border/50 bg-card hover:bg-card/80 p-3 cursor-grab active:cursor-grabbing hover:border-emerald-500/30 hover:shadow-lg hover:shadow-emerald-500/5 transition-all duration-150 border-l-[3px] ${borderColor}`}
     >
       {/* Top Row: Title */}
-      <p className="text-[13px] font-semibold text-foreground leading-snug mb-2 group-hover:text-blue-400 transition-colors">
+      <p className="text-[13px] font-semibold text-foreground leading-snug mb-2 group-hover:text-emerald-400 transition-colors">
         {truncate(vuln.titulo, 55)}
       </p>
 
@@ -497,10 +497,10 @@ function VulnCard({ vuln, compact, onDragStart, onClick }: VulnCardProps) {
         )}
       </div>
 
-      {/* Jira Key if exists */}
-      {(vuln as any).jiraKey && (
+      {/* RTC Work Item if exists */}
+      {(vuln as any).rtcWorkItemId && (
         <div className="mt-2 pt-2 border-t border-border/30">
-          <span className="text-[10px] font-mono text-blue-400/70">{(vuln as any).jiraKey}</span>
+          <span className="text-[10px] font-mono text-emerald-400/70">{(vuln as any).rtcWorkItemId}</span>
         </div>
       )}
     </div>

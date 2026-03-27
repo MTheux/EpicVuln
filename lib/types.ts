@@ -1,6 +1,6 @@
-// Credsystem VulnControl - Types
+// EpicVuln - Types
 
-export type Criticidade = 'Extrema' | 'Crítica' | 'Alta' | 'Média' | 'Baixa' | 'Informativa'
+export type Criticidade = 'Crítica' | 'Alta' | 'Média' | 'Baixa' | 'Informativa'
 
 export type Status =
   | 'Nova'
@@ -30,7 +30,7 @@ export type OwaspCategory =
 export interface Vulnerabilidade {
   id: string
   codigoInterno?: string
-  jiraKey?: string
+  rtcWorkItemId?: string
   titulo: string
   descricaoExecutiva: string
   descricaoTecnica: string
@@ -92,7 +92,7 @@ export interface ComentarioItem {
 
 export interface HistoricoItem {
   data: string
-  tipo: 'criacao' | 'status' | 'criticidade' | 'responsavel' | 'sincronizacao' | 'notificacao' | 'comentario' | 'sync_jira'
+  tipo: 'criacao' | 'status' | 'criticidade' | 'responsavel' | 'sincronizacao' | 'notificacao' | 'comentario' | 'sync_rtc'
   descricao: string
   description?: string
   createdAt?: string
@@ -125,12 +125,12 @@ export interface RegraNotificacao {
   canal: 'email' | 'slack' | 'teams'
 }
 
-export interface IntegracaoJira {
+export interface IntegracaoRtc {
   status: 'conectado' | 'desconectado' | 'erro'
   urlInstancia?: string
   projetosMonitorados: string[]
   ultimaSincronizacao?: string
-  issuesImportadas: number
+  workItemsImportados: number
 }
 
 export type AssetType = 'API' | 'Web App' | 'Mobile' | 'Infra' | 'Database' | 'Cloud Service' | 'IoT' | 'Outro'

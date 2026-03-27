@@ -70,4 +70,4 @@ npm run dev
 - **Banco**: PostgreSQL.
 
 ## 📄 Licença
-Uso exclusivo CredSystem.
+Uso exclusivo Unisys.

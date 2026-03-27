@@ -4,8 +4,7 @@ const SLA_KEY = 'sla_config';
 const COMPANY_PROFILE_KEY = 'company_profile';
 
 const DEFAULT_SLA: Record<string, number> = {
-  EXTREMA: 0,
-  CRITICA: 30,
+  CRITICA: 0,
   ALTA: 90,
   MEDIA: 180,
   BAIXA: 270,

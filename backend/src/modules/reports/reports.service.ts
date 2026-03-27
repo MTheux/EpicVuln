@@ -5,7 +5,7 @@ import * as XLSX from 'xlsx';
 const OPEN_STATUSES = ['NOVO', 'ABERTO', 'EM_BACKLOG', 'EM_CORRECAO', 'EM_RETESTE'];
 
 const SEVERITY_LABELS: Record<string, string> = {
-    EXTREMA: 'Extrema', CRITICA: 'Crítica', ALTA: 'Alta',
+    CRITICA: 'Crítica', ALTA: 'Alta',
     MEDIA: 'Média', BAIXA: 'Baixa', INFORMATIVA: 'Informativa',
 };
 
@@ -93,7 +93,7 @@ export class ReportsService {
 
         // 5. Resumo geral
         const totalAberto = open.length;
-        const totalExtremaCritica = open.filter(v => v.criticidade === 'EXTREMA' || v.criticidade === 'CRITICA').length;
+        const totalExtremaCritica = open.filter(v => v.criticidade === 'CRITICA').length;
         const totalSlaVencido = open.filter(v => v.sla && new Date(v.sla) < now).length;
         const novasUltimos30d = allVulns.filter(v => new Date(v.dataCriacao) >= thirtyDaysAgo).length;
         const fechadasUltimos30d = allVulns.filter(v =>
@@ -412,7 +412,7 @@ export class ReportsService {
         const insights = await this.getWeeklyInsights();
         const summaryRows = [
             { 'Métrica': 'Total Abertas', 'Valor': insights.resumo.totalAberto },
-            { 'Métrica': 'Extremas + Críticas', 'Valor': insights.resumo.totalExtremaCritica },
+            { 'Métrica': 'Críticas', 'Valor': insights.resumo.totalExtremaCritica },
             { 'Métrica': 'SLA Vencido', 'Valor': insights.resumo.totalSlaVencido },
             { 'Métrica': 'Sem Responsável', 'Valor': insights.resumo.semResponsavel },
             { 'Métrica': 'Novas (30d)', 'Valor': insights.resumo.novasUltimos30d },
@@ -458,7 +458,7 @@ export class ReportsService {
 
             // Header
             doc.fontSize(20).font('Helvetica-Bold')
-                .text('VulnControl — Relatório Semanal', { align: 'center' });
+                .text('EpicVuln — Relatório Semanal', { align: 'center' });
             doc.fontSize(10).font('Helvetica')
                 .text(`Gerado em: ${now.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR')}`, { align: 'center' });
             doc.moveDown(1.5);
@@ -469,7 +469,7 @@ export class ReportsService {
             doc.fontSize(10).font('Helvetica');
             const r = insights.resumo;
             doc.text(`• Vulnerabilidades abertas: ${r.totalAberto}`);
-            doc.text(`• Extremas + Críticas: ${r.totalExtremaCritica}`);
+            doc.text(`• Críticas: ${r.totalExtremaCritica}`);
             doc.text(`• SLA vencido: ${r.totalSlaVencido}`);
             doc.text(`• Sem responsável: ${r.semResponsavel}`);
             doc.text(`• Novas nos últimos 30 dias: ${r.novasUltimos30d}`);

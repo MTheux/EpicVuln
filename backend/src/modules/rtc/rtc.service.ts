@@ -1,6 +1,36 @@
 import { prisma } from '../../app';
 
-// RTC Status -> VulnControl Status
+// ---- Unisys Epic Title Parser ----
+
+/**
+ * Parse an Unisys RTC Epic title to extract vulnerability name and squad.
+ * Input:  "[EPICO] Pentest Unisys - Sqd Parametros (Originação e Entrada de Dados):XSS Refletido"
+ * Output: { vulnName: "XSS Refletido", squad: "Originação e Entrada de Dados", fullTitle: <original> }
+ */
+function parseEpicTitle(title: string): { vulnName: string; squad: string; fullTitle: string } {
+    const colonIdx = title.lastIndexOf(':');
+    const vulnName = colonIdx > -1 ? title.substring(colonIdx + 1).trim() : title;
+
+    const parenMatch = title.match(/\(([^)]+)\)/);
+    const squad = parenMatch ? parenMatch[1] : 'Sem Squad';
+
+    return { vulnName, squad, fullTitle: title };
+}
+
+/**
+ * Map RTC severity to Criticidade enum, handling both English and Portuguese names.
+ */
+function mapRtcSeverity(severity: string): string {
+    const s = severity?.toLowerCase() || '';
+    if (s.includes('extreme') || s.includes('extrema')) return 'CRITICA';
+    if (s.includes('critical') || s.includes('critica') || s.includes('crítica')) return 'CRITICA';
+    if (s.includes('high') || s.includes('alta')) return 'ALTA';
+    if (s.includes('medium') || s.includes('media') || s.includes('média')) return 'MEDIA';
+    if (s.includes('low') || s.includes('baixa')) return 'BAIXA';
+    return '';
+}
+
+// RTC Status -> EpicVuln Status
 const STATUS_MAP: Record<string, string> = {
     'New': 'NOVO',
     'In Progress': 'EM_CORRECAO',
@@ -13,12 +43,12 @@ const STATUS_MAP: Record<string, string> = {
 
 // RTC Priority/Severity -> Criticidade
 const SEVERITY_MAP: Record<string, string> = {
-    'Critical': 'EXTREMA',
+    'Critical': 'CRITICA',
     'Major': 'CRITICA',
     'Normal': 'ALTA',
     'Minor': 'MEDIA',
     'Trivial': 'BAIXA',
-    'Blocker': 'EXTREMA',
+    'Blocker': 'CRITICA',
 };
 
 interface RtcSession {
@@ -268,9 +298,9 @@ export class RtcService {
      */
     private async syncProject(session: RtcSession, projectArea: string, userId: string): Promise<number> {
         // Use OSLC query to fetch work items from the project area
-        // The query fetches Defects and Tasks (common types for vulnerability tracking)
+        // Query fetches Épicos (Epics), Defects and Tasks for vulnerability tracking
         const encodedProject = encodeURIComponent(projectArea);
-        const queryPath = `/oslc/workitems?oslc.where=rtc_cm:projectArea="${encodedProject}"&oslc.select=dcterms:title,dcterms:description,dcterms:identifier,rtc_cm:state,rtc_cm:severity,rtc_cm:priority,rtc_cm:ownedBy,rtc_cm:filedAgainst&oslc.pageSize=200`;
+        const queryPath = `/oslc/workitems?oslc.where=rtc_cm:projectArea="${encodedProject}"&oslc.select=dcterms:title,dcterms:description,dcterms:identifier,dcterms:created,dcterms:creator,rtc_cm:state,rtc_cm:severity,rtc_cm:priority,rtc_cm:ownedBy,rtc_cm:filedAgainst,rtc_cm:type&oslc.pageSize=200`;
 
         let data: any;
         try {
@@ -282,12 +312,25 @@ export class RtcService {
         }
 
         // RTC can return work items under different keys depending on API version
-        const workItems: any[] = data?.['oslc:results'] || data?.['rdfs:member'] || data?.results || data?.workItems || [];
+        const allItems: any[] = data?.['oslc:results'] || data?.['rdfs:member'] || data?.results || data?.workItems || [];
 
-        if (!Array.isArray(workItems) || workItems.length === 0) {
+        if (!Array.isArray(allItems) || allItems.length === 0) {
             console.log(`[RTC] Nenhum work item encontrado no projeto ${projectArea}.`);
             return 0;
         }
+
+        // Filter for Épico (Epic) type work items from Unisys RTC
+        // Accept all items if none match Epic filter (backwards compatibility)
+        const epicItems = allItems.filter(item => {
+            const typeName = this.resolveLabel(item['rtc_cm:type'] || item.type || '');
+            const title = item['dcterms:title'] || item.title || item.summary || '';
+            return typeName.toLowerCase().includes('pico') || // Épico / Epico
+                   title.startsWith('[EPICO]') ||
+                   title.startsWith('[ÉPICO]');
+        });
+
+        const workItems = epicItems.length > 0 ? epicItems : allItems;
+        console.log(`[RTC] Projeto ${projectArea}: ${allItems.length} work items total, ${epicItems.length} épicos encontrados.`);
 
         let imported = 0;
 
@@ -310,13 +353,24 @@ export class RtcService {
         // Extract fields from the RTC work item
         // OSLC uses Dublin Core (dcterms:) and RTC-specific (rtc_cm:) namespaces
         const workItemId = item['dcterms:identifier'] || item.identifier || item.id || '';
-        const title = item['dcterms:title'] || item.title || item.summary || 'Sem titulo';
+        const rawTitle = item['dcterms:title'] || item.title || item.summary || 'Sem titulo';
         const description = item['dcterms:description'] || item.description || '';
         const stateName = this.resolveLabel(item['rtc_cm:state'] || item.state);
         const severityName = this.resolveLabel(item['rtc_cm:severity'] || item.severity);
         const priorityName = this.resolveLabel(item['rtc_cm:priority'] || item.priority);
         const owner = this.resolveLabel(item['rtc_cm:ownedBy'] || item.ownedBy);
+        const creator = this.resolveLabel(item['dcterms:creator'] || item.creator);
+        const createdDate = item['dcterms:created'] || item.created || '';
         const filedAgainst = this.resolveLabel(item['rtc_cm:filedAgainst'] || item.filedAgainst);
+
+        // Parse Unisys Epic title format: "[EPICO] Pentest Unisys - Sqd Parametros (Squad):VulnName"
+        const { vulnName, squad: parsedSquad } = parseEpicTitle(rawTitle);
+
+        // Use parsed vuln name as titulo, fall back to raw title if no colon found
+        const title = vulnName || rawTitle;
+
+        // Squad: prefer parsed from title, then filedAgainst, then fallback
+        const squad = parsedSquad !== 'Sem Squad' ? parsedSquad : (filedAgainst || 'Sem Squad');
 
         // Generate a stable codigoInterno from the RTC work item ID and project
         const codigoInterno = `RTC-${projectArea.replace(/\s+/g, '-')}-${workItemId}`;
@@ -324,8 +378,12 @@ export class RtcService {
         // Map status
         const mappedStatus = this.mapStatus(stateName);
 
-        // Map severity (try severity first, then priority)
-        const mappedCriticidade = this.mapSeverity(severityName) || this.mapSeverity(priorityName) || 'MEDIA';
+        // Map severity using both the standalone function (PT/EN) and class method
+        const mappedCriticidade = mapRtcSeverity(severityName) || mapRtcSeverity(priorityName) ||
+                                  this.mapSeverity(severityName) || this.mapSeverity(priorityName) || 'MEDIA';
+
+        // Use dc:creator as responsavel (person who filed the Epic)
+        const responsavel = creator || owner || undefined;
 
         // Check if vulnerability already exists (by codigoInterno)
         const existing = await prisma.vulnerability.findFirst({
@@ -339,18 +397,18 @@ export class RtcService {
             const newVuln = await prisma.vulnerability.create({
                 data: {
                     codigoInterno,
-                    jiraKey: `RTC-${workItemId}`,
+                    jiraKey: `RTC-${workItemId}`, // stored in jiraKey DB column for compatibility
                     titulo: title,
                     descricaoExecutiva: (typeof description === 'string' ? description.substring(0, 500) : '') || 'Importado do IBM RTC',
                     descricaoTecnica: (typeof description === 'string' ? description : '') || 'Work item RTC importado',
                     criticidade: mappedCriticidade as any,
                     status: mappedStatus as any,
-                    squad: filedAgainst || 'Sem dono',
+                    squad,
                     sistema: projectArea,
                     ativo: 'Sistemas',
                     ambiente: 'PRODUCAO',
                     origem: 'PENTEST',
-                    responsavel: owner || undefined,
+                    responsavel,
                     createdById: userId,
                 }
             });
@@ -363,7 +421,8 @@ export class RtcService {
                     titulo: title,
                     status: mappedStatus as any,
                     criticidade: mappedCriticidade as any,
-                    responsavel: owner || existing.responsavel,
+                    squad,
+                    responsavel: responsavel || existing.responsavel,
                 }
             });
             vulnId = existing.id;
@@ -373,7 +432,7 @@ export class RtcService {
         const existingHist = await prisma.vulnerabilityHistory.findFirst({
             where: {
                 vulnerabilityId: vulnId,
-                eventType: 'SYNC_JIRA' as any,
+                eventType: 'SYNC_RTC' as any,
                 description: { contains: `WI ${workItemId}` }
             }
         });
@@ -382,7 +441,7 @@ export class RtcService {
             await prisma.vulnerabilityHistory.create({
                 data: {
                     vulnerabilityId: vulnId,
-                    eventType: 'SYNC_JIRA' as any,
+                    eventType: 'SYNC_RTC' as any,
                     description: `[Sync RTC] WI ${workItemId} - Status: ${stateName} -> ${mappedStatus}`,
                 }
             });
@@ -402,7 +461,7 @@ export class RtcService {
     }
 
     /**
-     * Map an RTC status name to a VulnControl status.
+     * Map an RTC status name to a EpicVuln status.
      */
     private mapStatus(statusName: string): string {
         if (!statusName) return 'NOVO';
@@ -428,7 +487,7 @@ export class RtcService {
     }
 
     /**
-     * Map an RTC severity/priority name to a VulnControl criticidade.
+     * Map an RTC severity/priority name to a EpicVuln criticidade.
      */
     private mapSeverity(severityName: string): string {
         if (!severityName) return '';
@@ -442,11 +501,13 @@ export class RtcService {
             if (lower.includes(rtcSev.toLowerCase())) return vulnCrit;
         }
 
-        // Fallback heuristics
-        if (lower.includes('block') || lower.includes('critical') || lower.includes('showstopper')) return 'EXTREMA';
-        if (lower.includes('major') || lower.includes('high')) return 'CRITICA';
-        if (lower.includes('normal') || lower.includes('medium')) return 'ALTA';
-        if (lower.includes('minor') || lower.includes('low')) return 'MEDIA';
+        // Fallback heuristics (English and Portuguese)
+        if (lower.includes('block') || lower.includes('critical') || lower.includes('showstopper')) return 'CRITICA';
+        if (lower.includes('extrema') || lower.includes('extreme')) return 'CRITICA';
+        if (lower.includes('critica') || lower.includes('crítica')) return 'CRITICA';
+        if (lower.includes('major') || lower.includes('high') || lower.includes('alta')) return 'CRITICA';
+        if (lower.includes('normal') || lower.includes('medium') || lower.includes('média') || lower.includes('media')) return 'ALTA';
+        if (lower.includes('minor') || lower.includes('low') || lower.includes('baixa')) return 'MEDIA';
         if (lower.includes('trivial') || lower.includes('enhancement')) return 'BAIXA';
 
         return '';

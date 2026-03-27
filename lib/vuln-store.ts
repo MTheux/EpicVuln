@@ -14,7 +14,7 @@ interface VulnState {
   sendNotification: (id: string) => Promise<void>
   deleteVulnerabilidade: (id: string) => Promise<void>
   clearAll: () => Promise<void>
-  syncJira: () => Promise<void>
+  syncRtc: () => Promise<void>
   uploadEvidence: (id: string, file: File) => Promise<any>
   importData: (jsonData: any[]) => Promise<{ imported: number, errors: any[] }>
 }
@@ -28,7 +28,7 @@ const getApiUrl = () => {
 }
 
 const VULN_API = () => `${getApiUrl()}/api/vulnerabilities`
-const JIRA_API = () => `${getApiUrl()}/api/jira`
+const RTC_API = () => `${getApiUrl()}/api/rtc`
 
 // Fetch seguro: intercepta 401 (token expirado) e redireciona pro login
 // Always includes credentials so HttpOnly cookie is sent
@@ -42,9 +42,9 @@ const safeFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<
   if (response.status === 401 && !isRedirecting) {
     if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
       isRedirecting = true
-      document.cookie = 'vulncontrol_session=; path=/; max-age=0'
-      document.cookie = 'vulncontrol_token=; path=/; max-age=0'
-      localStorage.removeItem('vulncontrol_user')
+      document.cookie = 'epicvuln_session=; path=/; max-age=0'
+      document.cookie = 'epicvuln_token=; path=/; max-age=0'
+      localStorage.removeItem('epicvuln_user')
       window.location.href = '/login'
     }
     throw new Error('SESSION_EXPIRED')
@@ -67,7 +67,7 @@ export const useVulnStore = create<VulnState>((set, get) => ({
       }
       const data = await response.json()
 
-      const reverseCriticidade: any = { 'EXTREMA': 'Extrema', 'CRITICA': 'Crítica', 'ALTA': 'Alta', 'MEDIA': 'Média', 'BAIXA': 'Baixa', 'INFORMATIVA': 'Informativa' };
+      const reverseCriticidade: any = { 'CRITICA': 'Crítica', 'ALTA': 'Alta', 'MEDIA': 'Média', 'BAIXA': 'Baixa', 'INFORMATIVA': 'Informativa' };
       const reverseStatus: any = { 'NOVO': 'Nova', 'ABERTO': 'Aberta', 'EM_BACKLOG': 'Em Backlog', 'EM_CORRECAO': 'Em Correção', 'EM_RETESTE': 'Em Reteste', 'MITIGADO': 'Mitigada', 'CONCLUIDO': 'Concluída', 'RISCO_ACEITO': 'Risco Aceito', 'FECHADO': 'Fechada' };
       const reverseOrigem: any = { 'PENTEST': 'Pentest', 'DAST': 'DAST', 'SAST': 'SAST', 'SCA': 'SCA', 'BUG_BOUNTY': 'Bug Bounty', 'MANUAL': 'Manual', 'MONITORAMENTO': 'Monitoramento', 'CODE_REVIEW': 'Code Review' };
       const reverseAmbiente: any = { 'PRODUCAO': 'Produção', 'HOMOLOGACAO': 'Homologação', 'DESENVOLVIMENTO': 'Desenvolvimento', 'STAGING': 'STG' };
@@ -195,15 +195,15 @@ export const useVulnStore = create<VulnState>((set, get) => ({
     }
   },
 
-  syncJira: async () => {
+  syncRtc: async () => {
     try {
-      const response = await safeFetch(`${JIRA_API()}/sync`, {
+      const response = await safeFetch(`${RTC_API()}/sync`, {
         method: 'POST',
         headers: { ...authHeaders() }
       })
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Falha ao sincronizar com Jira' }))
-        throw new Error(errorData.error || 'Falha ao sincronizar com Jira')
+        const errorData = await response.json().catch(() => ({ error: 'Falha ao sincronizar com IBM RTC' }))
+        throw new Error(errorData.error || 'Falha ao sincronizar com IBM RTC')
       }
       await get().fetchVulnerabilidades()
     } catch (err: any) {
@@ -221,8 +221,8 @@ export const useVulnStore = create<VulnState>((set, get) => ({
       })
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Falha na importacao de dados do Jira' }))
-        throw new Error(errorData.error || 'Falha na importacao de dados do Jira')
+        const errorData = await response.json().catch(() => ({ error: 'Falha na importacao de dados' }))
+        throw new Error(errorData.error || 'Falha na importacao de dados')
       }
 
       const result = await response.json()

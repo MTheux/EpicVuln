@@ -12,7 +12,7 @@ export default function DashboardLayout({
             <div className="flex min-h-screen bg-background text-foreground relative overflow-hidden">
                 {/* Subtle Gradient for depth */}
                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                    <div className="absolute -left-[10%] -top-[10%] h-[40%] w-[40%] rounded-full bg-blue-500/5 blur-[100px]" />
+                    <div className="absolute -left-[10%] -top-[10%] h-[40%] w-[40%] rounded-full bg-emerald-500/5 blur-[100px]" />
                     <div className="absolute right-0 bottom-0 h-[30%] w-[30%] rounded-full bg-muted/50 blur-[100px]" />
                 </div>
 

@@ -16,7 +16,7 @@ export class AnalyticsService {
         });
 
         const highestSeverityList = await prisma.vulnerability.findMany({
-            where: { criticidade: { in: ['EXTREMA', 'CRITICA', 'ALTA'] as any } },
+            where: { criticidade: { in: ['CRITICA', 'ALTA'] as any } },
             orderBy: { dataCriacao: 'desc' },
             take: 5
         });
@@ -148,10 +148,10 @@ export class AnalyticsService {
         const monthlyTrend = this.calculateMonthlyTrend(vulns, now);
 
         // Agrupar por responsável (dev)
-        const devMap: Record<string, { total: number; open: number; closed: number; extremaCritica: number; slaExpired: number; vulns: any[] }> = {};
+        const devMap: Record<string, { total: number; open: number; closed: number; critica: number; slaExpired: number; vulns: any[] }> = {};
         for (const v of vulns) {
             const dev = v.responsavel || 'Sem responsável';
-            if (!devMap[dev]) devMap[dev] = { total: 0, open: 0, closed: 0, extremaCritica: 0, slaExpired: 0, vulns: [] };
+            if (!devMap[dev]) devMap[dev] = { total: 0, open: 0, closed: 0, critica: 0, slaExpired: 0, vulns: [] };
             devMap[dev].total++;
             if (OPEN_STATUSES.includes(v.status)) {
                 devMap[dev].open++;
@@ -159,7 +159,7 @@ export class AnalyticsService {
             } else {
                 devMap[dev].closed++;
             }
-            if (v.criticidade === 'EXTREMA' || v.criticidade === 'CRITICA') devMap[dev].extremaCritica++;
+            if (v.criticidade === 'CRITICA') devMap[dev].critica++;
             devMap[dev].vulns.push({
                 id: v.id,
                 codigoInterno: v.codigoInterno,
@@ -178,7 +178,7 @@ export class AnalyticsService {
             total: d.total,
             open: d.open,
             closed: d.closed,
-            extremaCritica: d.extremaCritica,
+            extremaCritica: d.critica,
             slaExpired: d.slaExpired,
             correcaoPct: d.total > 0 ? Math.round((d.closed / d.total) * 100) : 0,
             vulns: d.vulns.sort((a: any, b: any) => b.diasEmAberto - a.diasEmAberto),
@@ -242,7 +242,7 @@ export class AnalyticsService {
         const open = vulns.filter(v => OPEN_STATUSES.includes(v.status));
         const closed = vulns.filter(v => CLOSED_STATUSES.includes(v.status));
 
-        const extrema = open.filter(v => v.criticidade === 'EXTREMA').length;
+        const extrema = 0; // EXTREMA severity removed - now merged into CRITICA
         const critica = open.filter(v => v.criticidade === 'CRITICA').length;
         const alta = open.filter(v => v.criticidade === 'ALTA').length;
         const media = open.filter(v => v.criticidade === 'MEDIA').length;
@@ -296,8 +296,7 @@ export class AnalyticsService {
 
         // Security Debt calculation
         const securityDebt = open.reduce((sum, v) => {
-            let pts = v.criticidade === 'EXTREMA' ? 100 
-                    : v.criticidade === 'CRITICA' ? 50 
+            let pts = v.criticidade === 'CRITICA' ? 100
                     : v.criticidade === 'ALTA' ? 25 
                     : v.criticidade === 'MEDIA' ? 10 : 5;
             if (v.sla && new Date(v.sla) < now) pts *= 2;
