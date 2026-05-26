@@ -39,6 +39,7 @@ import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
+import { MfaSetup } from "@/components/mfa-setup"
 import { Label } from "@/components/ui/label"
 import {
   Dialog,
@@ -289,7 +290,6 @@ export default function ConfiguracoesPage() {
 
   const tabs: { id: TabId; label: string; icon: LucideIcon; adminOnly?: boolean }[] = [
     { id: 'appearance', label: 'Aparência', icon: Palette },
-    { id: 'notifications', label: 'Notificações', icon: Bell },
     { id: 'users', label: 'Usuários', icon: Users, adminOnly: true },
     { id: 'integrations', label: 'Integrações', icon: Link2 },
   ]
@@ -379,58 +379,11 @@ export default function ConfiguracoesPage() {
             </div>
           </div>
 
-          <Separator />
-
-          <div>
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold text-foreground">Preferências</h2>
-              <p className="text-sm text-muted-foreground">Ajuste o comportamento da plataforma</p>
-            </div>
-            <Card className="border-border bg-card">
-              <CardContent className="p-0 divide-y divide-border">
-                <div className="px-5">
-                  <SettingRow icon={Eye} label="Auto-contraste" description="Aumenta o contraste de textos e bordas"
-                    checked={preferences.autoContrast} onChange={(v) => handlePreference("autoContrast", v)} />
-                </div>
-                <div className="px-5">
-                  <SettingRow icon={Minimize2} label="Modo compacto" description="Reduz espaçamentos para exibir mais informações"
-                    checked={preferences.compactMode} onChange={(v) => handlePreference("compactMode", v)} />
-                </div>
-                <div className="px-5">
-                  <SettingRow icon={Bell} label="Sons de alerta" description="Toca um som ao receber notificações críticas"
-                    checked={preferences.alertSounds} onChange={(v) => handlePreference("alertSounds", v)} />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <Separator />
-
-          <div>
-            <div className="mb-4">
-              <h2 className="text-lg font-semibold text-foreground">Paleta de Severidades</h2>
-              <p className="text-sm text-muted-foreground">Cores usadas para classificação de vulnerabilidades</p>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-              {[
-                { label: 'Extremo', color: 'bg-red-600', text: 'text-white' },
-                { label: 'Crítico', color: 'bg-orange-500', text: 'text-white' },
-                { label: 'Alto', color: 'bg-amber-500', text: 'text-white' },
-                { label: 'Médio', color: 'bg-yellow-400', text: 'text-yellow-900' },
-                { label: 'Baixo', color: 'bg-blue-500', text: 'text-white' },
-                { label: 'Info', color: 'bg-slate-400', text: 'text-white' },
-              ].map((s) => (
-                <div key={s.label} className={cn("h-10 rounded-lg shadow-sm flex items-center justify-center text-xs font-bold", s.color, s.text)}>
-                  {s.label}
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       )}
 
-      {/* ===================== NOTIFICAÇÕES ===================== */}
-      {activeTab === 'notifications' && (
+      {/* ===================== NOTIFICAÇÕES (REMOVIDA — só mantida pra não quebrar refs antigas) ===================== */}
+      {false && activeTab === 'notifications' && (
         <div className="space-y-6">
           <div>
             <h2 className="text-lg font-semibold text-foreground">Notificações</h2>
@@ -502,6 +455,9 @@ export default function ConfiguracoesPage() {
       {/* ===================== USUÁRIOS ===================== */}
       {activeTab === 'users' && (
         <div className="space-y-6">
+          {/* MFA setup */}
+          <MfaSetup />
+
           {/* Minha Conta - visível pra todos */}
           <div>
             <h2 className="text-lg font-semibold text-foreground">Minha Conta</h2>

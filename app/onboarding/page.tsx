@@ -258,7 +258,7 @@ export default function OnboardingPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-foreground">Setup Inicial</h1>
-            <p className="text-sm text-muted-foreground">Configure o EpicVuln para sua empresa</p>
+            <p className="text-sm text-muted-foreground">Configure o AISEC para sua empresa</p>
           </div>
         </div>
       </div>
@@ -369,7 +369,7 @@ export default function OnboardingPage() {
           <CardHeader>
             <CardTitle>Fontes de Dados</CardTitle>
             <CardDescription>
-              Selecione e configure as fontes de onde o EpicVuln importara vulnerabilidades.
+              Selecione e configure as fontes de onde o AISEC importara vulnerabilidades.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

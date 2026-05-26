@@ -1,0 +1,470 @@
+[
+  {
+    "id": "CA-01",
+    "cat": "Controle de Acesso",
+    "titulo": "Validação de Ownership — IDOR / BOLA",
+    "owasp": "A01:2021 – Broken Access Control",
+    "asvs": "V4.1.3",
+    "cwe": "CWE-284",
+    "sev": "Crítico"
+  },
+  {
+    "id": "CA-02",
+    "cat": "Controle de Acesso",
+    "titulo": "RBAC — Verificação de Perfil por Endpoint",
+    "owasp": "A01:2021",
+    "asvs": "V4.1.1",
+    "cwe": "CWE-285",
+    "sev": "Crítico"
+  },
+  {
+    "id": "CA-03",
+    "cat": "Controle de Acesso",
+    "titulo": "Mass Assignment — Whitelist de Campos por DTO",
+    "owasp": "A01:2021",
+    "asvs": "V4.2.1",
+    "cwe": "CWE-915",
+    "sev": "Alto"
+  },
+  {
+    "id": "CA-04",
+    "cat": "Controle de Acesso",
+    "titulo": "Fail Secure — Acesso Negado em Exceções de Autorização",
+    "owasp": "A01:2021",
+    "asvs": "V4.1.5",
+    "cwe": "CWE-754",
+    "sev": "Médio"
+  },
+  {
+    "id": "CR-01",
+    "cat": "Falhas Criptográficas",
+    "titulo": "Algoritmos Aprovados — Proibição de MD5/SHA-1/DES",
+    "owasp": "A02:2021 – Cryptographic Failures",
+    "asvs": "V6.2.1",
+    "cwe": "CWE-327",
+    "sev": "Crítico"
+  },
+  {
+    "id": "CR-02",
+    "cat": "Falhas Criptográficas",
+    "titulo": "TLS Obrigatório e HSTS em Todas as Respostas",
+    "owasp": "A02:2021",
+    "asvs": "V9.1.1",
+    "cwe": "CWE-319",
+    "sev": "Crítico"
+  },
+  {
+    "id": "CR-03",
+    "cat": "Falhas Criptográficas",
+    "titulo": "Secrets — Proibição de Hardcoded Credentials",
+    "owasp": "A02:2021",
+    "asvs": "V6.4.1",
+    "cwe": "CWE-321",
+    "sev": "Crítico"
+  },
+  {
+    "id": "CR-04",
+    "cat": "Falhas Criptográficas",
+    "titulo": "Banco de Dados — Menor Privilégio e Criptografia em Repouso",
+    "owasp": "A02:2021",
+    "asvs": "V6.3.1",
+    "cwe": "CWE-312",
+    "sev": "Alto"
+  },
+  {
+    "id": "INJ-01",
+    "cat": "Injeção",
+    "titulo": "SQL Injection — Prepared Statements Obrigatórios",
+    "owasp": "A03:2021 – Injection",
+    "asvs": "V5.3.4",
+    "cwe": "CWE-89",
+    "sev": "Crítico"
+  },
+  {
+    "id": "INJ-02",
+    "cat": "Injeção",
+    "titulo": "XSS — Encoding de Saída Contextual + CSP",
+    "owasp": "A03:2021",
+    "asvs": "V5.3.3",
+    "cwe": "CWE-79",
+    "sev": "Alto"
+  },
+  {
+    "id": "INJ-03",
+    "cat": "Injeção",
+    "titulo": "XXE — Desabilitação de Entidades Externas em Parsers XML",
+    "owasp": "A03:2021",
+    "asvs": "V5.3.10",
+    "cwe": "CWE-611",
+    "sev": "Crítico"
+  },
+  {
+    "id": "INJ-04",
+    "cat": "Injeção",
+    "titulo": "Command Injection — Proibição de Exec com Input do Usuário",
+    "owasp": "A03:2021",
+    "asvs": "V5.3.9",
+    "cwe": "CWE-78",
+    "sev": "Crítico"
+  },
+  {
+    "id": "INJ-05",
+    "cat": "Injeção",
+    "titulo": "Open Redirect — Validação de URLs de Redirecionamento",
+    "owasp": "A03:2021",
+    "asvs": "V5.1.5",
+    "cwe": "CWE-601",
+    "sev": "Médio"
+  },
+  {
+    "id": "INJ-06",
+    "cat": "Injeção",
+    "titulo": "Desserialização Insegura — Validação de Objetos Deserializados",
+    "owasp": "A08:2021 – Software and Data Integrity Failures",
+    "asvs": "V5.5.3",
+    "cwe": "CWE-502",
+    "sev": "Crítico"
+  },
+  {
+    "id": "INJ-07",
+    "cat": "Injeção",
+    "titulo": "ReDoS — Regex Segura sem Backtracking Catastrófico",
+    "owasp": "A03:2021",
+    "asvs": "V5.1.4",
+    "cwe": "CWE-1333",
+    "sev": "Médio"
+  },
+  {
+    "id": "INJ-08",
+    "cat": "Injeção",
+    "titulo": "Path Traversal — Canonicalização de Caminhos de Arquivo",
+    "owasp": "A03:2021",
+    "asvs": "V5.3.1",
+    "cwe": "CWE-22",
+    "sev": "Alto"
+  },
+  {
+    "id": "LN-01",
+    "cat": "Design Inseguro e Lógica de Negócio",
+    "titulo": "Threat Modeling Obrigatório para Funcionalidades Financeiras",
+    "owasp": "A04:2021 – Insecure Design",
+    "asvs": "V11.1.1",
+    "cwe": "CWE-840",
+    "sev": "Crítico"
+  },
+  {
+    "id": "LN-02",
+    "cat": "Design Inseguro e Lógica de Negócio",
+    "titulo": "Race Condition em Operações Financeiras — Concorrência Segura",
+    "owasp": "A04:2021",
+    "asvs": "V11.1.6",
+    "cwe": "CWE-362",
+    "sev": "Alto"
+  },
+  {
+    "id": "LN-03",
+    "cat": "Design Inseguro e Lógica de Negócio",
+    "titulo": "Validação Server-Side — Proibição de Client-Only Validation",
+    "owasp": "A04:2021",
+    "asvs": "V11.1.3",
+    "cwe": "CWE-345",
+    "sev": "Alto"
+  },
+  {
+    "id": "CFG-01",
+    "cat": "Configuração de Segurança",
+    "titulo": "Security Headers HTTP — Configuração Obrigatória",
+    "owasp": "A05:2021 – Security Misconfiguration",
+    "asvs": "V14.4.1",
+    "cwe": "CWE-16",
+    "sev": "Alto"
+  },
+  {
+    "id": "CFG-02",
+    "cat": "Configuração de Segurança",
+    "titulo": "CORS — Política de Origens Explicitamente Permitidas",
+    "owasp": "A05:2021",
+    "asvs": "V14.5.3",
+    "cwe": "CWE-942",
+    "sev": "Alto"
+  },
+  {
+    "id": "CFG-03",
+    "cat": "Configuração de Segurança",
+    "titulo": "Tratamento de Erros — Supressão de Stack Traces em Produção",
+    "owasp": "A05:2021",
+    "asvs": "V14.3.2",
+    "cwe": "CWE-209",
+    "sev": "Médio"
+  },
+  {
+    "id": "CFG-04",
+    "cat": "Configuração de Segurança",
+    "titulo": "Exposição de Artefatos — Source Maps, Swagger, .git em Produção",
+    "owasp": "A05:2021",
+    "asvs": "V14.2.1",
+    "cwe": "CWE-538",
+    "sev": "Alto"
+  },
+  {
+    "id": "CFG-05",
+    "cat": "Configuração de Segurança",
+    "titulo": "Container Security — Configuração Segura de Imagens Docker",
+    "owasp": "A05:2021",
+    "asvs": "V14.2.5",
+    "cwe": "CWE-250",
+    "sev": "Alto"
+  },
+  {
+    "id": "CFG-06",
+    "cat": "Configuração de Segurança",
+    "titulo": "Restrição de Métodos HTTP por Endpoint",
+    "owasp": "A05:2021",
+    "asvs": "V14.5.1",
+    "cwe": "CWE-16",
+    "sev": "Baixo"
+  },
+  {
+    "id": "AUTH-01",
+    "cat": "Autenticação e Identidade",
+    "titulo": "Política de Senhas — Mínimo 12 chars + Verificação de Pwned",
+    "owasp": "A07:2021 – Identification and Authentication Failures",
+    "asvs": "V2.1.1",
+    "cwe": "CWE-521",
+    "sev": "Alto"
+  },
+  {
+    "id": "AUTH-02",
+    "cat": "Autenticação e Identidade",
+    "titulo": "Rate Limiting e Anti-Brute Force no Login",
+    "owasp": "A07:2021",
+    "asvs": "V2.2.1",
+    "cwe": "CWE-307",
+    "sev": "Alto"
+  },
+  {
+    "id": "AUTH-03",
+    "cat": "Autenticação e Identidade",
+    "titulo": "MFA Obrigatório para Operações de Alto Risco",
+    "owasp": "A07:2021",
+    "asvs": "V2.8.1",
+    "cwe": "CWE-308",
+    "sev": "Alto"
+  },
+  {
+    "id": "AUTH-04",
+    "cat": "Autenticação e Identidade",
+    "titulo": "JWT — Ciclo de Vida Seguro e Prevenção de Algorithm Confusion",
+    "owasp": "A07:2021",
+    "asvs": "V3.2.3; V3.5.3",
+    "cwe": "CWE-347",
+    "sev": "Crítico"
+  },
+  {
+    "id": "AUTH-05",
+    "cat": "Autenticação e Identidade",
+    "titulo": "CSRF — Proteção de Operações State-Changing",
+    "owasp": "A07:2021",
+    "asvs": "V4.2.2",
+    "cwe": "CWE-352",
+    "sev": "Alto"
+  },
+  {
+    "id": "AUTH-06",
+    "cat": "Autenticação e Identidade",
+    "titulo": "Gerenciamento de Sessão — Cookie Flags e Invalidação no Logout",
+    "owasp": "A07:2021",
+    "asvs": "V3.3.1; V3.2.3",
+    "cwe": "CWE-613",
+    "sev": "Alto"
+  },
+  {
+    "id": "DEP-01",
+    "cat": "Componentes Vulneráveis",
+    "titulo": "SCA — Dependências com CVE Crítico/Alto Bloqueiam o Build",
+    "owasp": "A06:2021 – Vulnerable and Outdated Components",
+    "asvs": "V14.2.1",
+    "cwe": "CWE-1035",
+    "sev": "Alto"
+  },
+  {
+    "id": "DEP-02",
+    "cat": "Componentes Vulneráveis",
+    "titulo": "Dependency Confusion — Configuração de Registry Privado",
+    "owasp": "A06:2021",
+    "asvs": "V14.2.3",
+    "cwe": "CWE-427",
+    "sev": "Alto"
+  },
+  {
+    "id": "LGPD-01",
+    "cat": "LGPD e Privacidade de Dados",
+    "titulo": "Inventário de PII — Mapeamento de Dados Pessoais Processados",
+    "owasp": "A02:2021",
+    "asvs": "V8.3.1",
+    "cwe": "CWE-200",
+    "sev": "Alto"
+  },
+  {
+    "id": "LGPD-02",
+    "cat": "LGPD e Privacidade de Dados",
+    "titulo": "Mascaramento de PII nas Respostas de API",
+    "owasp": "A02:2021",
+    "asvs": "V8.3.4",
+    "cwe": "CWE-359",
+    "sev": "Alto"
+  },
+  {
+    "id": "LGPD-03",
+    "cat": "LGPD e Privacidade de Dados",
+    "titulo": "Direitos do Titular — Endpoints de Acesso, Portabilidade e Exclusão",
+    "owasp": "A01:2021",
+    "asvs": "V8.3.6",
+    "cwe": "CWE-284",
+    "sev": "Médio"
+  },
+  {
+    "id": "LGPD-04",
+    "cat": "LGPD e Privacidade de Dados",
+    "titulo": "Retenção de Dados — Política de Descarte Seguro",
+    "owasp": "A02:2021",
+    "asvs": "V8.3.7",
+    "cwe": "CWE-312",
+    "sev": "Médio"
+  },
+  {
+    "id": "API-01",
+    "cat": "Segurança de API",
+    "titulo": "Rate Limiting em APIs — Prevenção de Abuso e DoS",
+    "owasp": "A05:2021",
+    "asvs": "V13.2.6",
+    "cwe": "CWE-770",
+    "sev": "Alto"
+  },
+  {
+    "id": "API-02",
+    "cat": "Segurança de API",
+    "titulo": "Over-fetching — Respostas de API com Mínimo de Dados Necessários",
+    "owasp": "A02:2021",
+    "asvs": "V13.2.3",
+    "cwe": "CWE-213",
+    "sev": "Alto"
+  },
+  {
+    "id": "API-03",
+    "cat": "Segurança de API",
+    "titulo": "Webhooks — Validação de Assinatura HMAC",
+    "owasp": "A08:2021",
+    "asvs": "V13.2.5",
+    "cwe": "CWE-345",
+    "sev": "Alto"
+  },
+  {
+    "id": "API-04",
+    "cat": "Segurança de API",
+    "titulo": "Consumo Seguro de APIs Externas — Validação de Resposta",
+    "owasp": "A08:2021",
+    "asvs": "V13.3.1",
+    "cwe": "CWE-346",
+    "sev": "Médio"
+  },
+  {
+    "id": "API-05",
+    "cat": "Segurança de API",
+    "titulo": "Inventário de APIs — Controle de Versões e Deprecação",
+    "owasp": "A05:2021",
+    "asvs": "V14.2.1",
+    "cwe": "CWE-1059",
+    "sev": "Médio"
+  },
+  {
+    "id": "SSRF-01",
+    "cat": "Server-Side Request Forgery",
+    "titulo": "SSRF — Validação e Blocklist de URLs em Requests Server-Side",
+    "owasp": "A10:2021 – SSRF",
+    "asvs": "V12.6.1",
+    "cwe": "CWE-918",
+    "sev": "Alto"
+  },
+  {
+    "id": "LOG-01",
+    "cat": "Logging e Monitoramento",
+    "titulo": "Auditoria de Eventos de Segurança — Logging Obrigatório e Centralizado",
+    "owasp": "A09:2021 – Security Logging and Monitoring Failures",
+    "asvs": "V7.1.1",
+    "cwe": "CWE-778",
+    "sev": "Alto"
+  },
+  {
+    "id": "UPL-01",
+    "cat": "Upload de Arquivos",
+    "titulo": "Upload Seguro — Tipo, Tamanho, Magic Bytes e Storage Isolado",
+    "owasp": "A03:2021; A05:2021",
+    "asvs": "V12.1.1; V12.2.1",
+    "cwe": "CWE-434",
+    "sev": "Crítico"
+  },
+  {
+    "id": "MOB-01",
+    "cat": "Segurança Mobile",
+    "titulo": "Armazenamento Seguro — EncryptedSharedPreferences / Keychain",
+    "owasp": "MASVS-STORAGE-1",
+    "asvs": "V9.2.3",
+    "cwe": "CWE-312",
+    "sev": "Alto"
+  },
+  {
+    "id": "MOB-02",
+    "cat": "Segurança Mobile",
+    "titulo": "Certificate Pinning — Prevenção de Interceptação MiTM",
+    "owasp": "MASVS-NETWORK-2",
+    "asvs": "V9.1.3",
+    "cwe": "CWE-295",
+    "sev": "Alto"
+  },
+  {
+    "id": "MOB-03",
+    "cat": "Segurança Mobile",
+    "titulo": "Proteções Anti-Reversing — Ofuscação, Anti-Debug e Anti-Root",
+    "owasp": "MASVS-RESILIENCE-1",
+    "asvs": "V8.1.1",
+    "cwe": "CWE-656",
+    "sev": "Médio"
+  },
+  {
+    "id": "INT-01",
+    "cat": "Integridade de Software e Pipeline",
+    "titulo": "Pipeline CI/CD Seguro — Gates de Segurança Obrigatórios",
+    "owasp": "A08:2021 – Software and Data Integrity Failures",
+    "asvs": "V14.2.3",
+    "cwe": "CWE-494",
+    "sev": "Alto"
+  },
+  {
+    "id": "VAL-01",
+    "cat": "Validação e Sanitização de Entrada",
+    "titulo": "Schema Validation — Validação Forte em Todos os Inputs de API",
+    "owasp": "A03:2021",
+    "asvs": "V5.1.4; V5.1.3",
+    "cwe": "CWE-20",
+    "sev": "Alto"
+  },
+  {
+    "id": "INFO-01",
+    "cat": "Obtenção de Informações e Enumeração",
+    "titulo": "Enumeração de Usuários — Respostas Genéricas e Timing Uniforme",
+    "owasp": "A07:2021",
+    "asvs": "V2.2.2",
+    "cwe": "CWE-200",
+    "sev": "Médio"
+  },
+  {
+    "id": "INFO-02",
+    "cat": "Obtenção de Informações e Enumeração",
+    "titulo": "Fingerprinting — Ocultação de Tecnologias e Versões",
+    "owasp": "A05:2021",
+    "asvs": "V14.3.3",
+    "cwe": "CWE-116",
+    "sev": "Baixo"
+  }
+]

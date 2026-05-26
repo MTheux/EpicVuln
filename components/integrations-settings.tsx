@@ -24,6 +24,7 @@ import {
   Bug,
   Shield,
   Webhook,
+  RefreshCw,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -173,6 +174,9 @@ export function IntegrationsSettings() {
 
   // AI Config
   const [aiDialogOpen, setAiDialogOpen] = useState(false)
+  const [zekromOpen, setZekromOpen] = useState(false)
+  const [zekromScope, setZekromScope] = useState<'api' | 'web' | 'both'>('both')
+  const [zekromWso2, setZekromWso2] = useState('')
   const [aiConfig, setAiConfig] = useState({ provider: 'groq', model: 'llama-3.3-70b-versatile', apiKey: '', baseUrl: '', hasApiKey: false })
   const [aiProviders, setAiProviders] = useState<Record<string, { name: string, models: string[] }>>({})
   const [aiTesting, setAiTesting] = useState(false)
@@ -305,20 +309,139 @@ export function IntegrationsSettings() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h2 className="text-lg font-semibold text-foreground">Integrações</h2>
-        <p className="text-sm text-muted-foreground">Conecte ferramentas externas para automatizar seu fluxo de segurança</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-semibold text-foreground">Integrações</h2>
+          <p className="text-sm text-muted-foreground">Conecte ferramentas externas para automatizar seu fluxo de segurança</p>
+        </div>
+        <div className="flex gap-2">
+          <a href="/sincronizacao" className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-card text-xs font-semibold hover:bg-muted transition whitespace-nowrap">
+            <RefreshCw className="h-3.5 w-3.5" /> Sincronização
+          </a>
+          <a href="/integracoes" className="flex items-center gap-2 px-3 py-2 rounded-lg border bg-card text-xs font-semibold hover:bg-muted transition whitespace-nowrap">
+            <Webhook className="h-3.5 w-3.5" /> Hub Completo
+          </a>
+        </div>
       </div>
+
+      {/* Skills Ativas — Pentest Agents */}
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <Zap className="h-4 w-4 text-emerald-500" />
+          <h3 className="text-sm font-semibold text-foreground">Skills Ativas (Pentest Agents)</h3>
+          <Separator className="flex-1" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* Zekrom — default skill */}
+          <div className="group relative rounded-xl border-2 border-emerald-500/40 bg-gradient-to-br from-emerald-500/5 to-purple-500/5 p-5">
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/20 to-purple-500/20 border border-emerald-500/30 shrink-0">
+                <Zap className="h-6 w-6 text-emerald-500" />
+              </div>
+              <Badge variant="outline" className="text-[10px] gap-1 bg-emerald-500/15 text-emerald-600 border-emerald-500/30">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Default · Ativa
+              </Badge>
+            </div>
+            <h3 className="text-sm font-semibold text-foreground mb-1">Zekrom · DAST</h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              Skill agêntica para validar mudanças DAST em <b>Web</b> ou <b>APIs WSO2</b>.
+              Ingere OpenAPI/Swagger, gera checklist OWASP e contexto Copilot. Pré-configurada.
+            </p>
+            <Button variant="default" size="sm" className="w-full text-xs bg-emerald-500 hover:bg-emerald-600" onClick={() => setZekromOpen(true)}>
+              <Settings2 className="mr-1.5 h-3 w-3" />
+              Configurar Skill
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Zekrom config dialog */}
+      <Dialog open={zekromOpen} onOpenChange={setZekromOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500/20 to-purple-500/20">
+                <Zap className="h-5 w-5 text-emerald-500" />
+              </div>
+              Zekrom · Configuração da Skill
+            </DialogTitle>
+            <DialogDescription>
+              Defaults aplicados em toda execução do Zekrom. Pentester pode sobrescrever por sessão.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">Escopo padrão</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {(['api','web','both'] as const).map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setZekromScope(s)}
+                    className={cn("rounded-lg border p-2 text-xs font-semibold uppercase tracking-wider",
+                      zekromScope === s ? "border-emerald-500 bg-emerald-500/10 text-emerald-600" : "border-border text-muted-foreground")}
+                  >
+                    {s === 'api' ? 'API Top 10' : s === 'web' ? 'Web Top 10' : 'API + Web'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">WSO2 Devportal URL (opcional)</Label>
+              <Input
+                placeholder="https://wso2.caixa.gov.br/api/am/devportal/v3"
+                value={zekromWso2}
+                onChange={(e) => setZekromWso2(e.target.value)}
+              />
+              <p className="text-[10px] text-muted-foreground">Atalho — pré-preenchido no campo URL do Zekrom</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-medium">Modelo de IA preferido pra Skill</Label>
+              <Input
+                value={aiProviders[aiConfig.provider]?.name || aiConfig.provider}
+                disabled
+                className="text-xs font-mono"
+              />
+              <p className="text-[10px] text-muted-foreground">Skill usa o provider configurado em Motor de IA abaixo.</p>
+            </div>
+
+            <div className="rounded-lg bg-emerald-500/5 border border-emerald-500/20 p-3 text-[11px] text-emerald-700 dark:text-emerald-400">
+              <div className="font-semibold mb-1">Compliance Unisys AI P1.0</div>
+              <ul className="space-y-0.5 list-disc list-inside opacity-90">
+                <li>Skill nunca executa requests — só gera dicas + cURL para o pentester</li>
+                <li>Todo output rotulado como "Content Created By/With Use of AI"</li>
+                <li>Tokens WSO2 ficam só na sessão (não persistido)</li>
+              </ul>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setZekromOpen(false)}>Cancelar</Button>
+            <Button onClick={() => { setZekromOpen(false); toast.success('Skill Zekrom configurada', { description: `Escopo: ${zekromScope}` }) }}>
+              <CheckCircle2 className="mr-2 h-4 w-4" /> Salvar
+            </Button>
+            <Button variant="default" className="bg-emerald-500 hover:bg-emerald-600" onClick={() => window.location.href = '/pentest/zekrom'}>
+              <ArrowRight className="mr-2 h-4 w-4" /> Abrir agora
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Inteligência Artificial */}
       <div>
         <div className="flex items-center gap-2 mb-4">
           <Zap className="h-4 w-4 text-muted-foreground" />
-          <h3 className="text-sm font-semibold text-foreground">Inteligência Artificial</h3>
+          <h3 className="text-sm font-semibold text-foreground">Motor de IA — AISEC</h3>
           <Separator className="flex-1" />
         </div>
+        <p className="text-xs text-muted-foreground mb-4 -mt-2">
+          Providers categorizados conforme <b>Unisys AI Acceptable Use Guidelines</b>. Use Unisys-approved ou Local para dados confidenciais.
+        </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {/* AI Provider Card - Dynamic */}
+          {/* AI Provider Card - Dynamic (current selection) */}
           <div className="group relative rounded-xl border bg-card p-5 transition-all duration-200 border-border hover:border-primary/30 hover:shadow-md hover:shadow-primary/5">
             <div className="flex items-start justify-between mb-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-purple-500/20 to-emerald-500/20 border border-purple-500/20 shrink-0">
@@ -335,18 +458,46 @@ export function IntegrationsSettings() {
             </div>
 
             <h3 className="text-sm font-semibold text-foreground mb-0.5">
-              Motor de IA — {aiProviders[aiConfig.provider]?.name || aiConfig.provider}
+              Provider atual — {aiProviders[aiConfig.provider]?.name || aiConfig.provider}
             </h3>
             <p className="text-[11px] text-muted-foreground mb-1">
               Modelo: <span className="font-mono text-foreground">{aiConfig.model}</span>
             </p>
             <p className="text-xs text-muted-foreground mb-4">
-              Gera relatórios C-Level, análises de risco e Attack Graphs automaticamente
+              Gera relatórios C-Level, análises de risco, Attack Graphs e alimenta as Skills (Zekrom).
             </p>
 
             <Button variant="default" size="sm" className="w-full text-xs" onClick={() => handleConfigure('ai-config')}>
               <Settings2 className="mr-1.5 h-3 w-3" />
               Configurar IA
+            </Button>
+          </div>
+
+          {/* GitHub Copilot / Models — Unisys-approved (RECOMMENDED) */}
+          <div className={cn("group relative rounded-xl border-2 p-5 transition-all duration-200",
+            aiConfig.provider === 'github' ? "border-emerald-500/50 bg-emerald-500/5" : "border-emerald-500/30 bg-emerald-500/[0.03]"
+          )}>
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 dark:bg-slate-50 border border-slate-700 shrink-0">
+                <GitHubIcon className="h-6 w-6 text-white dark:text-slate-900" />
+              </div>
+              <div className="flex flex-col items-end gap-1">
+                <Badge variant="outline" className="text-[9px] gap-1 bg-emerald-500/15 text-emerald-600 border-emerald-500/30">
+                  Unisys-Approved
+                </Badge>
+                {aiConfig.provider === 'github' && (
+                  <Badge variant="outline" className="text-[10px] gap-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/20">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />Ativo
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <h3 className="text-sm font-semibold text-foreground mb-1">GitHub Copilot / Models</h3>
+            <p className="text-xs text-muted-foreground mb-4">
+              Modelos via GitHub Models (mesma infra Copilot): GPT-4o, Phi-3.5, Llama 3.3, Mistral. Compatível com a política Unisys AI P1.0.
+            </p>
+            <Button variant={aiConfig.provider === 'github' ? 'default' : 'outline'} size="sm" className={cn("w-full text-xs", aiConfig.provider === 'github' && "bg-emerald-500 hover:bg-emerald-600")} onClick={() => { setAiConfig(p => ({ ...p, provider: 'github' as any, model: 'gpt-4o-mini' })); handleConfigure('ai-config') }}>
+              {aiConfig.provider === 'github' ? 'Configurado' : 'Selecionar (Recomendado)'}
             </Button>
           </div>
 
@@ -356,10 +507,15 @@ export function IntegrationsSettings() {
           )}>
             <div className="flex items-start justify-between mb-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/10 border border-orange-500/20 shrink-0 text-lg font-bold text-orange-500">G</div>
-              {aiConfig.provider === 'groq' && <Badge variant="outline" className="text-[10px] gap-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/20"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />Ativo</Badge>}
+              <div className="flex flex-col items-end gap-1">
+                <Badge variant="outline" className="text-[9px] gap-1 bg-amber-500/10 text-amber-600 border-amber-500/20">
+                  External · Restrito
+                </Badge>
+                {aiConfig.provider === 'groq' && <Badge variant="outline" className="text-[10px] gap-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/20"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />Ativo</Badge>}
+              </div>
             </div>
             <h3 className="text-sm font-semibold text-foreground mb-1">Groq</h3>
-            <p className="text-xs text-muted-foreground mb-4">LPU Inference — LLaMA, Mixtral, Gemma com latência ultra-baixa. Tier gratuito disponível.</p>
+            <p className="text-xs text-muted-foreground mb-4">LPU Inference — LLaMA, Mixtral, Gemma. Tier gratuito. Não submeter dados confidenciais sem aprovação CISO.</p>
             <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => { setAiConfig(p => ({ ...p, provider: 'groq', model: 'llama-3.3-70b-versatile' })); handleConfigure('ai-config') }}>
               {aiConfig.provider === 'groq' ? 'Configurado' : 'Selecionar'}
             </Button>
@@ -373,10 +529,15 @@ export function IntegrationsSettings() {
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-500/10 border border-green-500/20 shrink-0">
                 <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none"><path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.985 5.985 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073zM13.26 22.43a4.476 4.476 0 0 1-2.876-1.04l.141-.081 4.779-2.758a.795.795 0 0 0 .392-.681v-6.737l2.02 1.168a.071.071 0 0 1 .038.052v5.583a4.504 4.504 0 0 1-4.494 4.494zM3.6 18.304a4.47 4.47 0 0 1-.535-3.014l.142.085 4.783 2.759a.771.771 0 0 0 .78 0l5.843-3.369v2.332a.08.08 0 0 1-.033.062L9.74 19.95a4.5 4.5 0 0 1-6.14-1.646zM2.34 7.896a4.485 4.485 0 0 1 2.366-1.973V11.6a.766.766 0 0 0 .388.676l5.815 3.355-2.02 1.168a.076.076 0 0 1-.071 0l-4.83-2.786A4.504 4.504 0 0 1 2.34 7.872zm16.597 3.855l-5.833-3.387L15.119 7.2a.076.076 0 0 1 .071 0l4.83 2.791a4.494 4.494 0 0 1-.676 8.105v-5.678a.79.79 0 0 0-.407-.667zm2.01-3.023l-.141-.085-4.774-2.782a.776.776 0 0 0-.785 0L9.409 9.23V6.897a.066.066 0 0 1 .028-.061l4.83-2.787a4.5 4.5 0 0 1 6.68 4.66zm-12.64 4.135l-2.02-1.164a.08.08 0 0 1-.038-.057V6.075a4.5 4.5 0 0 1 7.375-3.453l-.142.08L8.704 5.46a.795.795 0 0 0-.393.681zm1.097-2.365l2.602-1.5 2.607 1.5v2.999l-2.597 1.5-2.607-1.5z" fill="#10a37f"/></svg>
               </div>
-              {aiConfig.provider === 'openai' && <Badge variant="outline" className="text-[10px] gap-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/20"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />Ativo</Badge>}
+              <div className="flex flex-col items-end gap-1">
+                <Badge variant="outline" className="text-[9px] gap-1 bg-amber-500/10 text-amber-600 border-amber-500/20">
+                  External · Restrito
+                </Badge>
+                {aiConfig.provider === 'openai' && <Badge variant="outline" className="text-[10px] gap-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/20"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />Ativo</Badge>}
+              </div>
             </div>
             <h3 className="text-sm font-semibold text-foreground mb-1">OpenAI</h3>
-            <p className="text-xs text-muted-foreground mb-4">GPT-4o, GPT-4 Turbo e GPT-3.5 — alta qualidade de análise e geração de texto.</p>
+            <p className="text-xs text-muted-foreground mb-4">GPT-4o, GPT-4 Turbo, GPT-3.5. Não submeter Confidential Info sem aprovação CISO.</p>
             <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => { setAiConfig(p => ({ ...p, provider: 'openai', model: 'gpt-4o-mini' })); handleConfigure('ai-config') }}>
               {aiConfig.provider === 'openai' ? 'Configurado' : 'Selecionar'}
             </Button>
@@ -390,10 +551,15 @@ export function IntegrationsSettings() {
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20 shrink-0">
                 <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none"><path d="M17.304 3h-3.613L20.087 21h3.613L17.304 3zM6.696 3L.3 21h3.613l1.36-3.838h6.874L13.505 21h3.612L10.72 3H6.696zm.862 11.162L9.708 8.4l2.15 5.762H7.558z" fill="#D97706"/></svg>
               </div>
-              {aiConfig.provider === 'anthropic' && <Badge variant="outline" className="text-[10px] gap-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/20"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />Ativo</Badge>}
+              <div className="flex flex-col items-end gap-1">
+                <Badge variant="outline" className="text-[9px] gap-1 bg-amber-500/10 text-amber-600 border-amber-500/20">
+                  External · Restrito
+                </Badge>
+                {aiConfig.provider === 'anthropic' && <Badge variant="outline" className="text-[10px] gap-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/20"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />Ativo</Badge>}
+              </div>
             </div>
             <h3 className="text-sm font-semibold text-foreground mb-1">Anthropic</h3>
-            <p className="text-xs text-muted-foreground mb-4">Claude Sonnet, Haiku e Opus — excelente em análise de segurança e raciocínio.</p>
+            <p className="text-xs text-muted-foreground mb-4">Claude Sonnet, Haiku, Opus. Não submeter Confidential Info sem aprovação CISO.</p>
             <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => { setAiConfig(p => ({ ...p, provider: 'anthropic', model: 'claude-sonnet-4-20250514' })); handleConfigure('ai-config') }}>
               {aiConfig.provider === 'anthropic' ? 'Configurado' : 'Selecionar'}
             </Button>
@@ -405,27 +571,37 @@ export function IntegrationsSettings() {
           )}>
             <div className="flex items-start justify-between mb-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 border border-emerald-500/20 shrink-0 text-lg font-bold text-emerald-500">G</div>
-              {aiConfig.provider === 'google' && <Badge variant="outline" className="text-[10px] gap-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/20"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />Ativo</Badge>}
+              <div className="flex flex-col items-end gap-1">
+                <Badge variant="outline" className="text-[9px] gap-1 bg-amber-500/10 text-amber-600 border-amber-500/20">
+                  External · Restrito
+                </Badge>
+                {aiConfig.provider === 'google' && <Badge variant="outline" className="text-[10px] gap-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/20"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />Ativo</Badge>}
+              </div>
             </div>
             <h3 className="text-sm font-semibold text-foreground mb-1">Google Gemini</h3>
-            <p className="text-xs text-muted-foreground mb-4">Gemini 2.0 Flash e Pro — multimodal com contexto longo e boa performance.</p>
+            <p className="text-xs text-muted-foreground mb-4">Gemini 2.0 Flash e Pro — multimodal. Não submeter Confidential Info sem aprovação CISO.</p>
             <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => { setAiConfig(p => ({ ...p, provider: 'google', model: 'gemini-2.0-flash' })); handleConfigure('ai-config') }}>
               {aiConfig.provider === 'google' ? 'Configurado' : 'Selecionar'}
             </Button>
           </div>
 
-          {/* Ollama card */}
-          <div className={cn("group relative rounded-xl border bg-card p-5 transition-all duration-200",
-            aiConfig.provider === 'ollama' ? "border-emerald-500/30 bg-emerald-500/5" : "border-border/50 opacity-70"
+          {/* Ollama card — Local / Safe */}
+          <div className={cn("group relative rounded-xl border-2 p-5 transition-all duration-200",
+            aiConfig.provider === 'ollama' ? "border-sky-500/50 bg-sky-500/5" : "border-sky-500/30 bg-sky-500/[0.03]"
           )}>
             <div className="flex items-start justify-between mb-3">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-500/10 border border-slate-500/20 shrink-0 text-lg">🦙</div>
-              {aiConfig.provider === 'ollama' && <Badge variant="outline" className="text-[10px] gap-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/20"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />Ativo</Badge>}
+              <div className="flex flex-col items-end gap-1">
+                <Badge variant="outline" className="text-[9px] gap-1 bg-sky-500/15 text-sky-600 border-sky-500/30">
+                  Local · Zero Egress
+                </Badge>
+                {aiConfig.provider === 'ollama' && <Badge variant="outline" className="text-[10px] gap-1 bg-emerald-500/10 text-emerald-600 border-emerald-500/20"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />Ativo</Badge>}
+              </div>
             </div>
             <h3 className="text-sm font-semibold text-foreground mb-1">Ollama (Local)</h3>
-            <p className="text-xs text-muted-foreground mb-4">Execute modelos localmente sem API key. LLaMA, Mistral, Phi, CodeLlama.</p>
-            <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => { setAiConfig(p => ({ ...p, provider: 'ollama', model: 'llama3' })); handleConfigure('ai-config') }}>
-              {aiConfig.provider === 'ollama' ? 'Configurado' : 'Selecionar'}
+            <p className="text-xs text-muted-foreground mb-4">Execute modelos 100% on-prem (Llama 3.2 vision, Mistral, Phi). Nenhum dado sai do ambiente Unisys.</p>
+            <Button variant={aiConfig.provider === 'ollama' ? 'default' : 'outline'} size="sm" className={cn("w-full text-xs", aiConfig.provider === 'ollama' && "bg-sky-500 hover:bg-sky-600")} onClick={() => { setAiConfig(p => ({ ...p, provider: 'ollama', model: 'llama3.2-vision' })); handleConfigure('ai-config') }}>
+              {aiConfig.provider === 'ollama' ? 'Configurado' : 'Selecionar (Safe)'}
             </Button>
           </div>
         </div>

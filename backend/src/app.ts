@@ -64,10 +64,30 @@ app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(globalLimiter);
 
-// Basic healthcheck route
-app.get('/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// Health & readiness probes
+const startedAt = Date.now();
+app.get('/health', async (_req, res) => {
+    const uptime = Math.round((Date.now() - startedAt) / 1000);
+    let db: 'ok' | 'down' = 'down';
+    let dbLatencyMs: number | null = null;
+    try {
+        const t0 = Date.now();
+        await prisma.$queryRaw`SELECT 1`;
+        dbLatencyMs = Date.now() - t0;
+        db = 'ok';
+    } catch {}
+    const status = db === 'ok' ? 'ok' : 'degraded';
+    res.status(status === 'ok' ? 200 : 503).json({
+        status,
+        service: 'unisysguard-backend',
+        version: '1.0.0',
+        uptimeSeconds: uptime,
+        timestamp: new Date().toISOString(),
+        checks: { db: { status: db, latencyMs: dbLatencyMs } },
+    });
 });
+app.get('/readiness', (_req, res) => res.json({ status: 'ready' }));
+app.get('/liveness', (_req, res) => res.json({ status: 'alive' }));
 
 import routes from './modules/routes';
 app.use('/api', routes);

@@ -3,6 +3,7 @@ dotenv.config({ override: true });
 import app from './app';
 import { prisma } from './app';
 import { startScheduler } from './services/sla-scheduler.service';
+import { bootstrapRag } from './modules/rag/rag.service';
 import bcrypt from 'bcryptjs';
 
 async function ensureAdminUser(retries = 3) {
@@ -32,7 +33,8 @@ async function ensureAdminUser(retries = 3) {
 const PORT = process.env.PORT || 9001;
 
 app.listen(PORT, async () => {
-    console.log(`🚀 Server is running on port ${PORT} - [EpicVuln v2]`);
+    console.log(`🚀 Server is running on port ${PORT} - [UnisysGuard]`);
     await ensureAdminUser();
+    await bootstrapRag();
     startScheduler();
 });

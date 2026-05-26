@@ -51,16 +51,6 @@ const sections: { title: string; cards: HubCard[] }[] = [
         action: "export-pdf",
       },
       {
-        icon: TrendingUp,
-        iconColor: "text-emerald-400",
-        iconBg: "bg-emerald-500/15",
-        title: "Tendencia ao Longo do Tempo",
-        description: "Evolucao de vulnerabilidades abertas vs corrigidas nos ultimos 12 meses",
-        action: "navigate",
-        href: "/relatorios/tendencia",
-        comingSoon: true,
-      },
-      {
         icon: Trophy,
         iconColor: "text-yellow-400",
         iconBg: "bg-yellow-500/15",

@@ -240,16 +240,14 @@ export default function DashboardPage() {
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing}><RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />Sincronizar RTC</Button>
-            <Link href="/vulnerabilidades/nova"><Button size="sm"><Plus className="mr-2 h-4 w-4" />Nova Vulnerabilidade</Button></Link>
           </div>
         </div>
         <div className="flex flex-col items-center justify-center py-32 text-center">
           <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-muted"><Database className="h-12 w-12 text-muted-foreground" /></div>
           <h2 className="mb-2 text-xl font-semibold text-foreground">Nenhuma vulnerabilidade encontrada</h2>
-          <p className="mb-8 max-w-md text-sm text-muted-foreground">O banco de dados está vazio. Sincronize com o IBM RTC para importar vulnerabilidades, ou adicione manualmente.</p>
+          <p className="mb-8 max-w-md text-sm text-muted-foreground">O banco de dados está vazio. Sincronize com o IBM RTC para importar vulnerabilidades.</p>
           <div className="flex gap-3">
             <Button variant="outline" onClick={handleSync} disabled={syncing}><RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />Sincronizar RTC</Button>
-            <Link href="/vulnerabilidades/nova"><Button><Plus className="mr-2 h-4 w-4" />Adicionar Vulnerabilidade</Button></Link>
           </div>
         </div>
       </div>
@@ -258,16 +256,16 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background p-6">
+     <div className="mx-auto max-w-6xl">
       {/* Header */}
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between animate-in fade-in slide-in-from-left-4 duration-700">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-foreground mb-2">EpicVuln <span className="text-emerald-600">Intelligence</span></h1>
-          <p className="text-sm font-medium text-muted-foreground max-w-2xl leading-relaxed">Plataforma corporativa de gestão de vulnerabilidades. Análise preditiva, status de remediação e conformidade em tempo real.</p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground mb-2">AISEC <span className="text-emerald-600">Intelligence</span></h1>
+          <p className="text-sm font-medium text-muted-foreground max-w-2xl leading-relaxed">Plataforma AppSec ASPM da Unisys. Análise preditiva, status de remediação e conformidade em tempo real.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={handleSync} disabled={syncing} className="bg-card border-border hover:bg-muted text-muted-foreground shadow-sm"><RefreshCw className={`mr-2 h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />Sincronizar RTC</Button>
           <Button variant="outline" size="sm" onClick={handleExport} className="bg-card border-border hover:bg-muted text-muted-foreground shadow-sm"><Download className="mr-2 h-4 w-4" />Exportar CSV</Button>
-          <Link href="/vulnerabilidades/nova"><Button size="sm" className="bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20"><Plus className="mr-2 h-4 w-4" />Nova Vulnerabilidade</Button></Link>
           <AlertDialog>
             <AlertDialogTrigger asChild><Button variant="outline" size="sm" disabled={clearing} className="bg-card border-red-500/20 text-red-500 hover:bg-red-500/10 shadow-sm"><Trash2 className="mr-2 h-4 w-4" />{clearing ? 'Limpando...' : 'Limpar Dados'}</Button></AlertDialogTrigger>
             <AlertDialogContent>
@@ -500,6 +498,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+     </div>
     </div>
   )
 }

@@ -231,92 +231,8 @@ export default function SquadsPage() {
         </Card>
       </div>
 
-      {/* Gráfico Comparativo + Ranking */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Gráfico de barras: Corrigidas vs Abertas por Squad */}
-        <Card className="bg-card border-border shadow-sm">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-emerald-500" />
-              <CardTitle className="text-base">Corrigidas vs Não Corrigidas por Squad</CardTitle>
-            </div>
-            <CardDescription>Comparativo de resolução entre squads</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              {chartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                    <XAxis type="number" stroke="var(--color-muted-foreground)" fontSize={12} />
-                    <YAxis dataKey="squad" type="category" stroke="var(--color-muted-foreground)" fontSize={11} width={110} />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: 'var(--color-card)', border: '1px solid var(--color-border)', borderRadius: '8px', color: 'var(--color-card-foreground)' }}
-                      itemStyle={{ fontWeight: 600 }}
-                      labelStyle={{ color: 'hsl(var(--muted-foreground))' }}
-                    />
-                    <Legend />
-                    <Bar dataKey="corrigidas" fill="#22c55e" name="Corrigidas" radius={[0, 4, 4, 0]} stackId="a" />
-                    <Bar dataKey="abertas" fill="#f59e0b" name="Não Corrigidas" radius={[0, 4, 4, 0]} stackId="a" />
-                    <Bar dataKey="slaVencido" fill="#ef4444" name="SLA Estourado" radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              ) : (
-                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">Sem dados</div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Hall of Fame - Ranking por % de correção */}
-        <Card className="bg-card border-border shadow-sm">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-yellow-500" />
-              <CardTitle className="text-base">Ranking de Correção por Squad</CardTitle>
-            </div>
-            <CardDescription>% de vulnerabilidades corrigidas sobre o total — quem resolve mais?</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {squadsRanking.map((squad, idx) => {
-                const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}`
-                const pctColor = squad.correcaoPct >= 80 ? 'text-green-500' : squad.correcaoPct >= 50 ? 'text-amber-500' : 'text-red-500'
-                const barColor = squad.correcaoPct >= 80 ? 'bg-green-500' : squad.correcaoPct >= 50 ? 'bg-amber-500' : 'bg-red-500'
-
-                return (
-                  <div key={squad.squadName} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <span className="text-lg w-8 text-center">{medal}</span>
-                        <div>
-                          <span className="text-sm font-bold text-foreground">{squad.squadName}</span>
-                          <span className="text-xs text-muted-foreground ml-2">
-                            {squad.closedCount}/{squad.total} corrigidas
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        {squad.slaExpired > 0 && (
-                          <Badge variant="outline" className="text-[10px] bg-red-500/10 text-red-500 border-red-500/20">
-                            {squad.slaExpired} SLA estourado{squad.slaExpired > 1 ? 's' : ''}
-                          </Badge>
-                        )}
-                        <span className={cn("text-sm font-black", pctColor)}>
-                          {squad.correcaoPct}%
-                        </span>
-                      </div>
-                    </div>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                      <div className={cn("h-full rounded-full transition-all duration-700", barColor)} style={{ width: `${squad.correcaoPct}%` }} />
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Portfólio de Produtos (movido de /produtos) */}
+      <ProdutosSection />
 
       {/* Tabela detalhada */}
       <Card className="bg-card border-border shadow-sm">
@@ -391,5 +307,75 @@ export default function SquadsPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+// ============ Produtos Section (movido de /produtos) ============
+const produtos = [
+  { nome: "SIACI — Originação", squad: "NM182 - Originação e Entrada de Dados - SIACI", repos: 8, vulns: 15, criticas: 3, criticidade: "CRITICAL" },
+  { nome: "SIACI — Financeiro", squad: "NM177 - Financeiro e Garantias - SIACI", repos: 6, vulns: 11, criticas: 2, criticidade: "CRITICAL" },
+  { nome: "SIACI — Portais e Serviços", squad: "NM180 - Portais e Serviços - SIACI", repos: 5, vulns: 9, criticas: 1, criticidade: "HIGH" },
+  { nome: "SIACI — Evolução", squad: "NM181 - Evolução - SIACI", repos: 4, vulns: 1, criticas: 0, criticidade: "MEDIUM" },
+  { nome: "SIACI — Recursos e Componentes", squad: "NM176 - Recursos e Componentes - SIACI", repos: 7, vulns: 1, criticas: 0, criticidade: "MEDIUM" },
+]
+
+const criticidadeBadge: Record<string, string> = {
+  CRITICAL: "bg-red-500/15 text-red-400 border-red-500/30",
+  HIGH: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+  MEDIUM: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
+  LOW: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+}
+
+function ProdutosSection() {
+  return (
+    <Card className="bg-card border-border shadow-sm">
+      <CardHeader>
+        <div className="flex items-center gap-2">
+          <Shield className="h-5 w-5 text-emerald-500" />
+          <CardTitle className="text-base">Portfólio de Produtos por Squad</CardTitle>
+        </div>
+        <CardDescription>
+          Cada produto representa um sistema da Caixa. Repositórios e findings associados ao produto para visão de portfólio.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="text-xs uppercase tracking-wider text-muted-foreground">
+              <tr className="border-b border-border">
+                <th className="text-left p-3 font-medium">Produto</th>
+                <th className="text-left p-3 font-medium">Squad</th>
+                <th className="text-center p-3 font-medium">Repos</th>
+                <th className="text-center p-3 font-medium">Vulns</th>
+                <th className="text-center p-3 font-medium">Críticas</th>
+                <th className="text-center p-3 font-medium">Criticidade</th>
+              </tr>
+            </thead>
+            <tbody>
+              {produtos.map((p) => (
+                <tr key={p.nome} className="border-b border-border hover:bg-muted/30 transition cursor-pointer">
+                  <td className="p-3 font-medium">{p.nome}</td>
+                  <td className="p-3 text-muted-foreground text-xs">{p.squad}</td>
+                  <td className="p-3 text-center tabular-nums">{p.repos}</td>
+                  <td className="p-3 text-center tabular-nums">{p.vulns}</td>
+                  <td className="p-3 text-center">
+                    {p.criticas > 0 ? (
+                      <span className="text-red-500 font-semibold">{p.criticas}</span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </td>
+                  <td className="p-3 text-center">
+                    <span className={`text-[10px] uppercase tracking-wider font-semibold px-2 py-0.5 rounded border ${criticidadeBadge[p.criticidade]}`}>
+                      {p.criticidade}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

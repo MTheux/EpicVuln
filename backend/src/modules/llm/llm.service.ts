@@ -4,7 +4,8 @@ import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getSquadMetadata } from '../analytics/squad-mapping';
-import { loadLlmConfig, LlmConfig } from './llm-config';
+import { loadLlmConfig, LlmConfig, UNISYSGUARD_CORE_CONTEXT } from './llm-config';
+import { demoRespond } from './demo-provider';
 
 const prisma = new PrismaClient();
 
@@ -13,8 +14,24 @@ export class LlmService {
   private attackGraphCache: { data: any; timestamp: number } | null = null;
   private readonly CACHE_TTL = 30 * 60 * 1000; // 30 minutes
 
+  /** Public wrapper so other skills (e.g. Zekrom) can call the configured LLM without re-implementing provider routing. */
+  async callPublic(systemPrompt: string, userMessage: string): Promise<string> {
+    return this.callLLM(systemPrompt, userMessage);
+  }
+
+  /** Public entrypoint. Prepends the UnisysGuard core context once, then routes. */
   private async callLLM(systemPrompt: string, userMessage: string): Promise<string> {
+    const full = `${UNISYSGUARD_CORE_CONTEXT}\n\n---\nINSTRUÇÕES DA FEATURE ATUAL:\n${systemPrompt}`;
+    return this.callLLMRaw(full, userMessage);
+  }
+
+  /** Provider routing without prepending core context. Used internally when context was already prepended. */
+  private async callLLMRaw(systemPrompt: string, userMessage: string): Promise<string> {
     const config = loadLlmConfig();
+
+    if (config.provider === 'demo') {
+      return demoRespond(systemPrompt, userMessage);
+    }
 
     if (!config.apiKey && config.provider !== 'ollama') {
       throw new Error(`API Key não configurada para ${config.provider}. Configure em Configurações → Integrações → IA.`);
@@ -31,9 +48,78 @@ export class LlmService {
         return this.callGoogle(config, systemPrompt, userMessage);
       case 'ollama':
         return this.callOllama(config, systemPrompt, userMessage);
+      case 'github':
+        return this.callGithub(config, systemPrompt, userMessage);
+      case 'deepseek':
+        return this.callDeepSeek(config, systemPrompt, userMessage);
       default:
         throw new Error(`Provider desconhecido: ${config.provider}`);
     }
+  }
+
+  /**
+   * DeepSeek — OpenAI-compatible API at https://api.deepseek.com/v1
+   * External provider — CISO opt-in obrigatório por estar fora de jurisdição Unisys-approved.
+   */
+  private async callDeepSeek(config: LlmConfig, systemPrompt: string, userMessage: string): Promise<string> {
+    const baseUrl = config.baseUrl || 'https://api.deepseek.com/v1';
+    const r = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: config.model,
+        max_tokens: 4096,
+        temperature: 0.3,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage },
+        ],
+      }),
+    });
+    if (!r.ok) {
+      const err = await r.text();
+      throw new Error(`DeepSeek error ${r.status}: ${err}`);
+    }
+    const data: any = await r.json();
+    const text = data.choices?.[0]?.message?.content;
+    if (!text) throw new Error('Resposta vazia do DeepSeek');
+    return text;
+  }
+
+  /**
+   * GitHub Models — Unisys-approved provider, OpenAI-compatible API.
+   * Endpoint: https://models.inference.ai.azure.com
+   * Auth: GitHub PAT with `models:read` scope.
+   */
+  private async callGithub(config: LlmConfig, systemPrompt: string, userMessage: string): Promise<string> {
+    const baseUrl = config.baseUrl || 'https://models.inference.ai.azure.com';
+    const r = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: config.model,
+        max_tokens: 4096,
+        temperature: 0.3,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage },
+        ],
+      }),
+    });
+    if (!r.ok) {
+      const errText = await r.text();
+      throw new Error(`GitHub Models error ${r.status}: ${errText}`);
+    }
+    const data: any = await r.json();
+    const text = data.choices?.[0]?.message?.content;
+    if (!text) throw new Error('Resposta vazia do GitHub Models');
+    return text;
   }
 
   private async callGroq(config: LlmConfig, systemPrompt: string, userMessage: string): Promise<string> {
@@ -107,6 +193,265 @@ export class LlmService {
     if (!response.ok) throw new Error(`Ollama error: ${response.status}`);
     const data: any = await response.json();
     return data.message?.content || '';
+  }
+
+  // Vision-capable call. Falls back to text-only for providers without vision.
+  private async callLLMWithImage(
+    systemPrompt: string,
+    userMessage: string,
+    imageBase64: string | null,
+    imageMime: string | null,
+  ): Promise<string> {
+    const config = loadLlmConfig();
+
+    if (config.provider === 'demo') {
+      return demoRespond(systemPrompt, userMessage + (imageBase64 ? '\n[imagem fornecida — demo provider ignora]' : ''));
+    }
+
+    // Prepend UnisysGuard core context for vision calls too
+    systemPrompt = `${UNISYSGUARD_CORE_CONTEXT}\n\n---\nINSTRUÇÕES DA FEATURE ATUAL:\n${systemPrompt}`;
+
+    if (!imageBase64 || !imageMime) {
+      // Already prepended — call raw routing to avoid double-prepend
+      return this.callLLMRaw(systemPrompt, userMessage);
+    }
+    const dataUrl = `data:${imageMime};base64,${imageBase64}`;
+
+    if (config.provider === 'openai' && config.apiKey) {
+      const client = new OpenAI({ apiKey: config.apiKey });
+      const r = await client.chat.completions.create({
+        model: config.model,
+        max_tokens: 4096,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          {
+            role: 'user',
+            content: [
+              { type: 'text', text: userMessage },
+              { type: 'image_url', image_url: { url: dataUrl } },
+            ] as any,
+          },
+        ],
+      });
+      return r.choices[0]?.message?.content || '';
+    }
+
+    if (config.provider === 'anthropic' && config.apiKey) {
+      const client = new Anthropic({ apiKey: config.apiKey });
+      const r = await client.messages.create({
+        model: config.model,
+        max_tokens: 4096,
+        system: systemPrompt,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              { type: 'image', source: { type: 'base64', media_type: imageMime as any, data: imageBase64 } },
+              { type: 'text', text: userMessage },
+            ] as any,
+          },
+        ],
+      });
+      const block = r.content[0] as any;
+      return block?.text || '';
+    }
+
+    if (config.provider === 'google' && config.apiKey) {
+      const genAI = new GoogleGenerativeAI(config.apiKey);
+      const model = genAI.getGenerativeModel({ model: config.model, systemInstruction: systemPrompt });
+      const r = await model.generateContent([
+        { inlineData: { data: imageBase64, mimeType: imageMime } },
+        userMessage,
+      ] as any);
+      return r.response.text();
+    }
+
+    if (config.provider === 'ollama') {
+      const baseUrl = config.baseUrl || 'http://localhost:11434';
+      const r = await fetch(`${baseUrl}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: config.model,
+          stream: false,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userMessage, images: [imageBase64] },
+          ],
+        }),
+      });
+      if (!r.ok) throw new Error(`Ollama vision error: ${r.status}`);
+      const data: any = await r.json();
+      return data.message?.content || '';
+    }
+
+    if (config.provider === 'github' && config.apiKey) {
+      // GitHub Models supports vision via OpenAI-compatible image_url with data URL.
+      const baseUrl = config.baseUrl || 'https://models.inference.ai.azure.com';
+      const r = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${config.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: config.model,
+          max_tokens: 4096,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: userMessage },
+                { type: 'image_url', image_url: { url: dataUrl } },
+              ],
+            },
+          ],
+        }),
+      });
+      if (!r.ok) throw new Error(`GitHub Models vision error: ${r.status} ${await r.text()}`);
+      const data: any = await r.json();
+      return data.choices?.[0]?.message?.content || '';
+    }
+
+    // Provider without vision (e.g. Groq) — degrade to text-only via raw call (context already prepended)
+    return this.callLLMRaw(
+      systemPrompt,
+      userMessage + '\n\n[NOTA: Imagem fornecida ignorada — provider atual não suporta vision. Configure OpenAI/Anthropic/Gemini/Ollama-vision em Configurações.]',
+    );
+  }
+
+  async generateEpic(input: {
+    alvo: string;
+    descricao: string;
+    tipo: 'WEB' | 'API';
+    imageBase64: string | null;
+    imageMime: string | null;
+  }) {
+    const config = loadLlmConfig();
+    if (!config.apiKey && config.provider !== 'ollama') {
+      return { error: 'IA não configurada. Vá em Configurações → Integrações → IA.' };
+    }
+
+    const systemPrompt = `Você é o UnisysGuard, especialista em pentest Web e API que escreve épicos RTC para a Caixa Econômica Federal.
+
+Sua tarefa: a partir de uma evidência (print da PoC) + alvo + descrição breve do pentester, gerar um épico RTC completo e técnico.
+
+REGRAS:
+- Português pt-BR formal-técnico, sem gírias.
+- Use APENAS o que está descrito + visível na imagem. Não invente CVEs, CWEs ou impactos que não derivem da evidência.
+- Descreva impacto no negócio bancário (PIX, transferência, dados de cliente, LGPD, BACEN 4658).
+- Mitigação prática, citando controle (input validation, autorização server-side, etc).
+- Classifique OWASP corretamente: ${input.tipo === 'API' ? 'OWASP API Security Top 10 2023' : 'OWASP Web Top 10 2021'}.
+- Criticidade: CRITICA, ALTA, MEDIA ou BAIXA.
+
+Devolva APENAS o JSON puro, sem markdown:
+{
+  "titulo": "[Tipo Vuln] Alvo - Resumo curto (max 100 chars)",
+  "criticidade": "CRITICA|ALTA|MEDIA|BAIXA",
+  "owasp": "Ex: A01:2021 Broken Access Control | API1:2023 BOLA",
+  "endpoint": "URL/endpoint exato afetado",
+  "descricaoTecnica": "Descrição técnica detalhada do que foi explorado, passos da PoC, payload usado.",
+  "impacto": "Impacto no negócio bancário Caixa. Quantifique quando possível (acesso a N contas, perda financeira potencial, etc).",
+  "mitigacao": "Recomendação técnica concreta. Cite controle, framework e exemplo.",
+  "riscos": "Riscos residuais e cenários de escalação se não corrigir."
+}`;
+
+    const userMessage = `ALVO: ${input.alvo}
+TIPO: ${input.tipo}
+DESCRIÇÃO BREVE DO PENTESTER: ${input.descricao}
+
+${input.imageBase64 ? 'EVIDÊNCIA: a imagem anexa mostra a PoC. Analise-a para enriquecer a descrição técnica.' : 'EVIDÊNCIA: nenhuma imagem anexada — baseie-se apenas na descrição.'}`;
+
+    try {
+      let text = await this.callLLMWithImage(systemPrompt, userMessage, input.imageBase64, input.imageMime);
+      text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      const m = text.match(/\{[\s\S]*\}/);
+      const parsed = JSON.parse(m ? m[0] : text);
+      return { ...parsed, _provider: config.provider, _model: config.model };
+    } catch (e: any) {
+      return { error: 'Erro ao gerar épico: ' + e.message };
+    }
+  }
+
+  async analyzeArchitecture(input: {
+    contexto: string;
+    imageBase64: string | null;
+    imageMime: string | null;
+  }) {
+    const config = loadLlmConfig();
+    if (!config.apiKey && config.provider !== 'ollama') {
+      return { error: 'IA não configurada. Vá em Configurações → Integrações → IA.' };
+    }
+    if (!input.imageBase64) {
+      return { error: 'Faça upload do diagrama de arquitetura.' };
+    }
+
+    const systemPrompt = `Você é o UnisysGuard, arquiteto de segurança especialista em STRIDE para sistemas bancários da Caixa Econômica Federal.
+
+Sua tarefa: analisar um diagrama de arquitetura (foto/print) e produzir:
+1. Componentes identificados no diagrama.
+2. Ameaças STRIDE por componente (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege).
+3. Árvore de ataque concreta mostrando como uma cadeia de exploração levaria a impacto bancário.
+
+REGRAS:
+- Use APENAS componentes visíveis na imagem.
+- Cada ameaça deve ter título técnico curto + descrição + mitigação.
+- Árvore de ataque deve ter de 3 a 6 nós, encadeando entry → exploit → impacto.
+- Impacto deve ser bancário concreto (fraude PIX, vazamento LGPD, indisponibilidade, etc).
+- pt-BR técnico.
+
+Devolva APENAS JSON puro:
+{
+  "resumo": "Resumo executivo da arquitetura e principal risco identificado (2-3 frases)",
+  "componentes": [
+    {
+      "nome": "Nome do componente visível",
+      "descricao": "Função técnica",
+      "ameacas": [
+        { "stride": "S|T|R|I|D|E", "titulo": "Titulo curto", "descricao": "Detalhe", "mitigacao": "Controle recomendado" }
+      ]
+    }
+  ],
+  "attackTree": {
+    "raiz": "Impacto final (ex: 'Fraude PIX em massa')",
+    "nos": [
+      { "id": "n1", "tipo": "entry", "titulo": "Ponto de entrada", "componente": "Nome componente", "tecnica": "Como ataca" },
+      { "id": "n2", "tipo": "exploit", "titulo": "Movimentação lateral", "componente": "Nome componente", "tecnica": "Como escala" },
+      { "id": "n3", "tipo": "impact", "titulo": "Impacto final", "componente": "Nome componente", "tecnica": "Como concretiza" }
+    ],
+    "arestas": [
+      { "de": "n1", "para": "n2", "como": "Como passa de A para B" },
+      { "de": "n2", "para": "n3", "como": "Como concretiza o impacto" }
+    ],
+    "mitigacaoChave": "Controle único que quebra a cadeia toda se aplicado"
+  },
+  "vulnerabilidadesDestaque": [
+    { "titulo": "Nome curto", "componente": "Onde", "severidade": "CRITICA|ALTA|MEDIA|BAIXA", "descricao": "Detalhe técnico", "owasp": "Ex: API1:2023 ou A01:2021" }
+  ],
+  "mitigacoesPrioritarias": [
+    { "titulo": "Ação curta", "componente": "Onde aplicar", "esforco": "BAIXO|MEDIO|ALTO", "impacto": "ALTO|MEDIO|BAIXO", "comoFazer": "Passo concreto" }
+  ],
+  "dicas": [
+    "Dica prática 1 (curta)",
+    "Dica prática 2",
+    "Dica prática 3"
+  ]
+}`;
+
+    const userMessage = `CONTEXTO ADICIONAL DO PENTESTER: ${input.contexto || 'nenhum'}
+
+Analise o diagrama anexo aplicando STRIDE rigorosamente. Considere que é uma arquitetura da Caixa Econômica Federal — alvos típicos: PIX, transferências, dados pessoais (LGPD), batch COBOL, mainframe Z.`;
+
+    try {
+      let text = await this.callLLMWithImage(systemPrompt, userMessage, input.imageBase64, input.imageMime);
+      text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+      const m = text.match(/\{[\s\S]*\}/);
+      const parsed = JSON.parse(m ? m[0] : text);
+      return { ...parsed, _provider: config.provider, _model: config.model };
+    } catch (e: any) {
+      return { error: 'Erro ao analisar arquitetura: ' + e.message };
+    }
   }
 
   async generateAnalysis() {

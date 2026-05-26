@@ -514,6 +514,7 @@ export default function VulnerabilidadesPage() {
                   <TableHead className="w-20 text-center">Dias</TableHead>
                   <TableHead className="w-16 text-center">Risco</TableHead>
                   <TableHead className="w-24">SLA</TableHead>
+                  <TableHead className="w-24 text-right">Ação</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -561,6 +562,19 @@ export default function VulnerabilidadesPage() {
                       })()}
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">{vuln.sla}</TableCell>
+                    <TableCell className="text-right">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const apiUrl = process.env.NEXT_PUBLIC_API_URL || `http://${window.location.hostname}:9001`
+                          window.open(`${apiUrl}/api/reports/vuln/${vuln.id}/pdf`, '_blank')
+                        }}
+                        className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[11px] font-semibold hover:bg-emerald-500/20 transition"
+                        title="Gerar laudo PDF gerencial"
+                      >
+                        <FileText className="h-3 w-3" /> Laudo
+                      </button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

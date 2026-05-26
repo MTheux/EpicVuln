@@ -9,8 +9,8 @@ import './globals.css'
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: 'EpicVuln | Gestão de Vulnerabilidades',
-  description: 'Plataforma centralizada para gestão corporativa de vulnerabilidades com integração IBM RTC, acompanhamento de SLA, backlog e inteligência de segurança.',
+  title: 'AISEC | AppSec & ASPM Platform',
+  description: 'AISEC — plataforma Unisys de AppSec & ASPM para a Caixa Econômica Federal. Gestão de vulnerabilidades, threat modeling, skills agênticas de pentest e inteligência operacional com IA.',
   generator: 'v0.app',
   icons: {
     icon: [

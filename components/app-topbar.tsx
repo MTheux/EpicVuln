@@ -49,20 +49,6 @@ export function AppTopbar() {
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center justify-end gap-3 border-b border-border/50 bg-background/80 backdrop-blur-md px-6">
-      {/* Settings icon */}
-      <Link
-        href="/configuracoes"
-        className={cn(
-          "flex h-9 w-9 items-center justify-center rounded-lg transition-colors",
-          pathname.startsWith("/configuracoes")
-            ? "bg-primary/10 text-primary"
-            : "text-muted-foreground hover:bg-muted hover:text-foreground"
-        )}
-        title="Configurações"
-      >
-        <Settings className="h-4.5 w-4.5" />
-      </Link>
-
       {/* User avatar + dropdown */}
       <div className="relative" ref={dropdownRef}>
         <button

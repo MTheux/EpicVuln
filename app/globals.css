@@ -140,8 +140,107 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01";
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
   }
+  /* Smooth scrollbars in dark */
+  .dark ::-webkit-scrollbar { width: 8px; height: 8px; }
+  .dark ::-webkit-scrollbar-track { background: transparent; }
+  .dark ::-webkit-scrollbar-thumb { background: oklch(0.25 0.01 260); border-radius: 4px; }
+  .dark ::-webkit-scrollbar-thumb:hover { background: oklch(0.35 0.01 260); }
 }
+
+/* === AISEC Design System polish === */
+
+/* Glassmorphism card */
+.glass-card {
+  background: color-mix(in oklch, var(--card) 60%, transparent);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
+  border: 1px solid color-mix(in oklch, var(--border) 60%, transparent);
+}
+
+/* Gradient text used on H1s and key labels */
+.gradient-text-emerald {
+  background: linear-gradient(135deg, oklch(0.75 0.18 160) 0%, oklch(0.7 0.16 180) 50%, oklch(0.65 0.14 200) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* Ambient orbs — used in dashboard layout */
+.ambient-orbs::before,
+.ambient-orbs::after {
+  content: "";
+  position: fixed;
+  pointer-events: none;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.4;
+  z-index: 0;
+}
+.ambient-orbs::before {
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, oklch(0.55 0.22 160) 0%, transparent 70%);
+  top: -200px; left: -200px;
+  animation: orbDriftA 30s ease-in-out infinite alternate;
+}
+.ambient-orbs::after {
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, oklch(0.5 0.2 280) 0%, transparent 70%);
+  bottom: -150px; right: -150px;
+  animation: orbDriftB 35s ease-in-out infinite alternate;
+}
+@keyframes orbDriftA {
+  from { transform: translate(0, 0) scale(1); }
+  to { transform: translate(50px, 80px) scale(1.1); }
+}
+@keyframes orbDriftB {
+  from { transform: translate(0, 0) scale(1); }
+  to { transform: translate(-60px, -50px) scale(1.15); }
+}
+
+/* Subtle stagger animation for cards entering viewport */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in-up { animation: fadeInUp 0.4s ease-out backwards; }
+.fade-in-up-1 { animation-delay: 0.05s; }
+.fade-in-up-2 { animation-delay: 0.1s; }
+.fade-in-up-3 { animation-delay: 0.15s; }
+
+/* Shimmer for loading skeletons */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, oklch(0.18 0.01 260) 25%, oklch(0.22 0.01 260) 50%, oklch(0.18 0.01 260) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s linear infinite;
+  border-radius: 6px;
+}
+
+/* Soft glow on focus rings */
+.dark *:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in oklch, oklch(0.55 0.22 160) 30%, transparent);
+  border-radius: 8px;
+}
+
+/* Button micro-interaction */
+.btn-primary {
+  background: linear-gradient(135deg, oklch(0.6 0.22 160), oklch(0.55 0.2 170));
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-primary:hover {
+  background: linear-gradient(135deg, oklch(0.65 0.24 160), oklch(0.6 0.22 170));
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px -4px color-mix(in oklch, oklch(0.55 0.22 160) 40%, transparent);
+}
+.btn-primary:active { transform: translateY(0); }
 
 /* ===== Compact Mode ===== */
 .compact main {
