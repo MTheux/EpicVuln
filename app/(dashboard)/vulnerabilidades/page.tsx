@@ -302,7 +302,7 @@ export default function VulnerabilidadesPage() {
   const hasActiveFilters = searchTerm || showVencidas || selectedResponsavel !== "Todos" || selectedStatus !== "Todos" || selectedSquad !== "Todas" || diasEmAbertoMin || selectedCriticidade !== "Todas"
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen p-6">
       {/* Header */}
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>

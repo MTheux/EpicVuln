@@ -22,3 +22,14 @@ backend/dist/
 backend/uploads/
 backend/server.log
 *.log
+# Browser session screenshots (Chrome MCP)
+/dashboard-home*
+/after-login*
+/alerts*
+/integ*
+/sentrybots*
+/tm*
+
+# MemPalace local data
+/mempalace/data/
+/mempalace/__pycache__/

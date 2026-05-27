@@ -423,7 +423,7 @@ export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
   const timelineItems = vuln ? buildTimeline() : []
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen p-6">
       {/* Back Link */}
       <Link
         href="/vulnerabilidades"

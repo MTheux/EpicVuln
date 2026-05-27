@@ -9,9 +9,9 @@ export default function DashboardLayout({
 }) {
     return (
         <AuthGuard>
-            <div className="flex min-h-screen bg-background text-foreground relative overflow-hidden ambient-orbs">
+            <div className="flex min-h-screen bg-background text-foreground relative ambient-orbs grid-bg">
                 <AppSidebar />
-                <div className="flex-1 ml-64 flex flex-col relative z-10">
+                <div className="flex-1 ml-14 flex flex-col relative z-10">
                     <AppTopbar />
                     <main className="flex-1 p-8 overflow-y-auto fade-in-up">
                         {children}

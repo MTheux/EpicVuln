@@ -16,6 +16,12 @@ interface PortfolioMatchInfo {
   reasons: string[]
 }
 
+interface MemoryContext {
+  recalled: number
+  stored: boolean
+  drawer: string | null
+}
+
 interface Message {
   role: "user" | "assistant"
   content: string
@@ -24,6 +30,7 @@ interface Message {
     used: number
     matches: PortfolioMatchInfo[]
   }
+  memoryContext?: MemoryContext
 }
 
 const STORAGE_KEY = "unisysguard_hackbot_history"
@@ -107,6 +114,7 @@ export default function InteligenciaPage() {
         content: data.message,
         timestamp: Date.now(),
         portfolioContext: data.portfolioContext,
+        memoryContext: data.memoryContext,
       }])
     } catch (e: any) {
       setMessages((p) => [...p, { role: "assistant", content: `❌ Erro: ${e.message}`, timestamp: Date.now() }])
@@ -179,6 +187,20 @@ export default function InteligenciaPage() {
                     : "bg-muted/50 border"
                 }`}>
                   {m.role === "user" ? m.content : <div className="prose-sm">{renderMessage(m.content)}</div>}
+                  {m.role === "assistant" && m.memoryContext && (m.memoryContext.recalled > 0 || m.memoryContext.stored) && (
+                    <div className="mt-2 pt-2 border-t border-cyan-500/20 flex items-center gap-3 text-[10px]">
+                      {m.memoryContext.recalled > 0 && (
+                        <span className="inline-flex items-center gap-1 text-cyan-300 font-mono px-1.5 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30">
+                          🧠 MemPalace · {m.memoryContext.recalled} memória(s) recuperada(s)
+                        </span>
+                      )}
+                      {m.memoryContext.stored && (
+                        <span className="inline-flex items-center gap-1 text-cyan-300/80 font-mono">
+                          💾 salvo (drawer {m.memoryContext.drawer?.slice(0, 8) || "?"})
+                        </span>
+                      )}
+                    </div>
+                  )}
                   {m.role === "assistant" && m.portfolioContext && m.portfolioContext.used > 0 && (
                     <div className="mt-3 pt-2 border-t border-emerald-500/20">
                       <div className="text-[10px] uppercase tracking-wider text-emerald-300/80 font-bold mb-1.5 flex items-center gap-1">

@@ -291,3 +291,50 @@
   --muted-foreground: oklch(0.75 0 0);
   --border: oklch(0.32 0.01 260);
 }
+
+/* ===== Grid background ambient (Hitss-inspired) ===== */
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(16, 185, 129, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 185, 129, 0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: 0 0;
+}
+.dark .grid-bg {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+}
+
+/* Thin scrollbar para sidebar */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+}
+
+/* ===== Glass effect — cards mostram o grid background através ===== */
+/* Aplica backdrop-blur em qualquer elemento com bg-card (Tailwind utility).
+   Não usa /alpha pra não quebrar cards específicos que já têm transparência. */
+.dark .bg-card {
+  background-color: color-mix(in oklch, var(--card) 75%, transparent);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+}
+
+/* Para cards explicitamente translúcidos (ex: bg-card/50) o Tailwind ganha — mantemos blur */
+.dark [class*="bg-card/"] {
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+}
+
+/* Container principal — remove fundo sólido pra grid mostrar */
+.dark .bg-background\/glass {
+  background-color: color-mix(in oklch, var(--background) 60%, transparent);
+  backdrop-filter: blur(4px);
+}

@@ -12,8 +12,6 @@ import {
   Lock,
   Zap,
   Hammer,
-  Glasses,
-  ClipboardCheck,
   ArrowRight,
   Plug,
   Layers,
@@ -133,46 +131,18 @@ const skills: Skill[] = [
     href: "/pentest/zekrom",
   },
   {
-    name: "Forge",
+    name: "Codex",
     icon: Hammer,
-    tagline: "Code Modernization Assistant",
+    tagline: "Code Intelligence (Forge + Code Analyzer + JSHunter)",
     status: "shipped",
-    description: "Recebe código legado (COBOL, ASP.NET Framework, VB.NET, WebForms, Classic ASP) e gera versão equivalente em ASP.NET Core 8 com testes xUnit. Inclui diff de segurança e mapeamento dos pontos refatorados (SDL CIWEB). Eco direto do framework Unisys já entregue à NI (90+ apps modernizadas).",
+    description: "Hub de inteligência de código-fonte da Caixa. Pull de repos via GitLab (manual/auto), findings do SonarQube por branch, Swagger das APIs no WSO2. Também aceita upload manual de bundle/source (JS, ASP.NET, COBOL). Output: SAST regex local + IA contextual com mitigação aplicada à stack Caixa.",
     triggers: [
-      "Decisão de modernizar app legada",
-      "Migrar COBOL batch pra serviço .NET",
-      "Refatorar handler ASP.NET 4.x pra Core",
+      "Pentester precisa ler código antes do pentest dinâmico",
+      "Nova branch publicada — quer findings SonarQube + IA",
+      "API nova no WSO2 — auto-extrai Swagger e alimenta Zekrom",
     ],
-    uses: "Multi-AI (preferencial: GitHub Models gpt-4o) · gera código + diff + testes · human review obrigatório antes do merge",
+    uses: "Multi-AI · integra GitLab + SonarQube + WSO2 · 100% local quando upload manual · human review obrigatório",
     href: "/pentest/forge",
-  },
-  {
-    name: "Mirror",
-    icon: Glasses,
-    tagline: "Threat Modeling com RAG",
-    status: "shipped",
-    description: "Aplica STRIDE/PASTA/LINDDUN em diagramas de arquitetura usando a Base de Conhecimento (docs Caixa, regulatórios BACEN/LGPD, padrões OWASP) como contexto via RAG real (pgvector). Gera ameaças por componente, attack tree, mitigações priorizadas e conformidade regulatória.",
-    triggers: [
-      "Novo produto em design/arquitetura",
-      "Mudança significativa em arquitetura existente",
-      "Revisão anual de threat model",
-    ],
-    uses: "Multi-AI · usa Base de Conhecimento via RAG · output rotulado IA",
-    href: "/threat-modeling/mirror",
-  },
-  {
-    name: "Audit",
-    icon: ClipboardCheck,
-    tagline: "Compliance & LGPD/BACEN",
-    status: "shipped",
-    description: "Audita aderência aos 52 controles SDL CIWEB Caixa + LGPD + BACEN Res. 4658 + PCI-DSS + OWASP ASVS. Cruza findings ativos com controles esperados, aponta gaps com evidências, gera plano de remediação priorizado.",
-    triggers: [
-      "Auditoria trimestral interna",
-      "Pré-auditoria externa",
-      "Resposta a questionário regulatório",
-    ],
-    uses: "Multi-AI · usa requisitos SDL + findings + assets · output auditável",
-    href: "/admin/audit",
   },
 ]
 
@@ -350,6 +320,61 @@ export default function AdminMotorIaPage() {
         </div>
       )}
 
+      {/* Integrations panel (Hitss-style) — fontes de dados que alimentam as skills */}
+      <div className="mb-6">
+        <h2 className="text-sm uppercase tracking-wider font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+          <Plug className="h-4 w-4" /> Integrações · fontes de dados das skills
+        </h2>
+
+        {/* Categoria: Código & Repositórios */}
+        <div className="mb-4">
+          <div className="text-[11px] uppercase tracking-wider text-emerald-300/70 font-bold mb-2">Código & Repositórios</div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {[
+              { id: "gitlab", name: "GitLab", emoji: "🦊", desc: "Repos JS, ASP.NET, COBOL — pull manual ou auto via webhook.", status: "planned", consumers: ["Codex"] },
+              { id: "sonarqube", name: "SonarQube", emoji: "📊", desc: "Findings SAST + quality gate por branch.", status: "planned", consumers: ["Codex", "HackBot"] },
+              { id: "wso2", name: "WSO2 API Manager", emoji: "🌐", desc: "Lista APIs publicadas + pega Swagger automático.", status: "planned", consumers: ["Zekrom", "Codex"] },
+            ].map((src) => <IntegSrcCard key={src.id} {...src} />)}
+          </div>
+        </div>
+
+        {/* Categoria: Backlog & Ticketing */}
+        <div className="mb-4">
+          <div className="text-[11px] uppercase tracking-wider text-emerald-300/70 font-bold mb-2">Backlog & Ticketing</div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {[
+              { id: "jira", name: "Jira Cloud", emoji: "📋", desc: "Cria issues automáticas pra vulns críticas.", status: "configured", consumers: ["Vulns", "Épicos"] },
+              { id: "azure-devops", name: "Azure DevOps", emoji: "🔵", desc: "Work items + boards Microsoft.", status: "planned", consumers: ["Vulns"] },
+              { id: "rtc", name: "IBM RTC", emoji: "🟦", desc: "Backlog Rational da Caixa — sync de épicos.", status: "configured", consumers: ["Épicos"] },
+            ].map((src) => <IntegSrcCard key={src.id} {...src} />)}
+          </div>
+        </div>
+
+        {/* Categoria: Comunicação & Alerta */}
+        <div className="mb-4">
+          <div className="text-[11px] uppercase tracking-wider text-emerald-300/70 font-bold mb-2">Comunicação & Alerta</div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {[
+              { id: "teams", name: "Microsoft Teams", emoji: "💬", desc: "Webhook pra canal AppSec.", status: "configured", consumers: ["Pulse mock"] },
+              { id: "slack", name: "Slack", emoji: "💬", desc: "Webhook genérico.", status: "planned", consumers: [] },
+              { id: "webhook", name: "Webhook custom", emoji: "🔗", desc: "POST genérico para qualquer URL.", status: "configured", consumers: [] },
+            ].map((src) => <IntegSrcCard key={src.id} {...src} />)}
+          </div>
+        </div>
+
+        {/* Categoria: Pentest & Análise */}
+        <div className="mb-4">
+          <div className="text-[11px] uppercase tracking-wider text-emerald-300/70 font-bold mb-2">Pentest & Análise</div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {[
+              { id: "burp", name: "Burp Suite (Jython ext)", emoji: "🟠", desc: "Extensão envia history pro AISEC direto.", status: "configured", consumers: ["Zekrom", "Checklist"] },
+              { id: "mcp", name: "MCP Server (AISEC)", emoji: "🔌", desc: "9 skills expostas como tools MCP.", status: "configured", consumers: ["Claude Desktop", "Cursor"] },
+              { id: "mempalace", name: "MemPalace", emoji: "🧠", desc: "Memória local-first do HackBot (ChromaDB).", status: "configured", consumers: ["HackBot"] },
+            ].map((src) => <IntegSrcCard key={src.id} {...src} />)}
+          </div>
+        </div>
+      </div>
+
       {/* Providers catalog */}
       <div className="mb-6">
         <h2 className="text-sm uppercase tracking-wider font-semibold text-muted-foreground mb-3 flex items-center gap-2">
@@ -452,6 +477,45 @@ export default function AdminMotorIaPage() {
         Para dados confidenciais Caixa, prefira <b>GitHub Copilot/Models</b> (Unisys-approved) ou <b>Ollama Local</b> (zero egress).
         Externos (OpenAI/Anthropic/Google/Groq/DeepSeek) exigem aprovação CISO conforme Unisys AI P1.0.
         Skills usam o provider ativo automaticamente — basta trocar em <Link href="/configuracoes" className="underline">Configurações → Integrações → IA</Link>.
+      </div>
+    </div>
+  )
+}
+
+// ===== Sub-componente: card de integração estilo Hitss =====
+function IntegSrcCard({
+  name, emoji, desc, status, consumers,
+}: {
+  name: string; emoji: string; desc: string; status: "configured" | "planned" | "failed"; consumers: string[]
+}) {
+  const meta = {
+    configured: { label: "Configurado", cls: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30" },
+    planned: { label: "Planejado", cls: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
+    failed: { label: "Falha", cls: "bg-red-500/15 text-red-400 border-red-500/30" },
+  }[status]
+  return (
+    <div className="rounded-xl border bg-card p-3.5 hover:border-emerald-500/40 transition group">
+      <div className="flex items-start gap-3">
+        <div className="h-9 w-9 rounded-lg bg-muted/50 flex items-center justify-center text-lg flex-shrink-0">{emoji}</div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+            <span className="text-sm font-semibold truncate">{name}</span>
+            <span className={`text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded border ${meta.cls}`}>
+              {meta.label}
+            </span>
+          </div>
+          <p className="text-[11px] text-muted-foreground leading-relaxed">{desc}</p>
+          {consumers.length > 0 && (
+            <div className="mt-2 pt-2 border-t border-border/50 flex items-center gap-1 flex-wrap">
+              <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">Usado por:</span>
+              {consumers.map((c) => (
+                <span key={c} className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                  {c}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

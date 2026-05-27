@@ -27,6 +27,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { StatCard } from "@/components/stat-card"
+import { ResumoInteligente } from "@/components/resumo-inteligente"
 import { authHeaders } from "@/lib/auth"
 import { SeverityBadge } from "@/components/severity-badge"
 import { StatusBadge } from "@/components/status-badge"
@@ -232,7 +233,7 @@ export default function DashboardPage() {
 
   if (!isLoading && vulnerabilidades.length === 0) {
     return (
-      <div className="min-h-screen bg-background p-6">
+      <div className="min-h-screen p-6">
         <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Dashboard de Vulnerabilidades</h1>
@@ -255,7 +256,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen p-6">
      <div className="mx-auto max-w-6xl">
       {/* Header */}
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between animate-in fade-in slide-in-from-left-4 duration-700">
@@ -275,6 +276,9 @@ export default function DashboardPage() {
           </AlertDialog>
         </div>
       </div>
+
+      {/* Resumo Inteligente AISEC */}
+      <ResumoInteligente />
 
       {/* Stats Cards */}
       <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">

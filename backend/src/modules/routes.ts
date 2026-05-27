@@ -14,9 +14,9 @@ import rtcRoutes from './rtc/rtc.routes';
 import auditRoutes from './audit/audit.routes';
 import integrationsRoutes from './integrations/integrations.routes';
 import mcpRoutes from './mcp/mcp.routes';
-import ragRoutes from './rag/rag.routes';
 import activityRoutes from './activity/activity.routes';
 import mfaRoutes from './mfa/mfa.routes';
+import memoryRoutes from './memory/memory.routes';
 
 const router = Router();
 
@@ -35,8 +35,8 @@ router.use('/rtc', rtcRoutes);
 router.use('/audit', auditRoutes);
 router.use('/integrations', integrationsRoutes);
 router.use('/mcp', mcpRoutes);
-router.use('/rag', ragRoutes);
 router.use('/activity', activityRoutes);
 router.use('/mfa', mfaRoutes);
+router.use('/memory', memoryRoutes);
 
 export default router;

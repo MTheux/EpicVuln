@@ -22,6 +22,7 @@ import { Progress } from "@/components/ui/progress"
 import { cn } from "@/lib/utils"
 import { authHeaders } from "@/lib/auth"
 import { toast } from "sonner"
+import { NewSquadButton } from "@/components/new-squad-button"
 import {
   BarChart,
   Bar,
@@ -157,7 +158,7 @@ export default function SquadsPage() {
   const totalSlaVencido = data.allSquads.reduce((s, q) => s + q.slaExpired, 0)
 
   return (
-    <div className="p-6 space-y-6 bg-background min-h-screen">
+    <div className="p-6 space-y-6 min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -166,10 +167,13 @@ export default function SquadsPage() {
             Acompanhamento de correção e SLA por squad — {data.totalSquads} squads monitoradas
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
-          <RefreshCw className={cn("mr-2 h-4 w-4", loading && "animate-spin")} />
-          Atualizar
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={fetchData} disabled={loading}>
+            <RefreshCw className={cn("mr-2 h-4 w-4", loading && "animate-spin")} />
+            Atualizar
+          </Button>
+          <NewSquadButton onCreated={fetchData} />
+        </div>
       </div>
 
       {/* KPI Cards - Simples e diretos */}

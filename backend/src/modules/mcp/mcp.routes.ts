@@ -3,8 +3,6 @@ import { authenticate } from '../../middleware/auth.middleware';
 import { LlmService } from '../llm/llm.service';
 import { ZekromService } from '../llm/zekrom.service';
 import { ForgeService } from '../llm/forge.service';
-import { MirrorService } from '../llm/mirror.service';
-import { AuditService } from '../llm/audit.service';
 
 /**
  * MCP (Model Context Protocol) — server stub.
@@ -24,8 +22,6 @@ router.use(authenticate);
 const llm = new LlmService();
 const zekrom = new ZekromService(llm);
 const forge = new ForgeService(llm);
-const mirror = new MirrorService(llm);
-const audit = new AuditService(llm);
 
 interface McpTool {
   name: string;
@@ -125,37 +121,6 @@ const tools: McpTool[] = [
       required: ['sourceCode'],
     },
   },
-  {
-    name: 'mirror_threat_model',
-    description: 'Mirror skill — modelagem de ameaças (STRIDE, PASTA ou LINDDUN) enriquecida com RAG real da Base de Conhecimento (LGPD, BACEN, SDL CIWEB, OWASP). Devolve componentes, ameaças por categoria, attack tree e conformidade regulatória.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        contexto: { type: 'string', description: 'Descrição textual da arquitetura' },
-        framework: { type: 'string', enum: ['stride', 'pasta', 'linddun'] },
-        imageBase64: { type: 'string', description: 'Diagrama opcional em base64' },
-        imageMime: { type: 'string', description: 'MIME type (ex: image/png)' },
-        topK: { type: 'number', description: 'Quantos chunks de RAG (default 5)' },
-      },
-      required: ['contexto', 'framework'],
-    },
-  },
-  {
-    name: 'audit_compliance',
-    description: 'Audit skill — audita aderência aos controles SDL CIWEB Caixa + LGPD + BACEN 4658 + PCI-DSS + ASVS. Cruza findings ativos com controles esperados, aponta gaps com evidências e gera plano de remediação priorizado. Output auditável.',
-    inputSchema: {
-      type: 'object',
-      properties: {
-        normas: {
-          type: 'array',
-          items: { type: 'string', enum: ['lgpd', 'bacen-4658', 'sdl-ciweb', 'pci-dss', 'asvs'] },
-        },
-        escopoAtivo: { type: 'string', description: 'Filtrar por nome de ativo/sistema' },
-        contextoAdicional: { type: 'string' },
-      },
-      required: ['normas'],
-    },
-  },
 ];
 
 router.get('/tools', (_req: Request, res: Response) => {
@@ -206,22 +171,6 @@ router.post('/invoke/:tool', async (req: Request, res: Response) => {
           targetFramework: args.targetFramework || 'aspnet-core-8',
           contexto: args.contexto,
           withTests: args.withTests !== false,
-        });
-        break;
-      case 'mirror_threat_model':
-        result = await mirror.modelThreats({
-          contexto: String(args.contexto || ''),
-          framework: (['stride', 'pasta', 'linddun'] as const).includes(args.framework) ? args.framework : 'stride',
-          imageBase64: args.imageBase64 || null,
-          imageMime: args.imageMime || null,
-          topK: args.topK ? Number(args.topK) : 5,
-        });
-        break;
-      case 'audit_compliance':
-        result = await audit.runAudit({
-          normas: Array.isArray(args.normas) && args.normas.length > 0 ? args.normas : ['lgpd', 'bacen-4658', 'sdl-ciweb'],
-          escopoAtivo: args.escopoAtivo,
-          contextoAdicional: args.contextoAdicional,
         });
         break;
       case 'jwt_decode_analyze': {

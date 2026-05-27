@@ -4,8 +4,6 @@ import {
   Layers,
   Zap,
   Hammer,
-  Glasses,
-  ClipboardCheck,
   CheckCircle2,
   Sparkles,
   GitBranch,
@@ -61,32 +59,6 @@ const skills: Skill[] = [
     color: "from-orange-500/30 to-red-500/30 border-orange-500/40",
     inputs: ["Arquivo COBOL/legado", "Spec funcional", "Estilo Caixa"],
     outputs: ["Código C# equivalente", "Testes xUnit", "Diff de segurança + checklist review"],
-  },
-  {
-    name: "Mirror",
-    icon: Glasses,
-    tagline: "Threat Modeling com RAG",
-    description:
-      "Threat modeling automatizado usando a Base de Conhecimento (docs Caixa, regulatórios BACEN/LGPD, padrões OWASP) via RAG real (pgvector). Aplica STRIDE / PASTA / LINDDUN com contexto de produto.",
-    owasp: "ASVS V1 + ISO/IEC 27034",
-    href: "/threat-modeling/mirror",
-    status: "shipped",
-    color: "from-purple-500/30 to-pink-500/30 border-purple-500/40",
-    inputs: ["Diagrama de arquitetura", "Produto + contexto", "Docs RAG"],
-    outputs: ["Ameaças por componente", "Attack tree", "Conformidade regulatória"],
-  },
-  {
-    name: "Audit",
-    icon: ClipboardCheck,
-    tagline: "Compliance & LGPD/BACEN",
-    description:
-      "Audita aderência a LGPD, BACEN Res. 4658, PCI-DSS, OWASP ASVS e os 52 controles SDL CIWEB Caixa/Unisys. Aponta gaps com evidências e gera plano de remediação priorizado.",
-    owasp: "LGPD · BACEN 4658 · SDL CIWEB",
-    href: "/admin/audit",
-    status: "shipped",
-    color: "from-sky-500/30 to-blue-500/30 border-sky-500/40",
-    inputs: ["Inventário de assets", "Findings ativos", "Controles esperados"],
-    outputs: ["Matriz compliance", "Gaps + plano de ação", "Evidências auditáveis"],
   },
 ]
 
@@ -157,7 +129,7 @@ export default function FrameworkPage() {
             <div className="p-3">AISEC Framework (AppSec/ASPM)</div>
           </div>
           {[
-            ["Assistentes generativos automatizando processos manuais", "Skills agênticas (Zekrom, Forge, Mirror, Audit) por domínio"],
+            ["Assistentes generativos automatizando processos manuais", "Skills agênticas (Zekrom, Forge) por domínio"],
             ["OpenAI Assistants + GPT-4o", "Multi-provider: GitHub Models (approved), Ollama (local), demo, externos"],
             ["Treinado no repositório de código existente da NI", "RAG sobre Base de Conhecimento Caixa (docs, regulatórios, código)"],
             ["Plugin Eclipse developer-installable, self-service", "Extensão VSCode/Copilot (roadmap) — squads instalam direto"],

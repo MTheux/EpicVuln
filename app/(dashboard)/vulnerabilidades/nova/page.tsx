@@ -20,9 +20,9 @@ import { useVulnStore } from "@/lib/vuln-store"
 import { useAssetStore } from "@/lib/asset-store"
 import { toast } from "sonner"
 import type { Criticidade, Status, OwaspCategory, Complexidade } from "@/lib/types"
+import { loadAllSquads, NewSquadButton } from "@/components/new-squad-button"
 
 const criticidades: Criticidade[] = ['Crítica', 'Alta', 'Média', 'Baixa', 'Informativa']
-const squads = ['AppMais', 'Acessos', 'Atendimento Digital', 'Autorizadores', 'Canais Clientes', 'Canais Lojistas', 'Cloud', 'Conta do Mais', 'Crédito', 'Desacoplamento', 'Field', 'Invillia', 'Jurídico', 'OpenFinance e Pix', 'Onplug', 'Prevenção a Fraude', 'Portal Unisys', 'Time de Arquitetura (Aceleradora)', 'Sem dono', 'SFCWeb', 'SOC', 'Sustentação']
 const sistemas = ['App Pl', 'App Mais', 'Autorizadores', 'Cartão Mais Website', 'Cleo', 'Cyber', 'Unisys Website', 'Credline Digital', 'Cloud', 'Impulse Up', 'Legal Manager', 'Odonto Website', 'Onplug', 'PontoTel', 'Portal do Cartão', 'Portal do Cartão Mobile', 'Portal Lojista', 'Privacidade Website', 'Portal SSO', 'RHSSO', 'Servidor', 'SFC Web', 'URA', 'Websystem', 'Workstation']
 const ambientes = ['Produção', 'Homologação', 'Desenvolvimento']
 const origens: ('Pentest' | 'DAST' | 'SAST' | 'SCA' | 'Bug Bounty' | 'Manual' | 'Monitoramento' | 'Code Review')[] = [
@@ -52,6 +52,11 @@ export default function NovaVulnerabilidadePage() {
   const { assets, fetchAssets } = useAssetStore()
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [squadsList, setSquadsList] = useState<string[]>([])
+
+  useEffect(() => {
+    setSquadsList(loadAllSquads())
+  }, [])
 
   useEffect(() => {
     fetchAssets()
@@ -193,7 +198,7 @@ export default function NovaVulnerabilidadePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background p-6">
+    <div className="min-h-screen p-6">
       {/* Back Link */}
       <Link
         href="/vulnerabilidades"
@@ -434,13 +439,16 @@ export default function NovaVulnerabilidadePage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label>Squad *</Label>
+              <div className="flex items-center justify-between mb-1">
+                <Label>Squad *</Label>
+                <NewSquadButton onCreated={() => setSquadsList(loadAllSquads())} />
+              </div>
               <Select value={formData.squad} onValueChange={(v) => handleChange('squad', v)}>
                 <SelectTrigger className={errors.squad ? 'border-red-500' : ''}>
                   <SelectValue placeholder="Selecione a squad" />
                 </SelectTrigger>
                 <SelectContent>
-                  {squads.map((s) => (
+                  {squadsList.map((s) => (
                     <SelectItem key={s} value={s}>{s}</SelectItem>
                   ))}
                 </SelectContent>

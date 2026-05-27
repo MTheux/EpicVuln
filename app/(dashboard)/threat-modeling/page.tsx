@@ -1,6 +1,6 @@
 "use client"
 
-import { Network, Plus, BookOpen, ListChecks, Brain } from "lucide-react"
+import { Network, Plus, ListChecks, Brain } from "lucide-react"
 import { PageHeader } from "@/components/page-header"
 import { StatGrid } from "@/components/stat-grid"
 import Link from "next/link"
@@ -32,7 +32,6 @@ export default function ThreatModelingPage() {
           { label: "Modelos Ativos", value: modelos.length, icon: Network, tone: "success" },
           { label: "Ameaças Identificadas", value: modelos.reduce((a, m) => a + m.ameacas, 0), icon: Brain, tone: "warning" },
           { label: "Mitigadas", value: modelos.reduce((a, m) => a + m.mitigadas, 0), icon: ListChecks, tone: "info" },
-          { label: "Base de Conhecimento", value: "42 docs", icon: BookOpen },
         ]}
       />
 
@@ -46,11 +45,6 @@ export default function ThreatModelingPage() {
           <ListChecks className="h-6 w-6 text-emerald-400 mb-3" />
           <div className="font-semibold mb-1">Requisitos de Segurança</div>
           <div className="text-xs text-muted-foreground">Backlog de controles derivados das ameaças</div>
-        </Link>
-        <Link href="/threat-modeling/base" className="rounded-xl border bg-card p-5 hover:border-emerald-500/50 transition group">
-          <BookOpen className="h-6 w-6 text-emerald-400 mb-3" />
-          <div className="font-semibold mb-1">Base de Conhecimento</div>
-          <div className="text-xs text-muted-foreground">RAG com docs Caixa (arquitetura, regulatorios)</div>
         </Link>
       </div>
 

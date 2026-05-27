@@ -43,7 +43,7 @@ export default function TermosPage() {
 
       <h2>5. Skills Agênticas e Política de IA</h2>
       <p>
-        As skills (Zekrom, Forge, Mirror, Audit, Pulse) e o HackBot operam sob <strong>human oversight obrigatório</strong>. Output IA não substitui análise técnica humana e deve ser validado antes de qualquer ação. Toda chamada IA é logada em /admin/auditoria.
+        As skills (Zekrom, Forge) e o HackBot operam sob <strong>human oversight obrigatório</strong>. Output IA não substitui análise técnica humana e deve ser validado antes de qualquer ação. Toda chamada IA é logada em /admin/auditoria.
       </p>
       <p>
         Pentest automatizado (Zekrom executando requests) requer autorização formal CISO + Legal, ambiente HML/QA, allowlist de hosts e audit trail imutável. Detalhes em <a href="/admin/motor-ia">Motor IA & Skills</a>.

@@ -4,8 +4,6 @@ import { LlmController } from './llm.controller';
 import { LlmService } from './llm.service';
 import { ZekromService } from './zekrom.service';
 import { ForgeService } from './forge.service';
-import { MirrorService } from './mirror.service';
-import { AuditService } from './audit.service';
 import { getRelevantPortfolio } from './portfolio-context.service';
 import { llmLimiter } from '../../rate-limiters';
 import { authenticate } from '../../middleware/auth.middleware';
@@ -16,8 +14,6 @@ const llmService = new LlmService();
 const llmController = new LlmController(llmService);
 const zekrom = new ZekromService(llmService);
 const forge = new ForgeService(llmService);
-const mirror = new MirrorService(llmService);
-const audit = new AuditService(llmService);
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -134,11 +130,55 @@ ESTILO:
       topK: 5,
       organizationId: (req as any).organizationId,
     });
-    const enrichedSystem = lpc.matches.length > 0
-      ? `${systemPrompt}\n\n${lpc.promptBlock}`
+
+    // MemPalace recall — busca memórias passadas do pentester (best-effort)
+    const userEmail = ((req as any).user?.email || 'anonymous').replace(/[^a-zA-Z0-9._-]/g, '_');
+    const MEM_URL = process.env.MEMPALACE_URL || 'http://mempalace:9002';
+    let memoryHits: any[] = [];
+    try {
+      const memR = await fetch(`${MEM_URL}/recall`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: lastUser, wing: userEmail, room: 'hackbot', top_k: 3 }),
+        signal: AbortSignal.timeout(2000),
+      });
+      if (memR.ok) {
+        const memData: any = await memR.json();
+        memoryHits = memData.hits || [];
+      }
+    } catch { /* MemPalace pode estar down — segue sem memória */ }
+
+    // Build enriched system prompt
+    const memoryBlock = memoryHits.length > 0
+      ? `\n\n─────────────────────────────────────────────────────────\nMEMÓRIA PESSOAL — ${memoryHits.length} conversa(s) prévia(s) deste pentester relacionadas:\n${memoryHits.map((h: any, i: number) => `[#${i + 1}] (similaridade ${(1 - h.distance).toFixed(2)}, ${new Date((h.stored_at || 0) * 1000).toLocaleDateString('pt-BR')})\n${h.content.slice(0, 400)}${h.content.length > 400 ? '...' : ''}`).join('\n\n')}\n─────────────────────────────────────────────────────────\n`
+      : '';
+    const enrichedSystem = (lpc.matches.length > 0 || memoryHits.length > 0)
+      ? `${systemPrompt}${lpc.matches.length > 0 ? '\n\n' + lpc.promptBlock : ''}${memoryBlock}`
       : systemPrompt;
 
     const response = await llmService.callPublic(enrichedSystem, userMessage);
+
+    // MemPalace store — guarda Q+A no wing pessoal (best-effort, fire-and-forget)
+    let storedDrawer: string | null = null;
+    try {
+      const storeR = await fetch(`${MEM_URL}/store`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: `PERGUNTA:\n${lastUser}\n\nRESPOSTA (HackBot):\n${response}`,
+          wing: userEmail,
+          room: 'hackbot',
+          tags: lpc.matches.map((m: any) => m.codigoInterno).slice(0, 5),
+          metadata: { lpc_matches: String(lpc.matches.length), recall_hits: String(memoryHits.length) },
+        }),
+        signal: AbortSignal.timeout(3000),
+      });
+      if (storeR.ok) {
+        const storeData: any = await storeR.json();
+        storedDrawer = storeData.drawer;
+      }
+    } catch { /* best-effort, ignora */ }
+
     res.json({
       message: response,
       portfolioContext: {
@@ -152,6 +192,11 @@ ESTILO:
           score: m.score,
           reasons: m.matchReasons,
         })),
+      },
+      memoryContext: {
+        recalled: memoryHits.length,
+        stored: !!storedDrawer,
+        drawer: storedDrawer,
       },
     });
   } catch (e: any) {
@@ -278,43 +323,6 @@ router.post('/forge/modernize', llmLimiter, async (req: Request, res: Response) 
       contexto,
       withTests: withTests !== false,
     });
-    const cfg = loadLlmConfig();
-    res.json({ ...result, _provider: cfg.provider, _model: cfg.model });
-  } catch (e: any) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-/* ============================== Mirror ===================================== */
-const upload2 = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
-router.post('/mirror/model', llmLimiter, upload2.single('diagrama'), async (req: Request, res: Response) => {
-  try {
-    const { contexto, framework, topK } = req.body || {};
-    if (!contexto || !String(contexto).trim()) {
-      return res.status(400).json({ error: 'contexto obrigatório' });
-    }
-    const fw = (['stride', 'pasta', 'linddun'] as const).includes(framework) ? framework : 'stride';
-    const hasImage = !!req.file;
-    const result = await mirror.modelThreats({
-      contexto,
-      framework: fw,
-      imageBase64: hasImage ? req.file!.buffer.toString('base64') : null,
-      imageMime: hasImage ? req.file!.mimetype : null,
-      topK: topK ? Number(topK) : 5,
-    });
-    const cfg = loadLlmConfig();
-    res.json({ ...result, _provider: cfg.provider, _model: cfg.model });
-  } catch (e: any) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-/* ============================== Audit ====================================== */
-router.post('/audit/run', llmLimiter, async (req: Request, res: Response) => {
-  try {
-    const { normas, escopoAtivo, contextoAdicional } = req.body || {};
-    const list = Array.isArray(normas) && normas.length > 0 ? normas : ['lgpd', 'bacen-4658', 'sdl-ciweb'];
-    const result = await audit.runAudit({ normas: list, escopoAtivo, contextoAdicional });
     const cfg = loadLlmConfig();
     res.json({ ...result, _provider: cfg.provider, _model: cfg.model });
   } catch (e: any) {

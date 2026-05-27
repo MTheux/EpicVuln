@@ -26,10 +26,24 @@ services:
       - DATABASE_URL=postgresql://vulncontrol:vulncontrol@db:5432/vulncontrol
       - PORT=9001
       - SEED_ADMIN_PASSWORD=Admin@123
+      - MEMPALACE_URL=http://mempalace:9002
     volumes:
       - backend_data:/app/data
     depends_on:
       - db
+    restart: unless-stopped
+
+  mempalace:
+    build:
+      context: ./mempalace
+      dockerfile: Dockerfile
+    container_name: aisec_mempalace
+    ports:
+      - "9002:9002"
+    volumes:
+      - mempalace_data:/data
+    environment:
+      - MEMPALACE_DATA=/data/chroma
     restart: unless-stopped
 
   frontend:
@@ -51,3 +65,4 @@ services:
 volumes:
   pgdata:
   backend_data:
+  mempalace_data:
