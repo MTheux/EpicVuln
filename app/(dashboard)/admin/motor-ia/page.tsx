@@ -131,18 +131,18 @@ const skills: Skill[] = [
     href: "/pentest/zekrom",
   },
   {
-    name: "Codex",
+    name: "WSO2 Hub",
     icon: Hammer,
-    tagline: "Code Intelligence (Forge + Code Analyzer + JSHunter)",
+    tagline: "API Inventory + Spec Sanity",
     status: "shipped",
-    description: "Hub de inteligência de código-fonte da Caixa. Pull de repos via GitLab (manual/auto), findings do SonarQube por branch, Swagger das APIs no WSO2. Também aceita upload manual de bundle/source (JS, ASP.NET, COBOL). Output: SAST regex local + IA contextual com mitigação aplicada à stack Caixa.",
+    description: "Sincroniza inventário de APIs do WSO2 API Manager da Caixa. Pra cada API: extrai OpenAPI/Swagger automático e roda Spec Sanity — 12 regras determinísticas que apontam localhost leak, security ausente, $ref quebrado, PII em examples, HTTP sem TLS, versionamento ruim. Bridge direta pro Zekrom DAST.",
     triggers: [
-      "Pentester precisa ler código antes do pentest dinâmico",
-      "Nova branch publicada — quer findings SonarQube + IA",
-      "API nova no WSO2 — auto-extrai Swagger e alimenta Zekrom",
+      "Nova API publicada no WSO2 (sync agendado)",
+      "Pentester quer auditar config de Swagger antes do DAST",
+      "Auditoria de inventário de APIs Caixa",
     ],
-    uses: "Multi-AI · integra GitLab + SonarQube + WSO2 · 100% local quando upload manual · human review obrigatório",
-    href: "/pentest/forge",
+    uses: "Determinístico (sem IA) · zero egress · feed Zekrom · roadmap: live mode WSO2 OAuth2",
+    href: "/pentest/wso2",
   },
 ]
 
@@ -331,9 +331,9 @@ export default function AdminMotorIaPage() {
           <div className="text-[11px] uppercase tracking-wider text-emerald-300/70 font-bold mb-2">Código & Repositórios</div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {[
-              { id: "gitlab", name: "GitLab", emoji: "🦊", desc: "Repos JS, ASP.NET, COBOL — pull manual ou auto via webhook.", status: "planned", consumers: ["Codex"] },
-              { id: "sonarqube", name: "SonarQube", emoji: "📊", desc: "Findings SAST + quality gate por branch.", status: "planned", consumers: ["Codex", "HackBot"] },
-              { id: "wso2", name: "WSO2 API Manager", emoji: "🌐", desc: "Lista APIs publicadas + pega Swagger automático.", status: "planned", consumers: ["Zekrom", "Codex"] },
+              { id: "gitlab", name: "GitLab", emoji: "🦊", desc: "Repos JS, ASP.NET, COBOL — pull manual ou auto via webhook.", status: "planned", consumers: ["HackBot"] },
+              { id: "sonarqube", name: "SonarQube", emoji: "📊", desc: "Findings SAST + quality gate por branch.", status: "planned", consumers: ["HackBot", "Vulns"] },
+              { id: "wso2", name: "WSO2 API Manager", emoji: "🌐", desc: "Lista APIs publicadas + pega Swagger automático.", status: "configured", consumers: ["WSO2 Hub", "Zekrom"] },
             ].map((src) => <IntegSrcCard key={src.id} {...src} />)}
           </div>
         </div>

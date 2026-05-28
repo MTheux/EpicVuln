@@ -3,7 +3,6 @@ import multer from 'multer';
 import { LlmController } from './llm.controller';
 import { LlmService } from './llm.service';
 import { ZekromService } from './zekrom.service';
-import { ForgeService } from './forge.service';
 import { getRelevantPortfolio } from './portfolio-context.service';
 import { llmLimiter } from '../../rate-limiters';
 import { authenticate } from '../../middleware/auth.middleware';
@@ -13,7 +12,6 @@ const router = Router();
 const llmService = new LlmService();
 const llmController = new LlmController(llmService);
 const zekrom = new ZekromService(llmService);
-const forge = new ForgeService(llmService);
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -309,27 +307,6 @@ router.post('/zekrom/copilot-pack', async (req: Request, res: Response) => {
 });
 
 /* ============================================================================ */
-/* ============================== Forge ====================================== */
-router.post('/forge/modernize', llmLimiter, async (req: Request, res: Response) => {
-  try {
-    const { sourceCode, legacyLang, targetFramework, contexto, withTests } = req.body || {};
-    if (!sourceCode || !String(sourceCode).trim()) {
-      return res.status(400).json({ error: 'sourceCode obrigatório' });
-    }
-    const result = await forge.modernize({
-      sourceCode,
-      legacyLang: legacyLang || 'auto',
-      targetFramework: targetFramework || 'aspnet-core-8',
-      contexto,
-      withTests: withTests !== false,
-    });
-    const cfg = loadLlmConfig();
-    res.json({ ...result, _provider: cfg.provider, _model: cfg.model });
-  } catch (e: any) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
 /* ============================================================================ */
 
 router.get('/config', (req: Request, res: Response) => {

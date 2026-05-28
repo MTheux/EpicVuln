@@ -17,6 +17,7 @@ import mcpRoutes from './mcp/mcp.routes';
 import activityRoutes from './activity/activity.routes';
 import mfaRoutes from './mfa/mfa.routes';
 import memoryRoutes from './memory/memory.routes';
+import wso2Routes from './wso2/wso2.routes';
 
 const router = Router();
 
@@ -38,5 +39,6 @@ router.use('/mcp', mcpRoutes);
 router.use('/activity', activityRoutes);
 router.use('/mfa', mfaRoutes);
 router.use('/memory', memoryRoutes);
+router.use('/wso2', wso2Routes);
 
 export default router;

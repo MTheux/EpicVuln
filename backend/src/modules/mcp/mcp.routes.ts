@@ -2,7 +2,6 @@ import { Router, Request, Response } from 'express';
 import { authenticate } from '../../middleware/auth.middleware';
 import { LlmService } from '../llm/llm.service';
 import { ZekromService } from '../llm/zekrom.service';
-import { ForgeService } from '../llm/forge.service';
 
 /**
  * MCP (Model Context Protocol) — server stub.
@@ -21,7 +20,6 @@ router.use(authenticate);
 
 const llm = new LlmService();
 const zekrom = new ZekromService(llm);
-const forge = new ForgeService(llm);
 
 interface McpTool {
   name: string;
@@ -107,18 +105,21 @@ const tools: McpTool[] = [
     },
   },
   {
-    name: 'forge_modernize',
-    description: 'Forge skill — recebe código legado (COBOL, ASP.NET Framework, VB.NET, WebForms, Classic ASP) e devolve equivalente em ASP.NET Core 8 + testes xUnit + diff de segurança + mapa de refactoring SDL CIWEB. Human review obrigatório antes do merge.',
+    name: 'wso2_sync',
+    description: 'WSO2 Hub — sincroniza lista de APIs do WSO2 API Manager. Retorna inventário com nome, versão, status, contexto, securityScheme.',
     inputSchema: {
       type: 'object',
-      properties: {
-        sourceCode: { type: 'string', description: 'Código legado completo' },
-        legacyLang: { type: 'string', enum: ['cobol', 'aspnet-framework', 'vb-net', 'webforms', 'classic-asp', 'auto'] },
-        targetFramework: { type: 'string', enum: ['aspnet-core-8', 'aspnet-core-6'] },
-        contexto: { type: 'string', description: 'Contexto adicional (sistema, intenção)' },
-        withTests: { type: 'boolean', description: 'Gerar testes xUnit (default true)' },
-      },
-      required: ['sourceCode'],
+      properties: { live: { type: 'boolean', description: 'true=usa WSO2 real (precisa config), false=mock' } },
+      required: [],
+    },
+  },
+  {
+    name: 'wso2_spec_sanity',
+    description: 'WSO2 Hub — Spec Sanity linter. Recebe OpenAPI JSON e devolve findings (localhost leak, HTTP, security ausente, $ref quebrado, PII em examples, versioning, paths inconsistentes). Score 0-100.',
+    inputSchema: {
+      type: 'object',
+      properties: { spec: { type: 'object', description: 'OpenAPI 3.x spec object' } },
+      required: ['spec'],
     },
   },
 ];
@@ -164,14 +165,9 @@ router.post('/invoke/:tool', async (req: Request, res: Response) => {
           imageMime: args.imageMime || null,
         });
         break;
-      case 'forge_modernize':
-        result = await forge.modernize({
-          sourceCode: String(args.sourceCode || ''),
-          legacyLang: args.legacyLang || 'auto',
-          targetFramework: args.targetFramework || 'aspnet-core-8',
-          contexto: args.contexto,
-          withTests: args.withTests !== false,
-        });
+      case 'wso2_sync':
+      case 'wso2_spec_sanity':
+        result = { ok: true, note: 'Use endpoints REST /api/wso2/sync e /api/wso2/lint diretamente.' };
         break;
       case 'jwt_decode_analyze': {
         const token = String(args.token || '');

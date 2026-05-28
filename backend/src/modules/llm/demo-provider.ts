@@ -27,9 +27,6 @@ export async function demoRespond(systemPrompt: string, userMessage: string): Pr
 
   // ----- New AISEC skills FIRST (their prompts may mention generic keywords that match older handlers) -----
   // Forge: code modernization
-  if (p.includes('forge') && p.includes('modernizedcode')) {
-    return JSON.stringify(demoForge(userMessage));
-  }
   // Mirror: threat modeling com RAG
   if (p.includes('mirror') && p.includes('attacktree')) {
     return JSON.stringify(demoMirror(systemPrompt, userMessage));

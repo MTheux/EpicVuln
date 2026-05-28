@@ -48,17 +48,17 @@ const skills: Skill[] = [
     outputs: ["Plano OWASP por endpoint", "Payloads + cURL", "Copilot prompt pack (.md)"],
   },
   {
-    name: "Forge",
+    name: "WSO2 Hub",
     icon: Hammer,
-    tagline: "Code Modernization Assistant",
+    tagline: "API Inventory + Spec Sanity (sem IA)",
     description:
-      "Modernização assistida por IA — recebe código legado (COBOL, ASP.NET Framework, VB.NET, WebForms, Classic ASP) e gera versão equivalente em ASP.NET Core 8 com testes xUnit + diff de segurança SDL CIWEB. Eco direto do framework Unisys entregue à NI.",
-    owasp: "SDL CIWEB · Refatoração segura",
-    href: "/pentest/forge",
+      "Sincroniza com WSO2 API Manager pra listar todas as APIs publicadas. Pra cada API extrai Swagger automático e roda 12 regras determinísticas de Spec Sanity (localhost leak, security ausente, $ref quebrado, PII em examples, HTTPS, versionamento). Bridge direto pro Zekrom DAST.",
+    owasp: "OWASP API Top 10 2023 · Gateway Security",
+    href: "/pentest/wso2",
     status: "shipped",
-    color: "from-orange-500/30 to-red-500/30 border-orange-500/40",
-    inputs: ["Arquivo COBOL/legado", "Spec funcional", "Estilo Caixa"],
-    outputs: ["Código C# equivalente", "Testes xUnit", "Diff de segurança + checklist review"],
+    color: "from-purple-500/30 to-sky-500/30 border-purple-500/40",
+    inputs: ["WSO2 Gateway URL + OAuth2", "Swagger JSON auto-extraído"],
+    outputs: ["Inventário APIs", "Spec Sanity score 0-100", "Findings priorizados", "Bridge Zekrom"],
   },
 ]
 
@@ -129,7 +129,7 @@ export default function FrameworkPage() {
             <div className="p-3">AISEC Framework (AppSec/ASPM)</div>
           </div>
           {[
-            ["Assistentes generativos automatizando processos manuais", "Skills agênticas (Zekrom, Forge) por domínio"],
+            ["Assistentes generativos automatizando processos manuais", "Skills agênticas (Zekrom, WSO2 Hub) por domínio"],
             ["OpenAI Assistants + GPT-4o", "Multi-provider: GitHub Models (approved), Ollama (local), demo, externos"],
             ["Treinado no repositório de código existente da NI", "RAG sobre Base de Conhecimento Caixa (docs, regulatórios, código)"],
             ["Plugin Eclipse developer-installable, self-service", "Extensão VSCode/Copilot (roadmap) — squads instalam direto"],

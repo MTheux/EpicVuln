@@ -16,7 +16,7 @@ import {
   ScrollText,
   Sparkles,
   Zap,
-  Hammer,
+  Globe,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { authHeaders, getUser } from "@/lib/auth"
@@ -58,13 +58,13 @@ export const navGroups: NavGroup[] = [
     label: "Pentest",
     items: [
       { href: "/pentest/jwt-inspector", label: "JWT Inspector", icon: ListChecks, badge: "Novo" },
+      { href: "/pentest/wso2", label: "WSO2 Hub", icon: Globe, badge: "Novo" },
       { href: "/pentest/unisystem", label: "Burp Zekrom", icon: Shield, badge: "Beta" },
     ],
   },
   {
     label: "Skills AISEC",
     items: [
-      { href: "/pentest/forge", label: "Codex · Code Intelligence", icon: Hammer, badge: "Skill" },
       { href: "/pentest/zekrom", label: "Zekrom · DAST", icon: Zap, badge: "Skill" },
     ],
   },
