@@ -133,7 +133,7 @@ export interface IntegracaoRtc {
   workItemsImportados: number
 }
 
-export type AssetType = 'API' | 'Web App' | 'Mobile' | 'Infra' | 'Database' | 'Cloud Service' | 'IoT' | 'Outro'
+export type AssetType = 'API' | 'Web App' | 'Infra' | 'Database' | 'Cloud Service' | 'Outro'
 export type BusinessCriticality = 'Critical' | 'High' | 'Medium' | 'Low'
 export type AssetStatus = 'Active' | 'Inactive' | 'Decommissioned'
 

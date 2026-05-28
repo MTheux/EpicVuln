@@ -250,8 +250,8 @@ export default function VulnerabilidadeDetalhePage({ params }: PageProps) {
       const typeMap: Record<string, string> = {
         'API': 'API',
         'WEB_APP': 'Web App',
-        'MOBILE': 'Mobile',
         'INFRA': 'Infra',
+        'DATABASE': 'Database',
       }
       await createAsset({
         name: newAssetName.trim(),

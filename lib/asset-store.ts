@@ -56,11 +56,9 @@ const safeFetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<
 const reverseAssetType: Record<string, AssetType> = {
   'API': 'API',
   'WEB_APP': 'Web App',
-  'MOBILE': 'Mobile',
   'INFRA': 'Infra',
   'DATABASE': 'Database',
   'CLOUD_SERVICE': 'Cloud Service',
-  'IOT': 'IoT',
   'OUTRO': 'Outro',
 }
 
@@ -80,11 +78,9 @@ const reverseAssetStatus: Record<string, AssetStatus> = {
 const forwardAssetType: Record<string, string> = {
   'API': 'API',
   'Web App': 'WEB_APP',
-  'Mobile': 'MOBILE',
   'Infra': 'INFRA',
   'Database': 'DATABASE',
   'Cloud Service': 'CLOUD_SERVICE',
-  'IoT': 'IOT',
   'Outro': 'OUTRO',
 }
 

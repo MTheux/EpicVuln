@@ -73,6 +73,7 @@ export const navGroups: NavGroup[] = [
     adminOnly: true,
     items: [
       { href: "/admin/motor-ia", label: "Motor IA & Skills", icon: Sparkles, badge: "IA" },
+      { href: "/admin/guardian", label: "AISEC Guardian", icon: Shield, badge: "Novo" },
       { href: "/admin/activity-graph", label: "Activity Graph", icon: Activity, badge: "Live" },
       { href: "/admin/auditoria", label: "Auditoria & Logs IA", icon: ScrollText },
     ],

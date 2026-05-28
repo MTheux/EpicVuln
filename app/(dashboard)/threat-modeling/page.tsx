@@ -8,7 +8,7 @@ import Link from "next/link"
 const modelos = [
   { nome: "Caixa Internet Banking — Auth Flow", produto: "Caixa Internet Banking", ameacas: 23, mitigadas: 18, status: "Em revisão" },
   { nome: "PIX Core — Transação E2E", produto: "PIX Caixa Core", ameacas: 31, mitigadas: 27, status: "Aprovado" },
-  { nome: "App Mobile — Onboarding KYC", produto: "App Caixa Mobile", ameacas: 19, mitigadas: 12, status: "Em revisão" },
+  { nome: "API Pagamentos — Auth Flow", produto: "WSO2 Pagamentos", ameacas: 19, mitigadas: 12, status: "Em revisão" },
   { nome: "Backoffice SIACI — Originação", produto: "Backoffice SIACI", ameacas: 15, mitigadas: 14, status: "Aprovado" },
 ]
 

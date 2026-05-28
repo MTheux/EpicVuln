@@ -23,7 +23,7 @@ import type { Criticidade, Status, OwaspCategory, Complexidade } from "@/lib/typ
 import { loadAllSquads, NewSquadButton } from "@/components/new-squad-button"
 
 const criticidades: Criticidade[] = ['Crítica', 'Alta', 'Média', 'Baixa', 'Informativa']
-const sistemas = ['App Pl', 'App Mais', 'Autorizadores', 'Cartão Mais Website', 'Cleo', 'Cyber', 'Unisys Website', 'Credline Digital', 'Cloud', 'Impulse Up', 'Legal Manager', 'Odonto Website', 'Onplug', 'PontoTel', 'Portal do Cartão', 'Portal do Cartão Mobile', 'Portal Lojista', 'Privacidade Website', 'Portal SSO', 'RHSSO', 'Servidor', 'SFC Web', 'URA', 'Websystem', 'Workstation']
+const sistemas = ['SIACI Originação API', 'SIACI Financeiro API', 'SIACI Portal Web', 'SIACI Portal Público', 'SIACI WSO2 Gateway', 'SIACI Cobol Batch', 'SIACI Admin Console', 'SIACI Auth', 'SIACI Notificações API', 'SIACI Reports Web']
 const ambientes = ['Produção', 'Homologação', 'Desenvolvimento']
 const origens: ('Pentest' | 'DAST' | 'SAST' | 'SCA' | 'Bug Bounty' | 'Manual' | 'Monitoramento' | 'Code Review')[] = [
   'Pentest', 'DAST', 'SAST', 'SCA', 'Bug Bounty', 'Manual', 'Monitoramento', 'Code Review'

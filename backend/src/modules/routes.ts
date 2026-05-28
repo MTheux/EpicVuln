@@ -18,6 +18,7 @@ import activityRoutes from './activity/activity.routes';
 import mfaRoutes from './mfa/mfa.routes';
 import memoryRoutes from './memory/memory.routes';
 import wso2Routes from './wso2/wso2.routes';
+import guardianRoutes from './guardian/guardian.routes';
 
 const router = Router();
 
@@ -40,5 +41,6 @@ router.use('/activity', activityRoutes);
 router.use('/mfa', mfaRoutes);
 router.use('/memory', memoryRoutes);
 router.use('/wso2', wso2Routes);
+router.use('/guardian', guardianRoutes);
 
 export default router;

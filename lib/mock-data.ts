@@ -324,7 +324,7 @@ export const squads: Squad[] = [
   { nome: 'Frontend', vulnerabilidades: 8, criticas: 1, vencidas: 0 },
   { nome: 'DevOps', vulnerabilidades: 12, criticas: 2, vencidas: 1 },
   { nome: 'Infraestrutura', vulnerabilidades: 10, criticas: 2, vencidas: 2 },
-  { nome: 'Mobile', vulnerabilidades: 5, criticas: 0, vencidas: 0 },
+  { nome: 'WSO2 / Gateway', vulnerabilidades: 7, criticas: 1, vencidas: 1 },
 ]
 
 export const notificacoes: Notificacao[] = [
